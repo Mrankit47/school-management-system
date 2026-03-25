@@ -1,13 +1,16 @@
 import React from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import authService from '../../services/authService';
+import useAuthStore from '../../store/authStore';
 
 const Navbar = () => {
     const navigate = useNavigate();
     const user = authService.getCurrentUser();
+    const { logout } = useAuthStore();
 
     const handleLogout = () => {
-        authService.logout();
+        // Keep Zustand auth state and localStorage in sync.
+        logout();
         navigate('/login');
     };
 

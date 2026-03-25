@@ -25,6 +25,7 @@ import TeacherMessaging from '../pages/teacher/Messaging';
 
 // Admin
 import AdminDashboard from '../pages/admin/Dashboard';
+import AddTeacher from '../pages/admin/AddTeacher';
 import AdminProfile from '../pages/admin/Profile';
 import ManageStudents from '../pages/admin/ManageStudents';
 import ManageTeachers from '../pages/admin/ManageTeachers';
@@ -72,6 +73,7 @@ const AppRoutes = () => {
             <Route path="/admin/*" element={<ProtectedRoute allowedRoles={['admin']}>
               <Routes>
                 <Route path="dashboard" element={<AdminDashboard />} />
+                <Route path="add-teacher" element={<AddTeacher />} />
                 <Route path="profile" element={<AdminProfile />} />
                 <Route path="manage-students" element={<ManageStudents />} />
                 <Route path="manage-teachers" element={<ManageTeachers />} />

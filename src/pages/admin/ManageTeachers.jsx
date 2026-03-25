@@ -14,10 +14,10 @@ const ManageTeachers = () => {
 
     return (
         <div style={{ padding: '20px' }}>
-            <h1>Manage Teachers</h1>
+            <h1>Teacher List</h1>
             <table border="1" cellPadding="10" style={{ width: '100%', borderCollapse: 'collapse' }}>
                 <thead>
-                    <tr><th>Employee ID</th><th>Name</th><th>Email</th><th>Specialization</th></tr>
+                    <tr><th>Employee ID</th><th>Name</th><th>Specialization</th></tr>
                 </thead>
                 <tbody>
                     {teachers.map((t) => (

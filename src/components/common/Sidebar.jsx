@@ -29,9 +29,10 @@ const Sidebar = () => {
         ],
         admin: [
             { path: '/admin/dashboard', label: 'Add Student' },
-            { path: '/admin/manage-students', label: 'Users List' },
-            { path: '/admin/manage-teachers', label: 'Teachers' },
-            { path: '/admin/classes', label: 'Classes' },
+            { path: '/admin/add-teacher', label: 'Add Teacher' },
+            { path: '/admin/manage-students', label: 'Student List' },
+            { path: '/admin/manage-teachers', label: 'Teacher List' },
+            { path: '/admin/classes', label: 'Classes & Sections' },
             { path: '/admin/assign-teacher', label: 'Assign Teacher' },
             { path: '/admin/exams', label: 'Exams' },
             { path: '/admin/fees', label: 'Finance' },
