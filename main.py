@@ -18,7 +18,7 @@ from accounts.models import User
 from students.models import StudentProfile
 from teachers.models import TeacherProfile
 from attendance.models import Attendance
-from classes.models import ClassSection
+from classes.models import ClassSection, MainClass, MainSection
 from academics.models import Exam, Result
 from fees.models import StudentFee
 

@@ -18,6 +18,7 @@ class UserManager(BaseUserManager):
         return self.create_user(username, email, password, **extra_fields)
 
 class User(AbstractUser):
+    objects = UserManager()
     ROLE_CHOICES = (
         ('admin', 'Admin'),
         ('teacher', 'Teacher'),
