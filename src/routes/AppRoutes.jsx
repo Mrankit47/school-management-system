@@ -50,10 +50,15 @@ const AppRoutes = () => {
                 <Route path="notifications" element={<Notifications />} />
                 <Route path="profile" element={<StudentProfile />} />
                 <Route path="results" element={<StudentResults />} />
+                <Route path="results/exam" element={<StudentResults />} />
+                <Route path="results/mst" element={<StudentResults />} />
                 <Route path="assignments" element={<StudentAssignments />} />
                 <Route path="timetable" element={<StudentTimetable />} />
                 <Route path="attendance" element={<StudentAttendance />} />
                 <Route path="fees" element={<StudentFees />} />
+                <Route path="ledger" element={<StudentFees />} />
+                <Route path="contact" element={<StudentDashboard />} />
+                <Route path="syllabus" element={<StudentDashboard />} />
               </Routes>
             </ProtectedRoute>} />
 

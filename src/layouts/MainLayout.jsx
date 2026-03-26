@@ -4,13 +4,13 @@ import Sidebar from '../components/common/Sidebar';
 
 const MainLayout = ({ children }) => {
     return (
-        <div className="flex min-h-screen bg-[#f8fafc] overflow-hidden">
-            {/* Sidebar remains fixed on the left */}
-            <Sidebar />
+        <div className="h-screen flex flex-col bg-[#f8fafc] overflow-hidden">
+            {/* Full-width Navbar at the very top */}
+            <Navbar />
             
-            <div className="flex-1 flex flex-col min-w-0">
-                {/* Navbar is sticky at the top of the content area */}
-                <Navbar />
+            <div className="flex flex-1 min-h-0 overflow-hidden">
+                {/* Sidebar now sits below the Navbar */}
+                <Sidebar />
                 
                 <main className="flex-1 overflow-y-auto p-4 md:p-8 custom-scrollbar">
                     <div className="max-w-7xl mx-auto">

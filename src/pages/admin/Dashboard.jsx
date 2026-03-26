@@ -171,41 +171,41 @@ const AdminDashboard = () => {
                             </div>
                         </div>
 
-                        {/* Recent Activity / Calendar Placeholder */}
-                        <div className="lg:col-span-4 bg-slate-900 p-8 rounded-[2.5rem] text-white shadow-2xl shadow-slate-900/30 relative overflow-hidden">
-                            <div className="absolute top-0 right-0 w-32 h-32 bg-school-blue/10 blur-3xl rounded-full -mr-16 -mt-16"></div>
-                            <h3 className="font-poppins font-bold text-white text-lg mb-8 flex items-center gap-2">
-                                <span className="w-2 h-2 rounded-full bg-school-sky"></span>
+                        {/* Recent Activity / Calendar Placeholder (Light Theme) */}
+                        <div className="lg:col-span-4 bg-white/80 backdrop-blur-xl p-8 rounded-[2.5rem] border border-slate-100 shadow-xl shadow-slate-200/40 relative overflow-hidden group hover:shadow-2xl hover:shadow-school-blue/10 transition-all duration-500">
+                            <div className="absolute top-0 right-0 w-32 h-32 bg-school-blue/5 blur-3xl rounded-full -mr-16 -mt-16 group-hover:bg-school-blue/10 transition-colors"></div>
+                            <h3 className="font-poppins font-bold text-school-text text-lg mb-8 flex items-center gap-2">
+                                <span className="w-2 h-2 rounded-full bg-school-blue animate-pulse"></span>
                                 Academic Calendar
                             </h3>
                             <div className="grid grid-cols-7 gap-2 text-center mb-6">
                                 {['S','M','T','W','T','F','S'].map(d => (
-                                    <span key={d} className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{d}</span>
+                                    <span key={d} className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{d}</span>
                                 ))}
                             </div>
                             <div className="grid grid-cols-7 gap-2">
                                 {Array.from({length: 31}, (_, i) => (
                                     <div 
                                         key={i} 
-                                        className={`aspect-square flex items-center justify-center text-xs rounded-xl transition-all cursor-pointer border
+                                        className={`aspect-square flex items-center justify-center text-[11px] rounded-xl transition-all cursor-pointer border
                                             ${i+1 === new Date().getDate() 
-                                                ? 'bg-gradient-to-br from-school-blue to-school-sky text-white font-bold border-transparent shadow-lg shadow-school-blue/40' 
-                                                : 'hover:bg-white/10 text-slate-400 border-white/5'}`}
+                                                ? 'bg-gradient-to-br from-school-navy to-school-blue text-white font-black border-transparent shadow-lg shadow-school-blue/30 scale-110 z-10' 
+                                                : 'hover:bg-slate-50 text-slate-600 font-bold border-slate-50 hover:border-slate-100 hover:text-school-navy'}`}
                                     >
                                         {i+1}
                                     </div>
                                 ))}
                             </div>
                             <div className="mt-10 space-y-5">
-                                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em]">Upcoming Events</p>
-                                <div className="p-4 bg-white/5 rounded-2xl border border-white/5 hover:bg-white/10 transition-colors group cursor-pointer">
+                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] pl-1">Upcoming Events</p>
+                                <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 hover:bg-white hover:shadow-md transition-all group/event cursor-pointer">
                                     <div className="flex gap-4 items-center">
-                                        <div className="w-10 h-10 rounded-xl bg-red-500/20 flex items-center justify-center text-red-400 font-bold text-xs ring-1 ring-red-500/30">
+                                        <div className="w-10 h-10 rounded-xl bg-red-100 flex items-center justify-center text-red-500 font-black text-xs ring-4 ring-red-50 group-hover/event:scale-110 transition-transform">
                                             28
                                         </div>
                                         <div className="flex flex-col">
-                                            <span className="text-xs font-bold text-white group-hover:text-school-sky transition-colors">Exam Prep Week</span>
-                                            <span className="text-[10px] text-slate-500">Starts in 2 days</span>
+                                            <span className="text-xs font-black text-slate-800 group-hover/event:text-school-navy transition-colors">Exam Prep Week</span>
+                                            <span className="text-[10px] font-bold text-slate-400 uppercase">Starts in 2 days</span>
                                         </div>
                                     </div>
                                 </div>
@@ -213,47 +213,6 @@ const AdminDashboard = () => {
                         </div>
                     </div>
 
-                    {/* Students List Section */}
-                    <div className="space-y-6 pt-6">
-                        <div className="flex items-end justify-between px-2">
-                            <div>
-                                <h2 className="text-3xl font-poppins font-black text-school-text tracking-tight">Registered <span className="text-school-blue">Students</span></h2>
-                                <div className="h-1.5 w-12 bg-school-blue/20 rounded-full mt-2"></div>
-                            </div>
-                            <button className="px-4 py-2 bg-slate-50 text-[10px] font-bold text-school-navy border border-slate-100 rounded-xl hover:bg-white hover:shadow-md transition-all uppercase tracking-widest">
-                                Expand Directory →
-                            </button>
-                        </div>
-                        {studentsLoading ? (
-                            <div className="bg-white/50 backdrop-blur-sm p-20 rounded-[2.5rem] border border-slate-100 text-center">
-                                <div className="animate-spin inline-block w-10 h-10 border-[3px] border-current border-t-transparent text-school-navy rounded-full mb-6"></div>
-                                <p className="text-slate-400 font-poppins font-medium uppercase tracking-widest text-xs">Syncing academic records...</p>
-                            </div>
-                        ) : (
-                            <StudentCards students={students} refreshStudents={fetchCounts} />
-                        )}
-                    </div>
-
-                    {/* Teachers List Section */}
-                    <div className="space-y-6 pt-12">
-                        <div className="flex items-end justify-between px-2">
-                            <div>
-                                <h2 className="text-3xl font-poppins font-black text-school-text tracking-tight">Faculty <span className="text-school-sky">Directory</span></h2>
-                                <div className="h-1.5 w-12 bg-school-sky/20 rounded-full mt-2"></div>
-                            </div>
-                            <button className="px-4 py-2 bg-slate-50 text-[10px] font-bold text-school-blue border border-slate-100 rounded-xl hover:bg-white hover:shadow-md transition-all uppercase tracking-widest">
-                                Full Faculty List →
-                            </button>
-                        </div>
-                        {studentsLoading ? (
-                            <div className="bg-white/50 backdrop-blur-sm p-20 rounded-[2.5rem] border border-slate-100 text-center">
-                                <div className="animate-spin inline-block w-10 h-10 border-[3px] border-current border-t-transparent text-school-blue rounded-full mb-6"></div>
-                                <p className="text-slate-400 font-poppins font-medium uppercase tracking-widest text-xs">Accessing faculty vault...</p>
-                            </div>
-                        ) : (
-                            <TeacherCards teachers={teachers} refreshTeachers={fetchCounts} />
-                        )}
-                    </div>
                 </div>
             )}
 

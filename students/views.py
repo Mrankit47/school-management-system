@@ -185,3 +185,39 @@ class AdminStudentCreateView(views.APIView):
             return Response({"message": "Student created successfully"}, status=status.HTTP_201_CREATED)
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+class StudentProfileView(views.APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        if request.user.role != 'student':
+            return Response({"error": "Only students can access this profile"}, status=status.HTTP_403_FORBIDDEN)
+        
+        s = (
+            StudentProfile.objects.select_related(
+                'user',
+                'class_section__class_ref',
+                'class_section__section_ref',
+            )
+            .filter(user=request.user)
+            .first()
+        )
+        if not s:
+            return Response({"error": "Student profile not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        return Response({
+            "id": s.id,
+            "admission_number": s.admission_number,
+            "name": s.user.name or s.user.username,
+            "username": s.user.username,
+            "email": s.user.email,
+            "class_name": (
+                f"{s.class_section.class_ref.name} - {s.class_section.section_ref.name}"
+                if s.class_section else "N/A"
+            ),
+            "section_name": s.class_section.section_ref.name if s.class_section else "N/A",
+            "class_ref_name": s.class_section.class_ref.name if s.class_section else "N/A",
+            "date_of_admission": s.date_of_admission,
+            "dob": s.dob,
+            "gender": s.gender,
+        })
