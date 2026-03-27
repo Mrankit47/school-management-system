@@ -4,7 +4,7 @@ import StudentCards from './StudentCards';
 
 const AdminDashboard = () => {
     const [formData, setFormData] = useState({
-        email: '', password: '',
+        email: '', password: '', confirm_password: '',
         first_name: '', last_name: '', name: '',
         admission_number: '',
         class_id: '', section_id: ''
@@ -24,6 +24,7 @@ const AdminDashboard = () => {
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [students, setStudents] = useState([]);
     const [studentsLoading, setStudentsLoading] = useState(false);
+    const parentPhoneDigits = (formData.parent_contact_number || '').replace(/\D/g, '').slice(0, 10);
 
     const inputStyle = {
         width: '100%',
@@ -67,6 +68,16 @@ const AdminDashboard = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        const password = formData.password || '';
+        const confirm = formData.confirm_password || '';
+        if (password !== confirm) {
+            setMessage('Error: Password and confirm password do not match.');
+            return;
+        }
+        if (parentPhoneDigits.length !== 10) {
+            setMessage('Error: Parent contact number must be exactly 10 digits.');
+            return;
+        }
         try {
             // `name` kept for backward compatibility; backend also uses first/last.
             const payload = { ...formData };
@@ -88,6 +99,7 @@ const AdminDashboard = () => {
             payload.username = emailLocal ? emailLocal : (generatedFromName && generatedFromName !== '.' ? generatedFromName : 'student');
 
             payload.name = `${formData.first_name} ${formData.last_name}`.trim();
+            payload.parent_contact_number = `+91${parentPhoneDigits}`;
             await api.post('students/admin-create/', payload);
             setMessage('Student created successfully!');
             await fetchStudents();
@@ -95,6 +107,7 @@ const AdminDashboard = () => {
             setFormData({
                 email: '',
                 password: '',
+                confirm_password: '',
                 first_name: '',
                 last_name: '',
                 name: '',
@@ -137,9 +150,18 @@ const AdminDashboard = () => {
             </div>
 
             {isFormOpen && (
-                <div style={{ border: '1px solid #e5e7eb', padding: '24px', width: '520px', backgroundColor: '#fff', borderRadius: '10px', marginTop: '16px' }}>
+                <div
+                    style={{
+                        border: '1px solid #e5e7eb',
+                        padding: '22px',
+                        width: '100%',
+                        backgroundColor: '#fff',
+                        borderRadius: '16px',
+                        marginTop: '18px',
+                    }}
+                >
                     <h3>Quick Addition: New Student</h3>
-                    <form onSubmit={handleSubmit} style={{ display: 'grid', gap: '12px' }}>
+                    <form onSubmit={handleSubmit} style={{ display: 'grid', gap: '18px' }}>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                         <div>
                             <div style={labelStyle}>First Name</div>
@@ -184,6 +206,18 @@ const AdminDashboard = () => {
                             placeholder="Password"
                             value={formData.password}
                             onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                            style={inputStyle}
+                            required
+                        />
+                    </div>
+
+                    <div>
+                        <div style={labelStyle}>Confirm Password</div>
+                        <input
+                            type="password"
+                            placeholder="Confirm Password"
+                            value={formData.confirm_password || ''}
+                            onChange={(e) => setFormData({ ...formData, confirm_password: e.target.value })}
                             style={inputStyle}
                             required
                         />
@@ -262,14 +296,27 @@ const AdminDashboard = () => {
 
                     <div>
                         <div style={labelStyle}>Parent Contact Number</div>
-                        <input
-                            type="text"
-                            placeholder="Parent Contact Number"
-                            value={formData.parent_contact_number}
-                            onChange={(e) => setFormData({ ...formData, parent_contact_number: e.target.value })}
-                            style={inputStyle}
-                            required
-                        />
+                        <div style={{ display: 'grid', gridTemplateColumns: '70px 1fr', gap: '8px' }}>
+                            <input
+                                type="text"
+                                value="+91"
+                                disabled
+                                style={{ ...inputStyle, textAlign: 'center', backgroundColor: '#f9fafb', color: '#6b7280' }}
+                            />
+                            <input
+                                type="tel"
+                                inputMode="numeric"
+                                pattern="[0-9]{10}"
+                                placeholder="10-digit number"
+                                value={parentPhoneDigits}
+                                onChange={(e) => {
+                                    const digits = (e.target.value || '').replace(/\D/g, '').slice(0, 10);
+                                    setFormData({ ...formData, parent_contact_number: digits });
+                                }}
+                                style={inputStyle}
+                                required
+                            />
+                        </div>
                     </div>
 
                     <div>
@@ -345,7 +392,7 @@ const AdminDashboard = () => {
                         Create Student
                     </button>
                 </form>
-                {message && <p style={{ color: 'green' }}>{message}</p>}
+                {message && <p style={{ color: message.startsWith('Error') ? '#dc2626' : 'green' }}>{message}</p>}
             </div>
 
             )}

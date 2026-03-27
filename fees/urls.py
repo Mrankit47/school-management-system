@@ -1,7 +1,33 @@
 from django.urls import path
-from .views import MyFeesView, AdminFeeUpdateView
+
+from .views import (
+    MyFeesView,
+    StudentReceiptPDFView,
+    FeeStructureListCreateView,
+    FeeStructureDetailView,
+    AdminStudentFeeListView,
+    AdminStudentFeeDetailView,
+    AdminStudentFeeCreateView,
+    AdminSyncClassFeesView,
+    AdminPaymentCreateView,
+    AdminReceiptPDFView,
+    AdminFeesDashboardView,
+    AdminFeesExportCSVView,
+    AdminPaymentReminderView,
+)
 
 urlpatterns = [
     path('my/', MyFeesView.as_view(), name='my-fees'),
-    path('admin/pay/<int:fee_id>/', AdminFeeUpdateView.as_view(), name='admin-pay-fee'),
+    path('my/receipt/<int:payment_id>/', StudentReceiptPDFView.as_view(), name='student-receipt-pdf'),
+    path('admin/dashboard/', AdminFeesDashboardView.as_view(), name='fees-admin-dashboard'),
+    path('admin/structures/', FeeStructureListCreateView.as_view(), name='fee-structures'),
+    path('admin/structures/<int:pk>/', FeeStructureDetailView.as_view(), name='fee-structure-detail'),
+    path('admin/student-fees/', AdminStudentFeeListView.as_view(), name='admin-student-fees'),
+    path('admin/student-fees/<int:pk>/', AdminStudentFeeDetailView.as_view(), name='admin-student-fee-detail'),
+    path('admin/student-fees/create/', AdminStudentFeeCreateView.as_view(), name='admin-student-fee-create'),
+    path('admin/sync-class/', AdminSyncClassFeesView.as_view(), name='admin-sync-class-fees'),
+    path('admin/payments/', AdminPaymentCreateView.as_view(), name='admin-payment-create'),
+    path('admin/receipt/<int:payment_id>/', AdminReceiptPDFView.as_view(), name='admin-receipt-pdf'),
+    path('admin/export/csv/', AdminFeesExportCSVView.as_view(), name='fees-export-csv'),
+    path('admin/reminder/', AdminPaymentReminderView.as_view(), name='fees-payment-reminder'),
 ]

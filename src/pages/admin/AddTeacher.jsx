@@ -1,5 +1,6 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import api from '../../services/api';
+import TeacherCards from './TeacherCards';
 
 const AddTeacher = () => {
     const inputStyle = {
@@ -55,6 +56,22 @@ const AddTeacher = () => {
     const [message, setMessage] = useState('');
     const [busy, setBusy] = useState(false);
 
+    const [isFormOpen, setIsFormOpen] = useState(false);
+    const [teachers, setTeachers] = useState([]);
+    const [teachersLoading, setTeachersLoading] = useState(false);
+
+    const fetchTeachers = async () => {
+        setTeachersLoading(true);
+        try {
+            const res = await api.get('teachers/');
+            setTeachers(res.data);
+        } catch (e) {
+            setTeachers([]);
+        } finally {
+            setTeachersLoading(false);
+        }
+    };
+
     const specializationOptions = useMemo(
         () => [
             'Mathematics',
@@ -82,7 +99,7 @@ const AddTeacher = () => {
         else if (!emailRegex.test(form.email.trim())) nextErrors.email = 'Enter a valid email address';
 
         if (!form.phone_number.trim()) nextErrors.phone_number = 'Phone number is required';
-        else if (phoneDigits.length < 10) nextErrors.phone_number = 'Phone number must be at least 10 digits';
+        else if (phoneDigits.length !== 10) nextErrors.phone_number = 'Phone number must be exactly 10 digits';
 
         if (!form.gender) nextErrors.gender = 'Gender is required';
         if (!form.dob) nextErrors.dob = 'Date of birth is required';
@@ -127,6 +144,12 @@ const AddTeacher = () => {
         return safeLocal ? `${safeLocal}${suffix ? `_${suffix}` : ''}` : `teacher_${suffix || 'user'}`;
     };
 
+    useEffect(() => {
+        fetchTeachers();
+        // fetchTeachers already sets loading states
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         setMessage('');
@@ -145,18 +168,20 @@ const AddTeacher = () => {
                 subject_specialization: form.subject_specialization,
 
                 // Extra fields (backend may ignore but UI requirements are satisfied)
-                phone_number: phoneDigits,
+                phone_number: `+91${phoneDigits}`,
                 gender: form.gender,
                 dob: form.dob,
                 qualification: form.qualification,
                 experience_years: form.experience_years,
                 joining_date: form.joining_date,
                 status: form.status,
-                profile_image: form.profile_image_base64,
+                profile_image_base64: form.profile_image_base64,
             };
 
             await api.post('teachers/admin/create-teacher/', payload);
             setMessage('Teacher created successfully!');
+            await fetchTeachers();
+            setIsFormOpen(false);
             setForm({
                 first_name: '',
                 last_name: '',
@@ -185,11 +210,29 @@ const AddTeacher = () => {
     };
 
     return (
-        <div style={{ padding: '20px', display: 'flex', justifyContent: 'center' }}>
-            <div style={{ width: '100%', maxWidth: '720px' }}>
-                <h1 style={{ marginTop: 0 }}>Add Teacher</h1>
+        <div style={{ padding: '20px' }}>
+            <div style={{ width: '100%' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px' }}>
+                    <h1 style={{ margin: 0 }}>Add Teacher</h1>
+                    <button
+                        type="button"
+                        onClick={() => setIsFormOpen(true)}
+                        style={{
+                            backgroundColor: '#1e40af',
+                            color: '#fff',
+                            border: 'none',
+                            cursor: 'pointer',
+                            padding: '10px 14px',
+                            borderRadius: '10px',
+                            fontWeight: 800,
+                        }}
+                    >
+                        + Add
+                    </button>
+                </div>
 
-                <div style={{ border: '1px solid #e5e7eb', padding: '22px', backgroundColor: '#fff', borderRadius: '16px' }}>
+                {isFormOpen && (
+                    <div style={{ border: '1px solid #e5e7eb', padding: '22px', backgroundColor: '#fff', borderRadius: '16px', marginTop: '18px' }}>
                     <form onSubmit={handleSubmit} style={{ display: 'grid', gap: '18px' }}>
                         <div>
                             <h3 style={{ margin: 0, marginBottom: '12px', color: '#111827' }}>Section: Personal Information</h3>
@@ -236,14 +279,27 @@ const AddTeacher = () => {
 
                                 <div>
                                     <div style={labelStyle}>Phone Number</div>
-                                    <input
-                                        type="tel"
-                                        value={form.phone_number}
-                                        onChange={(e) => setForm({ ...form, phone_number: e.target.value })}
-                                        placeholder="Enter phone number"
-                                        style={inputStyle}
-                                        required
-                                    />
+                                    <div style={{ display: 'grid', gridTemplateColumns: '70px 1fr', gap: '8px' }}>
+                                        <input
+                                            type="text"
+                                            value="+91"
+                                            disabled
+                                            style={{ ...inputStyle, textAlign: 'center', backgroundColor: '#f9fafb', color: '#6b7280' }}
+                                        />
+                                        <input
+                                            type="tel"
+                                            inputMode="numeric"
+                                            pattern="[0-9]{10}"
+                                            value={phoneDigits}
+                                            onChange={(e) => {
+                                                const digits = (e.target.value || '').replace(/\D/g, '').slice(0, 10);
+                                                setForm({ ...form, phone_number: digits });
+                                            }}
+                                            placeholder="10-digit phone number"
+                                            style={inputStyle}
+                                            required
+                                        />
+                                    </div>
                                     {errors.phone_number && <div style={errorStyle}>{errors.phone_number}</div>}
                                 </div>
 
@@ -442,6 +498,18 @@ const AddTeacher = () => {
                         </div>
                     </form>
                 </div>
+                )}
+
+                {!isFormOpen && (
+                    <div style={{ marginTop: '24px' }}>
+                        <h2 style={{ marginBottom: '12px' }}>Teachers</h2>
+                        {teachersLoading ? (
+                            <p>Loading teachers...</p>
+                        ) : (
+                            <TeacherCards teachers={teachers} refreshTeachers={fetchTeachers} />
+                        )}
+                    </div>
+                )}
             </div>
         </div>
     );

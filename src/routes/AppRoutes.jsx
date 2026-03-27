@@ -13,6 +13,7 @@ import StudentAssignments from '../pages/student/Assignments';
 import StudentTimetable from '../pages/student/Timetable';
 import StudentFees from '../pages/student/Fees';
 import StudentAttendance from '../pages/student/Attendance';
+import StudentHolidays from '../pages/student/Holidays';
 
 // Teacher
 import TeacherDashboard from '../pages/teacher/Dashboard';
@@ -22,6 +23,7 @@ import MarkAttendance from '../pages/teacher/MarkAttendance';
 import UploadResult from '../pages/teacher/UploadResult';
 import TeacherAssignment from '../pages/teacher/Assignment';
 import TeacherMessaging from '../pages/teacher/Messaging';
+import TeacherHolidays from '../pages/teacher/Holidays';
 
 // Admin
 import AdminDashboard from '../pages/admin/Dashboard';
@@ -35,6 +37,8 @@ import AdminExams from '../pages/admin/Exams';
 import AdminFees from '../pages/admin/Fees';
 import AdminHolidays from '../pages/admin/Holidays';
 import AdminReports from '../pages/admin/Reports';
+import AdminSubjects from '../pages/admin/Subjects';
+import SubjectDetails from '../pages/admin/SubjectDetails';
 
 const AppRoutes = () => {
     return (
@@ -53,6 +57,7 @@ const AppRoutes = () => {
                 <Route path="timetable" element={<StudentTimetable />} />
                 <Route path="attendance" element={<StudentAttendance />} />
                 <Route path="fees" element={<StudentFees />} />
+                <Route path="holidays" element={<StudentHolidays />} />
               </Routes>
             </ProtectedRoute>} />
 
@@ -66,6 +71,7 @@ const AppRoutes = () => {
                 <Route path="upload-result" element={<UploadResult />} />
                 <Route path="assignment" element={<TeacherAssignment />} />
                 <Route path="messaging" element={<TeacherMessaging />} />
+                <Route path="holidays" element={<TeacherHolidays />} />
               </Routes>
             </ProtectedRoute>} />
 
@@ -79,6 +85,8 @@ const AppRoutes = () => {
                 <Route path="manage-teachers" element={<ManageTeachers />} />
                 <Route path="classes" element={<AdminClasses />} />
                 <Route path="assign-teacher" element={<AssignTeacher />} />
+                <Route path="subjects" element={<AdminSubjects />} />
+                <Route path="subjects/:subjectId" element={<SubjectDetails />} />
                 <Route path="exams" element={<AdminExams />} />
                 <Route path="fees" element={<AdminFees />} />
                 <Route path="holidays" element={<AdminHolidays />} />

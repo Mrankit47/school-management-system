@@ -89,9 +89,17 @@ const StudentCards = ({ students, refreshStudents }) => {
     const saveEdit = async (e) => {
         e.preventDefault();
         if (!editStudent || !editForm) return;
+        const parentDigits = (editForm.parent_contact_number || '').replace(/\D/g, '').slice(0, 10);
+        if (parentDigits.length !== 10) {
+            alert('Parent contact number must be exactly 10 digits');
+            return;
+        }
         setBusy(true);
         try {
-            await api.patch(`students/update/${editStudent.id}/`, editForm);
+            await api.patch(`students/update/${editStudent.id}/`, {
+                ...editForm,
+                parent_contact_number: `+91${parentDigits}`,
+            });
             await refreshStudents();
             closeModal();
         } catch (err) {
@@ -367,12 +375,25 @@ const StudentCards = ({ students, refreshStudents }) => {
 
                                 <div>
                                     <div style={labelStyle}>Parent Contact Number</div>
-                                    <input
-                                        type="text"
-                                        value={editForm.parent_contact_number}
-                                        onChange={(e) => setEditForm({ ...editForm, parent_contact_number: e.target.value })}
-                                        style={inputStyle}
-                                    />
+                                    <div style={{ display: 'grid', gridTemplateColumns: '70px 1fr', gap: '8px' }}>
+                                        <input
+                                            type="text"
+                                            value="+91"
+                                            disabled
+                                            style={{ ...inputStyle, textAlign: 'center', backgroundColor: '#f9fafb', color: '#6b7280' }}
+                                        />
+                                        <input
+                                            type="tel"
+                                            inputMode="numeric"
+                                            pattern="[0-9]{10}"
+                                            value={(editForm.parent_contact_number || '').replace(/\D/g, '').slice(0, 10)}
+                                            onChange={(e) => {
+                                                const digits = (e.target.value || '').replace(/\D/g, '').slice(0, 10);
+                                                setEditForm({ ...editForm, parent_contact_number: digits });
+                                            }}
+                                            style={inputStyle}
+                                        />
+                                    </div>
                                 </div>
 
                                 <div>

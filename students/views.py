@@ -50,6 +50,34 @@ class StudentListView(views.APIView):
         ])
 
 
+class StudentsByClassSectionView(views.APIView):
+    """
+    Returns students for a specific `ClassSection`.
+    Used by teacher result upload to implement Exam -> Class -> Student flow.
+    """
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request, class_section_id: int):
+        if request.user.role not in ('teacher', 'admin'):
+            return Response({"error": "Not allowed"}, status=status.HTTP_403_FORBIDDEN)
+
+        records = (
+            StudentProfile.objects.select_related('user')
+            .filter(class_section_id=class_section_id)
+            .order_by('id')
+        )
+
+        return Response([
+            {
+                "id": s.id,
+                "name": s.user.name or s.user.username,
+                "username": s.user.username,
+            }
+            for s in records
+        ])
+
+
 class StudentDetailView(views.APIView):
     permission_classes = [IsAdmin]
 
