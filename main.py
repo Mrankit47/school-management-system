@@ -18,7 +18,7 @@ from accounts.models import User
 from students.models import StudentProfile
 from teachers.models import TeacherProfile
 from attendance.models import Attendance
-from classes.models import ClassSection
+from classes.models import ClassSection, MainClass, MainSection
 from academics.models import Exam, Result
 from fees.models import StudentFee
 
@@ -88,12 +88,12 @@ class AttendanceSchema(BaseModel):
 def read_root():
     return {"message": "School System is running on FastAPI with Django ORM!"}
 
-@app.get("/api/v1/users", response_model=List[UserSchema], tags=["Accounts"])
+@app.get("/api/users/", response_model=List[UserSchema], tags=["Accounts"])
 def get_users():
     users = User.objects.all()
     return [UserSchema(id=u.id, username=u.username, email=u.email, role=u.role) for u in users]
 
-@app.post("/api/v1/auth/login", tags=["Auth"])
+@app.post("/api/auth/login/", tags=["Auth"])
 def login(data: LoginSchema):
     from django.contrib.auth import authenticate
     user = authenticate(username=data.username, password=data.password)
@@ -110,7 +110,7 @@ def login(data: LoginSchema):
         }
     raise HTTPException(status_code=401, detail="Invalid credentials")
 
-@app.get("/api/v1/accounts/profile/", tags=["Accounts"])
+@app.get("/api/accounts/profile/", tags=["Accounts"])
 def get_profile():
     # Since I don't have a real JWT implementation yet, 
     # and the frontend is just calling this after login,
@@ -125,7 +125,7 @@ def get_profile():
         "name": user.name or user.username
     }
 
-@app.get("/api/v1/students", response_model=List[StudentSchema], tags=["Students"])
+@app.get("/api/students/", response_model=List[StudentSchema], tags=["Students"])
 def get_students(class_id: Optional[int] = None):
     query = StudentProfile.objects.select_related('user', 'class_section__class_ref', 'class_section__section_ref')
     if class_id:
@@ -142,7 +142,7 @@ def get_students(class_id: Optional[int] = None):
         ) for s in students
     ]
 
-@app.post("/api/v1/students/admin/create-student/", tags=["Students"])
+@app.post("/api/students/admin/create-student/", tags=["Students"])
 def admin_create_student(data: StudentCreateSchema):
     if User.objects.filter(username=data.username).exists():
         raise HTTPException(status_code=400, detail="Username already exists")
@@ -184,7 +184,7 @@ def admin_create_student(data: StudentCreateSchema):
     
     return {"message": "Student created successfully", "id": student.id}
 
-@app.post("/api/v1/teachers/admin/create-teacher/", tags=["Teachers"])
+@app.post("/api/teachers/admin/create-teacher/", tags=["Teachers"])
 def admin_create_teacher(data: TeacherCreateSchema):
     if User.objects.filter(username=data.username).exists():
         raise HTTPException(status_code=400, detail="Username already exists")
@@ -205,7 +205,7 @@ def admin_create_teacher(data: TeacherCreateSchema):
     
     return {"message": "Teacher created successfully", "id": teacher.id}
 
-@app.get("/api/v1/teachers", response_model=List[TeacherSchema], tags=["Teachers"])
+@app.get("/api/teachers/", response_model=List[TeacherSchema], tags=["Teachers"])
 def get_teachers():
     teachers = TeacherProfile.objects.select_related('user').all()
     return [
@@ -217,7 +217,7 @@ def get_teachers():
         ) for t in teachers
     ]
 
-@app.get("/api/v1/attendance", response_model=List[AttendanceSchema], tags=["Attendance"])
+@app.get("/api/attendance/", response_model=List[AttendanceSchema], tags=["Attendance"])
 def get_attendance(student_id: Optional[int] = Query(None)):
     query = Attendance.objects.select_related('student__user')
     if student_id:
@@ -241,7 +241,7 @@ if os.path.exists("dist"):
 @app.get("/{full_path:path}", tags=["General"])
 async def serve_frontend(full_path: str):
     # Exclude API and Docs from being caught by frontend router
-    if full_path.startswith("api/v1") or full_path.startswith("docs") or full_path.startswith("openapi.json"):
+    if full_path.startswith("api/") or full_path.startswith("docs") or full_path.startswith("openapi.json"):
         raise HTTPException(status_code=404)
         
     # Serve index.html for all other routes (SPA)

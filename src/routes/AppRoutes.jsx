@@ -25,6 +25,8 @@ import TeacherMessaging from '../pages/teacher/Messaging';
 
 // Admin
 import AdminDashboard from '../pages/admin/Dashboard';
+import AddStudent from '../pages/admin/AddStudent';
+import AddTeacher from '../pages/admin/AddTeacher';
 import AdminProfile from '../pages/admin/Profile';
 import ManageStudents from '../pages/admin/ManageStudents';
 import ManageTeachers from '../pages/admin/ManageTeachers';
@@ -48,10 +50,15 @@ const AppRoutes = () => {
                 <Route path="notifications" element={<Notifications />} />
                 <Route path="profile" element={<StudentProfile />} />
                 <Route path="results" element={<StudentResults />} />
+                <Route path="results/exam" element={<StudentResults />} />
+                <Route path="results/mst" element={<StudentResults />} />
                 <Route path="assignments" element={<StudentAssignments />} />
                 <Route path="timetable" element={<StudentTimetable />} />
                 <Route path="attendance" element={<StudentAttendance />} />
                 <Route path="fees" element={<StudentFees />} />
+                <Route path="ledger" element={<StudentFees />} />
+                <Route path="contact" element={<StudentDashboard />} />
+                <Route path="syllabus" element={<StudentDashboard />} />
               </Routes>
             </ProtectedRoute>} />
 
@@ -72,6 +79,8 @@ const AppRoutes = () => {
             <Route path="/admin/*" element={<ProtectedRoute allowedRoles={['admin']}>
               <Routes>
                 <Route path="dashboard" element={<AdminDashboard />} />
+                <Route path="add-student" element={<AddStudent />} />
+                <Route path="add-teacher" element={<AddTeacher />} />
                 <Route path="profile" element={<AdminProfile />} />
                 <Route path="manage-students" element={<ManageStudents />} />
                 <Route path="manage-teachers" element={<ManageTeachers />} />
