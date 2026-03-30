@@ -29,15 +29,12 @@ const AdminDashboard = () => {
 
     const fetchCounts = async () => {
         try {
-            const [sRes, tRes] = await Promise.all([
-                api.get('students/'),
-                api.get('teachers/')
-            ]);
-            setStudents(sRes.data);
-            setTeachers(tRes.data);
-            setTeachersCount(tRes.data.length);
+            const res = await api.get('admin/dashboard/stats');
+            const data = res.data.data;
+            setStudents({ length: data.total_students });
+            setTeachersCount(data.total_teachers);
         } catch (e) {
-            console.error("Error fetching counts:", e);
+            console.error("Error fetching stats:", e);
         }
     };
 

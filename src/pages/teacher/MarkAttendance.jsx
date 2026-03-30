@@ -21,13 +21,13 @@ const MarkAttendance = () => {
     const markAttendance = async (studentId, status) => {
         try {
             await api.post('attendance/mark/', {
-                student: studentId,
+                class_id: selectedClass,
                 date: date,
-                status: status
+                records: [{ student_id: studentId, status: status }]
             });
             alert('Attendance marked!');
         } catch (err) {
-            alert('Error marking attendance.');
+            alert(err.response?.data?.message || 'Error marking attendance.');
         }
     };
 

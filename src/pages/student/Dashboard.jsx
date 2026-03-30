@@ -9,21 +9,18 @@ const StudentDashboard = () => {
 
     const today = new Intl.DateTimeFormat('en-US', { weekday: 'long' }).format(new Date());
 
+    const [lmsSubjects, setLmsSubjects] = useState([]);
+
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const [profileRes, timetableRes, noticeRes] = await Promise.all([
-                    api.get('students/profile/'),
-                    api.get('timetable/'),
-                    api.get('communication/my/')
-                ]);
-                setProfile(profileRes.data);
-                
-                // Filter timetable for today
-                const todaySlots = timetableRes.data.filter(slot => slot.day === today);
-                setTimetable(todaySlots);
-                
-                setNotices(noticeRes.data);
+                const res = await api.get('student/dashboard');
+                if (res.data && res.data.data) {
+                    const d = res.data.data;
+                    setProfile(d.profile);
+                    setTimetable(d.timetable);
+                    setLmsSubjects(d.lms_subjects);
+                }
             } catch (err) {
                 console.error("Error fetching dashboard data", err);
             } finally {
@@ -32,14 +29,6 @@ const StudentDashboard = () => {
         };
         fetchData();
     }, [today]);
-
-    // Placeholder data for LMS (as requested by user for missing backend)
-    const lmsSubjects = [
-        { code: 'CS101', name: 'Intro to Computer Science', instructor: 'Dr. Smith', progress: '65%' },
-        { code: 'MATH202', name: 'Advanced Calculus', instructor: 'Prof. Johnson', progress: '40%' },
-        { code: 'PHY105', name: 'Physics I (Mechanics)', instructor: 'Dr. Brown', progress: '80%' },
-        { code: 'ENG101', name: 'Communication Skills', instructor: 'Mrs. Davis', progress: '95%' }
-    ];
 
     if (isLoading) {
         return (
@@ -137,7 +126,7 @@ const StudentDashboard = () => {
                                                         <span className="text-slate-400">{sub.progress}</span>
                                                     </div>
                                                     <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden shadow-inner">
-                                                        <div className="bg-school-blue h-full rounded-full shadow-sm" style={{ width: sub.progress }}></div>
+                                                        <div className={`h-full rounded-full shadow-sm ${sub.progress === 'Completed' ? 'bg-emerald-500 w-full' : 'bg-school-blue w-1/2'}`}></div>
                                                     </div>
                                                 </div>
                                             </td>

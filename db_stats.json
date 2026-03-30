@@ -1,0 +1,31 @@
+{
+  "users": [
+    {
+      "id": 2,
+      "username": "student1",
+      "role": "student"
+    },
+    {
+      "id": 4,
+      "username": "teacher1",
+      "role": "teacher"
+    },
+    {
+      "id": 6,
+      "username": "student2",
+      "role": "student"
+    },
+    {
+      "id": 7,
+      "username": "teacher2_TCH-2026-002",
+      "role": "teacher"
+    },
+    {
+      "id": 1,
+      "username": "admin",
+      "role": "admin"
+    }
+  ],
+  "students_profile_count": 2,
+  "teachers_profile_count": 2
+}

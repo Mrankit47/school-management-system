@@ -1,0 +1,6 @@
+Traceback (most recent call last):
+  File "<string>", line 1, in <module>
+  File "C:\Users\Ankit\OneDrive\Desktop\EIC\school\main.py", line 282, in <module>
+    def get_class_attendance(class_id: int, date_str: str, user = Depends(get_current_user)):
+                                                                          ^^^^^^^^^^^^^^^^
+NameError: name 'get_current_user' is not defined

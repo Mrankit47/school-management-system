@@ -13,24 +13,41 @@ const Assignment = () => {
         e.preventDefault();
         try {
             await api.post('assignments/create/', formData);
-            alert('Assignment created!');
+            alert('Assignment created successfully!');
+            setFormData({ title: '', description: '', class_section: '', due_date: '', file_url: '' });
         } catch (err) {
-            alert('Error creating assignment.');
+            alert(err.response?.data?.message || 'Error creating assignment.');
         }
     };
 
     return (
-        <div style={{ padding: '20px' }}>
-            <h1>Create Assignment</h1>
-            <form onSubmit={handleSubmit} style={{ display: 'grid', gap: '10px', maxWidth: '400px' }}>
-                <input type="text" placeholder="Title" onChange={e => setFormData({...formData, title: e.target.value})} required style={{ padding: '10px' }} />
-                <textarea placeholder="Description" onChange={e => setFormData({...formData, description: e.target.value})} style={{ padding: '10px' }}></textarea>
-                <select onChange={e => setFormData({...formData, class_section: e.target.value})} required style={{ padding: '10px' }}>
-                    <option value="">-- Target Class --</option>
-                    {classes.map(c => <option key={c.id} value={c.id}>{c.class_name} - {c.section_name}</option>)}
-                </select>
-                <input type="date" onChange={e => setFormData({...formData, due_date: e.target.value})} required style={{ padding: '10px' }} />
-                <button type="submit" style={{ padding: '10px', backgroundColor: '#007bff', color: '#fff', border: 'none' }}>Create</button>
+        <div className="p-6 md:p-8 bg-gray-50 min-h-screen">
+            <h1 className="text-3xl font-black text-slate-800 mb-6">Create Assignment</h1>
+            <form onSubmit={handleSubmit} className="bg-white p-8 rounded-2xl shadow-sm border border-slate-100 max-w-xl space-y-4">
+                <div>
+                    <label className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1 block">Title</label>
+                    <input type="text" value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} required className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none" />
+                </div>
+                <div>
+                    <label className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1 block">Description</label>
+                    <textarea value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none h-24"></textarea>
+                </div>
+                <div>
+                    <label className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1 block">Target Class</label>
+                    <select value={formData.class_section} onChange={e => setFormData({...formData, class_section: e.target.value})} required className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none">
+                        <option value="">-- Select Class --</option>
+                        {classes.map(c => <option key={c.id} value={c.id}>{c.class_name} - {c.section_name}</option>)}
+                    </select>
+                </div>
+                <div>
+                    <label className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1 block">Due Date</label>
+                    <input type="date" value={formData.due_date} onChange={e => setFormData({...formData, due_date: e.target.value})} required className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none" />
+                </div>
+                <div>
+                    <label className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1 block">Resource URL (Optional)</label>
+                    <input type="url" value={formData.file_url} onChange={e => setFormData({...formData, file_url: e.target.value})} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none" />
+                </div>
+                <button type="submit" className="w-full py-4 mt-4 bg-indigo-600 text-white font-black rounded-xl hover:bg-indigo-700 transition">Create Assignment</button>
             </form>
         </div>
     );
