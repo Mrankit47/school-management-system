@@ -7,4 +7,17 @@ class TeacherProfileSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = TeacherProfile
-        fields = ['id', 'user', 'employee_id', 'subject_specialization']
+        fields = [
+            'id',
+            'user',
+            'employee_id',
+            'subject_specialization',
+            'phone_number',
+            'gender',
+            'dob',
+            'qualification',
+            'experience_years',
+            'joining_date',
+            'status',
+            'profile_image_base64',
+        ]
