@@ -154,15 +154,6 @@ const roles = [
     role: 'Student',
     desc: 'Access your results, timetable, assignments, attendance records, and notifications in one secure place.',
   },
-  {
-    icon: (
-      <svg className="w-8 h-8" fill="none" stroke="currentColor" strokeWidth="1.7" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-      </svg>
-    ),
-    role: 'Parent',
-    desc: 'Stay informed about your child\'s attendance, academic performance, fee payments, and school announcements.',
-  },
 ];
 
 /* ─── Stats ─── */
@@ -199,6 +190,7 @@ export default function LandingPage() {
   const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [isLoginOpen, setIsLoginOpen] = useState(false);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 64);
@@ -230,7 +222,7 @@ export default function LandingPage() {
   const aboutImage = 'https://images.unsplash.com/photo-1509062522246-3755977927d7?w=800&q=80&auto=format&fit=crop';
 
   return (
-    <div className="font-inter bg-white text-school-text min-h-screen">
+    <div className="font-inter bg-white text-school-text min-h-screen overflow-x-hidden">
 
       {/* ════════════ NAVBAR ════════════ */}
       <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
@@ -251,16 +243,43 @@ export default function LandingPage() {
           {/* Desktop nav */}
           <nav className="hidden md:flex items-center gap-8">
             {[['About', 'about'], ['Programmes', 'features'], ['Admissions', 'roles'], ['Contact', 'contact']].map(([label, id]) => (
-              <button key={id} onClick={() => scrollTo(id)} className="nav-link">{label}</button>
+              <button key={id} onClick={() => scrollTo(id)} className="nav-link font-semibold">{label}</button>
             ))}
           </nav>
 
-          {/* CTA */}
-          <div className="hidden md:flex items-center gap-3">
-            <button onClick={() => navigate('/login')}
-              className="btn-primary px-5 py-2.5 rounded-lg text-sm font-semibold">
-              Student Portal
+          {/* Dropdown Login CTA */}
+          <div className="hidden md:block relative">
+            <button 
+              onMouseEnter={() => setIsLoginOpen(true)}
+              onClick={() => setIsLoginOpen(!isLoginOpen)}
+              className="btn-primary px-6 py-2.5 rounded-xl text-sm font-bold shadow-lg shadow-school-navy/20 flex items-center gap-2 group"
+            >
+              Login 
+              <span className={`transition-transform duration-300 ${isLoginOpen ? 'rotate-180' : ''}`}>▼</span>
             </button>
+            
+            {/* Dropdown Menu */}
+            {isLoginOpen && (
+              <div 
+                onMouseLeave={() => setIsLoginOpen(false)}
+                className="absolute right-0 mt-2 w-48 bg-white rounded-2xl shadow-2xl border border-slate-100 py-2 animate-in fade-in zoom-in-95 duration-200"
+              >
+                {[
+                  { label: 'As Admin', role: 'admin' },
+                  { label: 'As Teacher', role: 'teacher' },
+                  { label: 'As Student', role: 'student' },
+                ].map((opt) => (
+                  <button
+                    key={opt.role}
+                    onClick={() => navigate(`/login?role=${opt.role}`)}
+                    className="w-full text-left px-5 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-school-navy transition-colors flex items-center justify-between group"
+                  >
+                    {opt.label}
+                    <span className="opacity-0 group-hover:opacity-100 transition-opacity">→</span>
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Hamburger */}
@@ -277,10 +296,12 @@ export default function LandingPage() {
             {[['About', 'about'], ['Programmes', 'features'], ['Admissions', 'roles'], ['Contact', 'contact']].map(([label, id]) => (
               <button key={id} onClick={() => scrollTo(id)} className="nav-link text-left py-1">{label}</button>
             ))}
-            <button onClick={() => navigate('/login')}
-              className="btn-primary mt-2 px-5 py-2.5 rounded-lg text-sm font-semibold text-center">
-              Student Portal
-            </button>
+            <div className="pt-2 border-t border-slate-50 flex flex-col gap-2">
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-1">Login Portals</p>
+              <button onClick={() => navigate('/login?role=admin')} className="flex items-center justify-between px-4 py-2 bg-slate-50 rounded-xl text-sm font-bold text-school-navy">Admin Portal <span>→</span></button>
+              <button onClick={() => navigate('/login?role=teacher')} className="flex items-center justify-between px-4 py-2 bg-slate-50 rounded-xl text-sm font-bold text-school-blue">Teacher Portal <span>→</span></button>
+              <button onClick={() => navigate('/login?role=student')} className="flex items-center justify-between px-4 py-2 bg-slate-50 rounded-xl text-sm font-bold text-school-sky">Student Portal <span>→</span></button>
+            </div>
           </div>
         )}
       </header>
@@ -318,16 +339,7 @@ export default function LandingPage() {
               confidence, creativity, and character in a rapidly changing world.
             </p>
 
-            <div className="flex flex-wrap gap-4">
-              <button onClick={() => scrollTo('features')}
-                className="btn-primary px-7 py-3.5 rounded-lg text-sm font-semibold">
-                Explore School
-              </button>
-              <button onClick={() => navigate('/login')}
-                className="btn-outline px-7 py-3.5 rounded-lg text-sm font-semibold">
-                Login Portal
-              </button>
-            </div>
+            {/* Buttons removed as requested */}
 
             {/* Quick stats strip */}
             <div className="mt-12 flex flex-wrap gap-8 pt-8 border-t border-slate-200">
@@ -479,10 +491,10 @@ export default function LandingPage() {
             </p>
           </div>
 
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="flex flex-wrap justify-center gap-8">
             {roles.map((r, i) => (
               <div key={i}
-                className={`rounded-xl border border-slate-200 p-7 card-lift flex flex-col items-start
+                className={`w-full max-w-[320px] rounded-xl border border-slate-200 p-8 card-lift flex flex-col items-start
                   ${rolesInView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'} transition-all duration-500`}
                 style={{ transitionDelay: `${i * 80}ms` }}>
                 <div className="w-14 h-14 rounded-xl flex items-center justify-center mb-5"
@@ -492,7 +504,7 @@ export default function LandingPage() {
                 <h3 className="font-semibold text-lg mb-2" style={{ color: '#0f172a' }}>{r.role}</h3>
                 <p className="text-sm text-school-body leading-relaxed mb-6 flex-1">{r.desc}</p>
                 <button
-                  onClick={() => navigate('/login')}
+                  onClick={() => navigate(`/login?role=${r.role.toLowerCase()}`)}
                   className="w-full btn-outline py-2.5 rounded-lg text-sm font-semibold text-center">
                   Login as {r.role}
                 </button>

@@ -1,290 +1,772 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import api from '../../services/api';
+import StudentCards from './StudentCards';
+import TeacherCards from './TeacherCards';
 
 const AdminDashboard = () => {
     const [counts, setCounts] = useState({ students: 0, teachers: 0, staff: 0 });
     const [recentStudents, setRecentStudents] = useState([]);
     const [loading, setLoading] = useState(true);
     const [formData, setFormData] = useState({
-        username: '', email: '', password: '', 
-        name: '', admission_number: '', class_section: ''
+        email: '', password: '', confirm_password: '',
+        first_name: '', last_name: '', name: '',
+        admission_number: '',
+        class_id: '', section_id: '',
+        dob: '',
+        gender: '',
+        blood_group: '',
+        parent_guardian_name: '',
+        parent_contact_number: '',
+        address: '',
+        date_of_admission: '',
+        category: '',
     });
-    const [teacherFormData, setTeacherFormData] = useState({
-        username: '', email: '', password: '', 
-        name: '', employee_id: '', subject_specialization: ''
-    });
-    const [message, setMessage] = useState({ text: '', type: '' });
+    const [mainClasses, setMainClasses] = useState([]);
+    const [mainSections, setMainSections] = useState([]);
+    const [message, setMessage] = useState('');
+    const [isFormOpen, setIsFormOpen] = useState(false);
+    const [students, setStudents] = useState([]);
+    const [teachers, setTeachers] = useState([]);
+    const [teachersCount, setTeachersCount] = useState(0);
+    const [studentsLoading, setStudentsLoading] = useState(false);
+    const parentPhoneDigits = (formData.parent_contact_number || '').replace(/\D/g, '').slice(0, 10);
+
+    const fetchCounts = async () => {
+        try {
+            const [sRes, tRes] = await Promise.all([
+                api.get('students/'),
+                api.get('teachers/')
+            ]);
+            setStudents(sRes.data);
+            setTeachers(tRes.data);
+            setTeachersCount(tRes.data.length);
+        } catch (e) {
+            console.error("Error fetching counts:", e);
+        }
+    };
+
+    const fetchClassesAndSections = async () => {
+        try {
+            const [cRes, sRes] = await Promise.all([
+                api.get('classes/main-classes/'),
+                api.get('classes/main-sections/')
+            ]);
+            setMainClasses(cRes.data);
+            setMainSections(sRes.data);
+        } catch (e) {
+            console.error("Error fetching class/sections:", e);
+        }
+    };
 
     useEffect(() => {
-        const fetchData = async () => {
-            try {
-                const [studentsRes, teachersRes] = await Promise.all([
-                    api.get('students/'),
-                    api.get('teachers/')
-                ]);
-                setCounts({
-                    students: studentsRes.data.length,
-                    teachers: teachersRes.data.length,
-                    staff: 12 // Placeholder for staff logic if not separate
-                });
-                setRecentStudents(studentsRes.data.slice(0, 5));
-                setLoading(false);
-            } catch (err) {
-                console.error("Error fetching dashboard data:", err);
-                setLoading(false);
-            }
-        };
-        fetchData();
+        setStudentsLoading(true);
+        Promise.all([fetchCounts(), fetchClassesAndSections()])
+            .finally(() => setStudentsLoading(false));
     }, []);
 
-    const handleSubmit = async (e, type) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
-        const endpoint = type === 'student' ? 'students/admin/create-student/' : 'teachers/admin/create-teacher/';
-        const data = type === 'student' ? formData : teacherFormData;
-        
+        const password = formData.password || '';
+        const confirm = formData.confirm_password || '';
+        if (password !== confirm) {
+            setMessage('Error: Password and confirm password do not match.');
+            return;
+        }
+        if (parentPhoneDigits.length !== 10) {
+            setMessage('Error: Parent contact number must be exactly 10 digits.');
+            return;
+        }
         try {
-            await api.post(endpoint, data);
-            setMessage({ text: `${type.charAt(0).toUpperCase() + type.slice(1)} created successfully!`, type: 'success' });
-            if (type === 'student') {
-                setFormData({ username: '', email: '', password: '', name: '', admission_number: '', class_section: '' });
-                // Re-fetch counts
-                const res = await api.get('students/');
-                setCounts(prev => ({ ...prev, students: res.data.length }));
-                setRecentStudents(res.data.slice(0, 5));
-            } else {
-                setTeacherFormData({ username: '', email: '', password: '', name: '', employee_id: '', subject_specialization: '' });
-                const res = await api.get('teachers/');
-                setCounts(prev => ({ ...prev, teachers: res.data.length }));
-            }
+            const payload = { ...formData };
+            const first = (formData.first_name || '').trim();
+            const last = (formData.last_name || '').trim();
+            const emailLocal = (formData.email || '').split('@')[0].trim().toLowerCase();
+            
+            payload.username = emailLocal || 'student';
+            payload.name = `${first} ${last}`.trim();
+
+<<<<<<< HEAD
+=======
+            // Prefer email-local-part (typically unique). Fallback to first/last.
+            payload.username = emailLocal ? emailLocal : (generatedFromName && generatedFromName !== '.' ? generatedFromName : 'student');
+
+            payload.name = `${formData.first_name} ${formData.last_name}`.trim();
+            payload.parent_contact_number = `+91${parentPhoneDigits}`;
+>>>>>>> shalini-rajput1
+            await api.post('students/admin-create/', payload);
+            setMessage('Student created successfully!');
+            await fetchCounts();
+            setIsFormOpen(false);
+            setFormData({
+<<<<<<< HEAD
+                email: '', password: '', first_name: '', last_name: '', name: '',
+                admission_number: '', class_id: '', section_id: '', dob: '',
+                gender: '', blood_group: '', parent_guardian_name: '',
+                parent_contact_number: '', address: '', date_of_admission: '', category: '',
+=======
+                email: '',
+                password: '',
+                confirm_password: '',
+                first_name: '',
+                last_name: '',
+                name: '',
+                admission_number: '',
+                class_id: '',
+                section_id: '',
+                dob: '',
+                gender: '',
+                blood_group: '',
+                parent_guardian_name: '',
+                parent_contact_number: '',
+                address: '',
+                date_of_admission: '',
+                category: '',
+>>>>>>> shalini-rajput1
+            });
+            setTimeout(() => setMessage(''), 3000);
         } catch (err) {
-            setMessage({ text: `Error creating ${type}.`, type: 'error' });
+            setMessage('Error creating student.');
+            setTimeout(() => setMessage(''), 3000);
         }
         setTimeout(() => setMessage({ text: '', type: '' }), 3000);
     };
 
     return (
+<<<<<<< HEAD
         <div className="space-y-8 animate-in fade-in duration-500">
-            {/* Page Title */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            {/* Header Section */}
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 pb-4">
                 <div>
-                    <h1 className="text-2xl font-bold text-school-text">Admin Dashboard</h1>
-                    <p className="text-sm text-school-body">Welcome back! Here's what's happening today.</p>
+                    <h1 className="text-4xl font-poppins font-black text-school-text tracking-tight">
+                        Admin <span className="text-transparent bg-clip-text bg-gradient-to-r from-school-navy to-school-blue">Dashboard</span>
+                    </h1>
+                    <p className="text-sm text-school-body font-medium mt-1">Management Overview & Academic Control Center</p>
                 </div>
                 <div className="flex gap-3">
-                    <button className="px-4 py-2 bg-white border border-slate-200 rounded-xl text-sm font-semibold text-school-body hover:bg-slate-50 transition-colors shadow-sm">
-                        Export Report
-                    </button>
-                    <button className="px-4 py-2 bg-school-navy text-white rounded-xl text-sm font-semibold hover:bg-school-blue transition-colors shadow-md shadow-school-navy/20">
-                        + New Registration
-                    </button>
-                </div>
+                    <button 
+                        onClick={() => setIsFormOpen(!isFormOpen)}
+                        className={`px-6 py-3 rounded-2xl text-sm font-bold transition-all duration-300 shadow-xl flex items-center gap-2 ${
+                            isFormOpen 
+                            ? 'bg-white border border-slate-200 text-school-body hover:bg-slate-50 shadow-slate-200/50' 
+                            : 'bg-gradient-to-r from-school-navy to-school-blue text-white hover:shadow-school-blue/20 hover:-translate-y-0.5 active:scale-95'
+                        }`}
+=======
+        <div style={{ padding: '20px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px' }}>
+                <h1 style={{ margin: 0 }}>Add Student</h1>
+                <button
+                    type="button"
+                    onClick={() => setIsFormOpen(true)}
+                    style={{
+                        backgroundColor: '#1e40af',
+                        color: '#fff',
+                        border: 'none',
+                        cursor: 'pointer',
+                        padding: '10px 14px',
+                        borderRadius: '10px',
+                        fontWeight: 700,
+                    }}
+                >
+                    + Add
+                </button>
             </div>
 
-            {/* Layout Grid */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-                
-                {/* Main Content (L-C) */}
-                <div className="lg:col-span-8 space-y-8">
-                    
-                    {/* Stats Section */}
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+            {isFormOpen && (
+                <div
+                    style={{
+                        border: '1px solid #e5e7eb',
+                        padding: '22px',
+                        width: '100%',
+                        backgroundColor: '#fff',
+                        borderRadius: '16px',
+                        marginTop: '18px',
+                    }}
+                >
+                    <h3>Quick Addition: New Student</h3>
+                    <form onSubmit={handleSubmit} style={{ display: 'grid', gap: '18px' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                        <div>
+                            <div style={labelStyle}>First Name</div>
+                            <input
+                                type="text"
+                                placeholder="First Name"
+                                value={formData.first_name}
+                                onChange={(e) => setFormData({ ...formData, first_name: e.target.value })}
+                                style={inputStyle}
+                                required
+                            />
+                        </div>
+                        <div>
+                            <div style={labelStyle}>Last Name</div>
+                            <input
+                                type="text"
+                                placeholder="Last Name"
+                                value={formData.last_name}
+                                onChange={(e) => setFormData({ ...formData, last_name: e.target.value })}
+                                style={inputStyle}
+                                required
+                            />
+                        </div>
+                    </div>
+
+                    <div>
+                        <div style={labelStyle}>Email</div>
+                        <input
+                            type="email"
+                            placeholder="Email"
+                            value={formData.email}
+                            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                            style={inputStyle}
+                            required
+                        />
+                    </div>
+
+                    <div>
+                        <div style={labelStyle}>Password</div>
+                        <input
+                            type="password"
+                            placeholder="Password"
+                            value={formData.password}
+                            onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                            style={inputStyle}
+                            required
+                        />
+                    </div>
+
+                    <div>
+                        <div style={labelStyle}>Confirm Password</div>
+                        <input
+                            type="password"
+                            placeholder="Confirm Password"
+                            value={formData.confirm_password || ''}
+                            onChange={(e) => setFormData({ ...formData, confirm_password: e.target.value })}
+                            style={inputStyle}
+                            required
+                        />
+                    </div>
+
+                    <div>
+                        <div style={labelStyle}>Admission Number</div>
+                        <input
+                            type="text"
+                            placeholder="Admission Number"
+                            value={formData.admission_number}
+                            onChange={(e) => setFormData({ ...formData, admission_number: e.target.value })}
+                            style={inputStyle}
+                            required
+                        />
+                    </div>
+
+                    <div>
+                        <div style={labelStyle}>Date of Birth (DOB)</div>
+                        <input
+                            type="date"
+                            value={formData.dob}
+                            onChange={(e) => setFormData({ ...formData, dob: e.target.value })}
+                            style={inputStyle}
+                            required
+                        />
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                        <div>
+                            <div style={labelStyle}>Gender</div>
+                            <select
+                                value={formData.gender}
+                                onChange={(e) => setFormData({ ...formData, gender: e.target.value })}
+                                required
+                                style={inputStyle}
+                            >
+                                <option value="">-- Select Gender --</option>
+                                <option value="Male">Male</option>
+                                <option value="Female">Female</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+                        <div>
+                            <div style={labelStyle}>Blood Group</div>
+                            <select
+                                value={formData.blood_group}
+                                onChange={(e) => setFormData({ ...formData, blood_group: e.target.value })}
+                                required
+                                style={inputStyle}
+                            >
+                                <option value="">-- Select Blood Group --</option>
+                                <option value="A+">A+</option>
+                                <option value="A-">A-</option>
+                                <option value="B+">B+</option>
+                                <option value="B-">B-</option>
+                                <option value="AB+">AB+</option>
+                                <option value="AB-">AB-</option>
+                                <option value="O+">O+</option>
+                                <option value="O-">O-</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div>
+                        <div style={labelStyle}>Parent/Guardian Name</div>
+                        <input
+                            type="text"
+                            placeholder="Parent/Guardian Name"
+                            value={formData.parent_guardian_name}
+                            onChange={(e) => setFormData({ ...formData, parent_guardian_name: e.target.value })}
+                            style={inputStyle}
+                            required
+                        />
+                    </div>
+
+                    <div>
+                        <div style={labelStyle}>Parent Contact Number</div>
+                        <div style={{ display: 'grid', gridTemplateColumns: '70px 1fr', gap: '8px' }}>
+                            <input
+                                type="text"
+                                value="+91"
+                                disabled
+                                style={{ ...inputStyle, textAlign: 'center', backgroundColor: '#f9fafb', color: '#6b7280' }}
+                            />
+                            <input
+                                type="tel"
+                                inputMode="numeric"
+                                pattern="[0-9]{10}"
+                                placeholder="10-digit number"
+                                value={parentPhoneDigits}
+                                onChange={(e) => {
+                                    const digits = (e.target.value || '').replace(/\D/g, '').slice(0, 10);
+                                    setFormData({ ...formData, parent_contact_number: digits });
+                                }}
+                                style={inputStyle}
+                                required
+                            />
+                        </div>
+                    </div>
+
+                    <div>
+                        <div style={labelStyle}>Residential Address</div>
+                        <input
+                            type="text"
+                            placeholder="Residential Address"
+                            value={formData.address}
+                            onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                            style={inputStyle}
+                            required
+                        />
+                    </div>
+
+                    <div>
+                        <div style={labelStyle}>Date of Admission</div>
+                        <input
+                            type="date"
+                            value={formData.date_of_admission}
+                            onChange={(e) => setFormData({ ...formData, date_of_admission: e.target.value })}
+                            style={inputStyle}
+                            required
+                        />
+                    </div>
+
+                    <div>
+                        <div style={labelStyle}>Category</div>
+                        <input
+                            type="text"
+                            placeholder="Category"
+                            value={formData.category}
+                            onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                            style={inputStyle}
+                            required
+                        />
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                        <div>
+                            <div style={labelStyle}>Class</div>
+                            <select
+                                value={formData.class_id}
+                                onChange={(e) => setFormData({ ...formData, class_id: e.target.value })}
+                                required
+                                style={inputStyle}
+                            >
+                                <option value="">-- Select Class --</option>
+                                {mainClasses.map((c) => (
+                                    <option key={c.id} value={c.id}>{c.name}</option>
+                                ))}
+                            </select>
+                        </div>
+                        <div>
+                            <div style={labelStyle}>Section</div>
+                            <select
+                                value={formData.section_id}
+                                onChange={(e) => setFormData({ ...formData, section_id: e.target.value })}
+                                required
+                                style={inputStyle}
+                            >
+                                <option value="">-- Select Section --</option>
+                                {mainSections.map((s) => (
+                                    <option key={s.id} value={s.id}>{s.name}</option>
+                                ))}
+                            </select>
+                        </div>
+                    </div>
+
+                    <button
+                        type="submit"
+                        style={{ backgroundColor: '#28a745', color: '#fff', padding: '12px 18px', border: 'none', cursor: 'pointer', borderRadius: '10px', width: '100%', fontWeight: 700 }}
+>>>>>>> shalini-rajput1
+                    >
+                        {isFormOpen ? '✕ Close Registration' : '＋ Register New Student'}
+                    </button>
+<<<<<<< HEAD
+                </div>
+=======
+                </form>
+                {message && <p style={{ color: message.startsWith('Error') ? '#dc2626' : 'green' }}>{message}</p>}
+>>>>>>> shalini-rajput1
+            </div>
+
+            {/* Dashboard Stats & Overview */}
+            {!isFormOpen && (
+                <div className="space-y-12 animate-in slide-in-from-bottom-4 duration-700">
+                    {/* Stats Cards */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                         {[
-                            { label: 'Total Students', count: counts.students, color: 'bg-blue-500', icon: '🎓' },
-                            { label: 'Total Teachers', count: counts.teachers, color: 'bg-indigo-500', icon: '👨‍🏫' },
-                            { label: 'Total Staff', count: counts.staff, color: 'bg-emerald-500', icon: '👔' },
+                            { label: 'Total Students', value: students.length, icon: '🎓', color: 'from-blue-500 to-school-blue', shadow: 'shadow-blue-500/20' },
+                            { label: 'Total Teachers', value: teachersCount, icon: '👨‍🏫', color: 'from-indigo-600 to-violet-500', shadow: 'shadow-indigo-500/20' },
+                            { label: 'Active Classes', value: mainClasses.length, icon: '🏫', color: 'from-emerald-500 to-teal-400', shadow: 'shadow-emerald-500/20' },
+                            { label: 'Total Sections', value: mainSections.length, icon: '🏢', color: 'from-amber-500 to-orange-400', shadow: 'shadow-amber-500/20' },
                         ].map((stat, i) => (
-                            <div key={i} className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 hover:shadow-md transition-shadow">
-                                <div className="flex items-center gap-4">
-                                    <div className={`w-12 h-12 rounded-xl ${stat.color} bg-opacity-10 flex items-center justify-center text-xl`}>
+                            <div key={i} className="group relative bg-white/80 backdrop-blur-xl p-8 rounded-[2.5rem] border border-slate-100 shadow-xl shadow-slate-200/40 hover:shadow-2xl hover:shadow-school-blue/10 transition-all duration-500 cursor-default hover:-translate-y-2 overflow-hidden">
+                                <div className={`absolute top-0 left-0 w-2 h-full bg-gradient-to-b ${stat.color} opacity-0 group-hover:opacity-100 transition-opacity`}></div>
+                                <div className="flex items-center gap-5 relative z-10">
+                                    <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${stat.color} flex items-center justify-center text-2xl shadow-lg ${stat.shadow} group-hover:rotate-6 transition-transform duration-500`}>
                                         {stat.icon}
                                     </div>
                                     <div>
-                                        <p className="text-xs font-bold text-school-body uppercase tracking-wider">{stat.label}</p>
-                                        <p className="text-2xl font-bold text-school-text mt-0.5">{loading ? '...' : stat.count}</p>
+                                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-1">{stat.label}</p>
+                                        <p className="text-3xl font-poppins font-black text-school-text">{studentsLoading ? '...' : stat.value}</p>
                                     </div>
                                 </div>
                             </div>
                         ))}
                     </div>
 
-                    {/* Chart & Tables Container */}
-                    <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
-                        <div className="p-6 border-b border-slate-50 flex items-center justify-between">
-                            <h3 className="font-bold text-school-text">Attendance Overview</h3>
-                            <select className="text-xs border-none bg-slate-50 rounded-lg px-3 py-1.5 focus:ring-0 cursor-pointer text-school-body font-semibold">
-                                <option>Last 7 Days</option>
-                                <option>Last 30 Days</option>
-                            </select>
-                        </div>
-                        <div className="p-6">
-                            {/* Custom SVG Chart Placeholder */}
-                            <div className="h-64 w-full flex items-end justify-between gap-2">
-                                {[65, 80, 45, 90, 70, 85, 95].map((h, i) => (
-                                    <div key={i} className="flex-1 flex flex-col items-center gap-2 group">
-                                        <div 
-                                            className="w-full bg-slate-100 rounded-t-lg relative overflow-hidden transition-all duration-500 group-hover:bg-school-navy/10"
-                                            style={{ height: '100%' }}
-                                        >
+                    {/* Chart & Activity Grid */}
+                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                        {/* Attendance Chart Mockup */}
+                        <div className="lg:col-span-8 bg-white/50 backdrop-blur-md p-8 rounded-[2.5rem] border border-slate-100 shadow-xl shadow-slate-200/30">
+                            <div className="flex items-center justify-between mb-10">
+                                <div>
+                                    <h3 className="font-poppins font-bold text-school-text text-lg">Attendance Overview</h3>
+                                    <p className="text-xs text-slate-400">Weekly student presence analytics</p>
+                                </div>
+                                <div className="flex items-center gap-3 px-4 py-2 bg-slate-50 rounded-xl border border-slate-100">
+                                    <span className="w-2.5 h-2.5 rounded-full bg-school-navy animate-pulse"></span>
+                                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Live Updates</span>
+                                </div>
+                            </div>
+                            <div className="h-64 flex items-end justify-between gap-4 px-2">
+                                {[85, 92, 78, 95, 88, 70, 92].map((h, i) => (
+                                    <div key={i} className="flex-1 flex flex-col items-center gap-4 group">
+                                        <div className="w-full bg-slate-50 rounded-2xl relative h-full overflow-hidden border border-slate-100/50">
                                             <div 
-                                                className="absolute bottom-0 left-0 right-0 bg-school-navy rounded-t-lg transition-all duration-1000 ease-out"
-                                                style={{ height: loading ? '0%' : `${h}%` }}
-                                            ></div>
+                                                className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-school-navy to-school-blue rounded-2xl transition-all duration-1000 ease-out shadow-lg shadow-school-blue/20"
+                                                style={{ height: `${h}%` }}
+                                            >
+                                                <div className="absolute top-2 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                    <span className="text-[9px] font-black text-white">{h}%</span>
+                                                </div>
+                                            </div>
                                         </div>
-                                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">Day {i+1}</span>
+                                        <span className="text-[10px] font-black text-slate-400 group-hover:text-school-navy transition-colors">Day {i+1}</span>
                                     </div>
                                 ))}
                             </div>
                         </div>
-                    </div>
 
-                    {/* Recent Registrations Table */}
-                    <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
-                        <div className="p-6 border-b border-slate-50">
-                            <h3 className="font-bold text-school-text">Recent Student Registrations</h3>
-                        </div>
-                        <div className="overflow-x-auto">
-                            <table className="w-full text-left">
-                                <thead className="bg-slate-50 text-[10px] uppercase tracking-widest text-slate-500 font-bold">
-                                    <tr>
-                                        <th className="px-6 py-4">ID</th>
-                                        <th className="px-6 py-4">Name</th>
-                                        <th className="px-6 py-4">Class</th>
-                                        <th className="px-6 py-4">Email</th>
-                                        <th className="px-6 py-4">Status</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-slate-50">
-                                    {loading ? (
-                                        <tr><td colSpan="5" className="px-6 py-8 text-center text-sm text-school-body">Loading data...</td></tr>
-                                    ) : recentStudents.map((s) => (
-                                        <tr key={s.id} className="hover:bg-slate-50 transition-colors group">
-                                            <td className="px-6 py-4 text-xs font-medium text-school-body">{s.admission_number}</td>
-                                            <td className="px-6 py-4">
-                                                <div className="flex items-center gap-3">
-                                                    <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center text-[10px] font-bold text-school-navy uppercase">
-                                                        {s.name.charAt(0)}
-                                                    </div>
-                                                    <span className="text-sm font-semibold text-school-text">{s.name}</span>
-                                                </div>
-                                            </td>
-                                            <td className="px-6 py-4 text-sm text-school-body">{s.class_name || 'N/A'}</td>
-                                            <td className="px-6 py-4 text-sm text-school-body">{s.email}</td>
-                                            <td className="px-6 py-4">
-                                                <span className="px-2.5 py-1 bg-green-50 text-green-600 rounded-full text-[10px] font-bold">Active</span>
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
-                        <div className="p-4 bg-slate-50 text-center">
-                            <button className="text-xs font-bold text-school-navy hover:underline">View All Students</button>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Right Panel (Sidebar Content) */}
-                <div className="lg:col-span-4 space-y-8">
-                    
-                    {/* Calendar Card */}
-                    <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
-                        <div className="flex items-center justify-between mb-6">
-                            <h3 className="font-bold text-school-text">Calendar</h3>
-                            <button className="text-xs text-school-navy font-bold">March 2026</button>
-                        </div>
-                        <div className="grid grid-cols-7 gap-2 mb-2">
-                            {['S','M','T','W','T','F','S'].map(d => (
-                                <div key={d} className="text-[10px] font-bold text-slate-400 text-center">{d}</div>
-                            ))}
-                        </div>
-                        <div className="grid grid-cols-7 gap-2">
-                            {Array.from({length: 31}, (_, i) => i + 1).map(day => (
-                                <div 
-                                    key={day} 
-                                    className={`aspect-square flex items-center justify-center text-xs rounded-lg cursor-pointer transition-all
-                                        ${day === 25 ? 'bg-school-navy text-white font-bold shadow-md' : 'text-school-text hover:bg-slate-50'}
-                                        ${[5, 12, 19, 26].includes(day) ? 'text-red-400' : ''}
-                                    `}
-                                >
-                                    {day}
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-
-                    {/* Schedule / Events */}
-                    <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
-                        <h3 className="font-bold text-school-text mb-6">Upcoming Events</h3>
-                        <div className="space-y-6">
-                            {[
-                                { title: 'Staff Meeting', time: '09:00 AM', type: 'Work', color: 'bg-blue-500' },
-                                { title: 'Parent-Teacher Meet', time: '11:30 AM', type: 'Event', color: 'bg-emerald-500' },
-                                { title: 'Annual Sports Day', time: '02:00 PM', type: 'Priority', color: 'bg-red-500' },
-                            ].map((event, i) => (
-                                <div key={i} className="flex gap-4 group cursor-pointer">
-                                    <div className="flex flex-col items-center">
-                                        <div className={`w-3 h-3 rounded-full ${event.color} ring-4 ring-white shadow-sm ring-opacity-20`}></div>
-                                        <div className="flex-1 w-px bg-slate-100 mt-2"></div>
+                        {/* Recent Activity / Calendar Placeholder (Light Theme) */}
+                        <div className="lg:col-span-4 bg-white/80 backdrop-blur-xl p-8 rounded-[2.5rem] border border-slate-100 shadow-xl shadow-slate-200/40 relative overflow-hidden group hover:shadow-2xl hover:shadow-school-blue/10 transition-all duration-500">
+                            <div className="absolute top-0 right-0 w-32 h-32 bg-school-blue/5 blur-3xl rounded-full -mr-16 -mt-16 group-hover:bg-school-blue/10 transition-colors"></div>
+                            <h3 className="font-poppins font-bold text-school-text text-lg mb-8 flex items-center gap-2">
+                                <span className="w-2 h-2 rounded-full bg-school-blue animate-pulse"></span>
+                                Academic Calendar
+                            </h3>
+                            <div className="grid grid-cols-7 gap-2 text-center mb-6">
+                                {['S','M','T','W','T','F','S'].map(d => (
+                                    <span key={d} className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{d}</span>
+                                ))}
+                            </div>
+                            <div className="grid grid-cols-7 gap-2">
+                                {Array.from({length: 31}, (_, i) => (
+                                    <div 
+                                        key={i} 
+                                        className={`aspect-square flex items-center justify-center text-[11px] rounded-xl transition-all cursor-pointer border
+                                            ${i+1 === new Date().getDate() 
+                                                ? 'bg-gradient-to-br from-school-navy to-school-blue text-white font-black border-transparent shadow-lg shadow-school-blue/30 scale-110 z-10' 
+                                                : 'hover:bg-slate-50 text-slate-600 font-bold border-slate-50 hover:border-slate-100 hover:text-school-navy'}`}
+                                    >
+                                        {i+1}
                                     </div>
-                                    <div>
-                                        <p className="text-sm font-bold text-school-text group-hover:text-school-navy transition-colors">{event.title}</p>
-                                        <div className="flex items-center gap-2 mt-1">
-                                            <span className="text-[10px] text-school-body font-medium">{event.time}</span>
-                                            <span className="w-1 h-1 bg-slate-300 rounded-full"></span>
-                                            <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">{event.type}</span>
+                                ))}
+                            </div>
+                            <div className="mt-10 space-y-5">
+                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] pl-1">Upcoming Events</p>
+                                <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 hover:bg-white hover:shadow-md transition-all group/event cursor-pointer">
+                                    <div className="flex gap-4 items-center">
+                                        <div className="w-10 h-10 rounded-xl bg-red-100 flex items-center justify-center text-red-500 font-black text-xs ring-4 ring-red-50 group-hover/event:scale-110 transition-transform">
+                                            28
+                                        </div>
+                                        <div className="flex flex-col">
+                                            <span className="text-xs font-black text-slate-800 group-hover/event:text-school-navy transition-colors">Exam Prep Week</span>
+                                            <span className="text-[10px] font-bold text-slate-400 uppercase">Starts in 2 days</span>
                                         </div>
                                     </div>
                                 </div>
-                            ))}
+                            </div>
                         </div>
-                        <button className="w-full mt-8 py-2.5 border border-dashed border-slate-300 rounded-xl text-xs font-bold text-slate-400 hover:border-school-navy hover:text-school-navy transition-all">
-                            + Add New Event
-                        </button>
                     </div>
 
-                    {/* Mini Forms Container (Refined existing logic) */}
-                    <div className="bg-slate-900 rounded-2xl p-6 text-white shadow-xl shadow-slate-900/20">
-                        <h3 className="font-bold text-lg mb-4">Quick Registration</h3>
-                        <div className="space-y-4">
-                            <form onSubmit={(e) => handleSubmit(e, 'student')} className="space-y-3">
-                                <p className="text-[10px] uppercase tracking-widest text-slate-400 font-bold">Student Profile</p>
-                                <input 
-                                    type="text" 
-                                    placeholder="Name" 
-                                    value={formData.name} 
-                                    onChange={e => setFormData({...formData, name: e.target.value})} 
-                                    className="w-full bg-slate-800 border-none rounded-xl px-4 py-2 text-sm focus:ring-2 focus:ring-school-blue outline-none placeholder-slate-500"
-                                />
-                                <div className="grid grid-cols-2 gap-2">
-                                    <input 
-                                        type="text" 
-                                        placeholder="Adm No" 
-                                        value={formData.admission_number} 
-                                        onChange={e => setFormData({...formData, admission_number: e.target.value})} 
-                                        className="w-full bg-slate-800 border-none rounded-xl px-4 py-2 text-sm focus:ring-2 focus:ring-school-blue outline-none placeholder-slate-500"
-                                    />
-                                    <input 
-                                        type="text" 
-                                        placeholder="Class-Sec" 
-                                        value={formData.class_section} 
-                                        onChange={e => setFormData({...formData, class_section: e.target.value})} 
-                                        className="w-full bg-slate-800 border-none rounded-xl px-4 py-2 text-sm focus:ring-2 focus:ring-school-blue outline-none placeholder-slate-500"
+                </div>
+            )}
+
+            {/* Registration Form UI */}
+            {isFormOpen && (
+                <div className="max-w-4xl mx-auto bg-white rounded-3xl border border-slate-100 shadow-xl overflow-hidden animate-in slide-in-from-bottom-5 duration-300">
+                    <div className="p-8 bg-slate-900 text-white relative">
+                        <h3 className="text-2xl font-bold">New Student Registration</h3>
+                        <p className="text-slate-400 text-sm mt-1">Fill in the details to create a new student account.</p>
+                        <div className="absolute right-8 top-8 opacity-20 text-6xl">🎓</div>
+                    </div>
+                    
+                    <form onSubmit={handleSubmit} className="p-8 space-y-8">
+                        {/* Section: Personal Info */}
+                        <div className="space-y-6">
+                            <div className="flex items-center gap-4">
+                                <span className="w-8 h-8 rounded-lg bg-school-blue/10 flex items-center justify-center text-school-blue font-bold">01</span>
+                                <h4 className="font-bold text-school-text uppercase tracking-wider text-sm">Personal Information</h4>
+                                <div className="flex-1 h-px bg-slate-100"></div>
+                            </div>
+                            
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">First Name</label>
+                                    <input
+                                        type="text"
+                                        placeholder="Enter first name"
+                                        value={formData.first_name}
+                                        onChange={(e) => setFormData({ ...formData, first_name: e.target.value })}
+                                        className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-school-navy/5 outline-none focus:bg-white focus:border-school-navy/20 transition-all font-medium"
+                                        required
                                     />
                                 </div>
-                                <button type="submit" className="w-full py-2 bg-school-blue hover:bg-blue-400 transition-colors rounded-xl text-xs font-bold shadow-lg shadow-blue-500/20">
-                                    Create Student
-                                </button>
-                            </form>
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">Last Name</label>
+                                    <input
+                                        type="text"
+                                        placeholder="Enter last name"
+                                        value={formData.last_name}
+                                        onChange={(e) => setFormData({ ...formData, last_name: e.target.value })}
+                                        className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-school-navy/5 outline-none focus:bg-white focus:border-school-navy/20 transition-all font-medium"
+                                        required
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">Email Address</label>
+                                    <input
+                                        type="email"
+                                        placeholder="student@example.com"
+                                        value={formData.email}
+                                        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                                        className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-school-navy/5 outline-none focus:bg-white focus:border-school-navy/20 transition-all font-medium"
+                                        required
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">Login Password</label>
+                                    <input
+                                        type="password"
+                                        placeholder="••••••••"
+                                        value={formData.password}
+                                        onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                                        className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-school-navy/5 outline-none focus:bg-white focus:border-school-navy/20 transition-all font-medium"
+                                        required
+                                    />
+                                </div>
+                            </div>
 
-                            {message.text && (
-                                <p className={`text-[10px] text-center font-bold ${message.type === 'success' ? 'text-emerald-400' : 'text-red-400'}`}>
-                                    {message.text}
-                                </p>
-                            )}
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">Date of Birth</label>
+                                    <input
+                                        type="date"
+                                        value={formData.dob}
+                                        onChange={(e) => setFormData({ ...formData, dob: e.target.value })}
+                                        className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-school-navy/5 outline-none focus:bg-white focus:border-school-navy/20 transition-all"
+                                        required
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">Gender</label>
+                                    <select
+                                        value={formData.gender}
+                                        onChange={(e) => setFormData({ ...formData, gender: e.target.value })}
+                                        className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-school-navy/5 outline-none focus:bg-white focus:border-school-navy/20 transition-all"
+                                        required
+                                    >
+                                        <option value="">Select Gender</option>
+                                        <option value="Male">Male</option>
+                                        <option value="Female">Female</option>
+                                        <option value="Other">Other</option>
+                                    </select>
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">Blood Group</label>
+                                    <select
+                                        value={formData.blood_group}
+                                        onChange={(e) => setFormData({ ...formData, blood_group: e.target.value })}
+                                        className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-school-navy/5 outline-none focus:bg-white focus:border-school-navy/20 transition-all"
+                                        required
+                                    >
+                                        <option value="">Select Group</option>
+                                        {['A+','A-','B+','B-','AB+','AB-','O+','O-'].map(bg => <option key={bg} value={bg}>{bg}</option>)}
+                                    </select>
+                                </div>
+                            </div>
                         </div>
-                    </div>
+
+                        {/* Section: Academic Info */}
+                        <div className="space-y-6 pt-4">
+                            <div className="flex items-center gap-4">
+                                <span className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-500 font-bold">02</span>
+                                <h4 className="font-bold text-school-text uppercase tracking-wider text-sm">Academic Details</h4>
+                                <div className="flex-1 h-px bg-slate-100"></div>
+                            </div>
+                            
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">Admission No</label>
+                                    <input
+                                        type="text"
+                                        placeholder="e.g. ADM2026"
+                                        value={formData.admission_number}
+                                        onChange={(e) => setFormData({ ...formData, admission_number: e.target.value })}
+                                        className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-school-navy/5 outline-none focus:bg-white focus:border-school-navy/20 transition-all"
+                                        required
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">Category</label>
+                                    <input
+                                        type="text"
+                                        placeholder="General / OBC / SC"
+                                        value={formData.category}
+                                        onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                                        className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-school-navy/5 outline-none focus:bg-white focus:border-school-navy/20 transition-all"
+                                        required
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">Class</label>
+                                    <select
+                                        value={formData.class_id}
+                                        onChange={(e) => setFormData({ ...formData, class_id: e.target.value })}
+                                        className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-school-navy/5 outline-none focus:bg-white focus:border-school-navy/20 transition-all"
+                                        required
+                                    >
+                                        <option value="">Select Class</option>
+                                        {mainClasses.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                                    </select>
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">Section</label>
+                                    <select
+                                        value={formData.section_id}
+                                        onChange={(e) => setFormData({ ...formData, section_id: e.target.value })}
+                                        className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-school-navy/5 outline-none focus:bg-white focus:border-school-navy/20 transition-all"
+                                        required
+                                    >
+                                        <option value="">Select Section</option>
+                                        {mainSections.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                                    </select>
+                                </div>
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">Admission Date</label>
+                                <input
+                                    type="date"
+                                    value={formData.date_of_admission}
+                                    onChange={(e) => setFormData({ ...formData, date_of_admission: e.target.value })}
+                                    className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-school-navy/5 outline-none focus:bg-white focus:border-school-navy/20 transition-all max-w-xs"
+                                    required
+                                />
+                            </div>
+                        </div>
+
+                        {/* Section: Guardian Info */}
+                        <div className="space-y-6 pt-4">
+                            <div className="flex items-center gap-4">
+                                <span className="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center text-amber-500 font-bold">03</span>
+                                <h4 className="font-bold text-school-text uppercase tracking-wider text-sm">Guardian & Address</h4>
+                                <div className="flex-1 h-px bg-slate-100"></div>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">Guardian Name</label>
+                                    <input
+                                        type="text"
+                                        placeholder="Full name of parent/guardian"
+                                        value={formData.parent_guardian_name}
+                                        onChange={(e) => setFormData({ ...formData, parent_guardian_name: e.target.value })}
+                                        className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-school-navy/5 outline-none focus:bg-white focus:border-school-navy/20 transition-all"
+                                        required
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">Contact Number</label>
+                                    <input
+                                        type="tel"
+                                        placeholder="Contact phone number"
+                                        value={formData.parent_contact_number}
+                                        onChange={(e) => setFormData({ ...formData, parent_contact_number: e.target.value })}
+                                        className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-school-navy/5 outline-none focus:bg-white focus:border-school-navy/20 transition-all font-medium"
+                                        required
+                                    />
+                                </div>
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">Residential Address</label>
+                                <textarea
+                                    placeholder="Enter full permanent address"
+                                    value={formData.address}
+                                    onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                                    className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-school-navy/5 outline-none focus:bg-white focus:border-school-navy/20 transition-all min-h-[100px]"
+                                    required
+                                />
+                            </div>
+                        </div>
+
+                        {/* Action Buttons */}
+                        <div className="pt-8 border-t border-slate-50 flex items-center justify-between">
+                            <span className={`text-sm font-bold ${message.includes('Error') ? 'text-red-500' : 'text-emerald-500'}`}>
+                                {message}
+                            </span>
+                            <div className="flex gap-4">
+                                <button
+                                    type="button"
+                                    onClick={() => setIsFormOpen(false)}
+                                    className="px-8 py-3 rounded-xl text-sm font-bold text-slate-500 hover:bg-slate-50 transition-colors"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="submit"
+                                    className="px-10 py-3 bg-school-navy text-white rounded-xl text-sm font-bold hover:bg-school-blue transition-all shadow-lg shadow-school-navy/20 active:scale-95"
+                                >
+                                    Create Student Account
+                                </button>
+                            </div>
+                        </div>
+                    </form>
                 </div>
-            </div>
+            )}
         </div>
     );
 };

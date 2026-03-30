@@ -18,6 +18,7 @@ class UserManager(BaseUserManager):
         return self.create_user(username, email, password, **extra_fields)
 
 class User(AbstractUser):
+    # Use the custom manager so `createsuperuser` sets `role='admin'` by default.
     objects = UserManager()
     ROLE_CHOICES = (
         ('admin', 'Admin'),

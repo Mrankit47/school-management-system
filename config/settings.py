@@ -7,6 +7,9 @@ from datetime import timedelta
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+# Display name on fee receipts and reports
+SCHOOL_NAME = os.getenv('SCHOOL_NAME', 'School Management System')
+
 SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-default-key')
 DEBUG = os.getenv('DEBUG', 'True') == 'True'
 ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
@@ -36,6 +39,8 @@ INSTALLED_APPS = [
     'communication',
     'fees',
     'timetable',
+    'subjects',
+    'holidays',
 ]
 
 MIDDLEWARE = [
@@ -73,16 +78,17 @@ WSGI_APPLICATION = 'config.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'postgres',
-        'USER': 'postgres.uzztcarhwpsrjhaxqgiu',
-        'PASSWORD': 'quZz5KvCpSKSO5lJ',
-        'HOST': 'aws-1-ap-south-1.pooler.supabase.com',
-        'PORT': '6543',
+        'NAME': os.getenv('DB_NAME', 'postgres'),
+        'USER': os.getenv('DB_USER', 'postgres.uzztcarhwpsrjhaxqgiu'),
+        'PASSWORD': os.getenv('DB_PASSWORD', 'quZz5KvCpSKSO5lJ'),
+        'HOST': os.getenv('DB_HOST', 'aws-1-ap-south-1.pooler.supabase.com'),
+        'PORT': os.getenv('DB_PORT', '6543'),
         'OPTIONS': {
             'sslmode': 'require',
         },
     }
 }
+
 # Authentication
 AUTH_USER_MODEL = 'accounts.User'
 
@@ -122,3 +128,10 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
+
+
+
+

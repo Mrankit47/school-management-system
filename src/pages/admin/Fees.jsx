@@ -1,25 +1,710 @@
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import api from '../../services/api';
 
+<<<<<<< HEAD
 const AdminFees = () => {
     const [feeId, setFeeId] = useState('');
+    const [busy, setBusy] = useState(false);
 
     const handleMarkPaid = async () => {
+        if (!feeId) return;
+        setBusy(true);
         try {
             await api.post(`fees/admin/pay/${feeId}/`);
-            alert('Fee marked as paid!');
+            alert('Fee marked as paid successfully!');
+            setFeeId('');
         } catch (err) {
-            alert('Error updating fee.');
+            alert('Error updating fee. Please check the ID.');
+        } finally {
+            setBusy(false);
+=======
+const card = {
+    backgroundColor: '#fff',
+    borderRadius: '14px',
+    border: '1px solid #e5e7eb',
+    padding: '16px',
+    boxShadow: '0 1px 6px rgba(16,24,40,0.06)',
+};
+
+const inputStyle = {
+    width: '100%',
+    padding: '10px 12px',
+    border: '1px solid #e5e7eb',
+    borderRadius: '10px',
+    fontSize: '13px',
+    outline: 'none',
+    boxSizing: 'border-box',
+    backgroundColor: '#fff',
+};
+
+const labelStyle = {
+    fontSize: '12px',
+    color: '#6b7280',
+    fontWeight: 700,
+    marginBottom: '6px',
+    textTransform: 'uppercase',
+    letterSpacing: '0.03em',
+};
+
+const AdminFees = () => {
+    const [dashboard, setDashboard] = useState(null);
+    const [structures, setStructures] = useState([]);
+    const [mainClasses, setMainClasses] = useState([]);
+    const [students, setStudents] = useState([]);
+    const [studentFees, setStudentFees] = useState([]);
+    const [classFilter, setClassFilter] = useState('');
+    const [studentFilter, setStudentFilter] = useState('');
+    const [searchStudent, setSearchStudent] = useState('');
+    const [loading, setLoading] = useState(false);
+    const [message, setMessage] = useState('');
+
+    const [structureForm, setStructureForm] = useState({
+        class_ref: '',
+        fee_type: 'School Fee',
+        amount: '',
+        due_date: '',
+        description: '',
+    });
+    const [editingStructureId, setEditingStructureId] = useState(null);
+
+    const [selectedFeeId, setSelectedFeeId] = useState('');
+    const [paymentForm, setPaymentForm] = useState({
+        amount: '',
+        payment_date: new Date().toISOString().slice(0, 10),
+        payment_mode: 'Cash',
+        transaction_id: '',
+    });
+
+    const [syncClassId, setSyncClassId] = useState('');
+    const [assignStudentId, setAssignStudentId] = useState('');
+
+    const showMsg = (text) => {
+        setMessage(text);
+        if (text) window.setTimeout(() => setMessage(''), 4000);
+    };
+
+    const loadAll = async () => {
+        setLoading(true);
+        try {
+            const [dashRes, structRes, classRes, studRes] = await Promise.all([
+                api.get('fees/admin/dashboard/'),
+                api.get('fees/admin/structures/'),
+                api.get('classes/main-classes/'),
+                api.get('students/'),
+            ]);
+            setDashboard(dashRes.data);
+            setStructures(structRes.data);
+            setMainClasses(classRes.data);
+            setStudents(studRes.data);
+            await loadStudentFees();
+        } catch (e) {
+            showMsg(e.response?.data?.error || 'Failed to load finance data', true);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const loadStudentFees = async () => {
+        const params = {};
+        if (classFilter) params.class_id = classFilter;
+        if (studentFilter) params.student_id = studentFilter;
+        const res = await api.get('fees/admin/student-fees/', { params });
+        setStudentFees(res.data);
+    };
+
+    useEffect(() => {
+        loadAll();
+    }, []);
+
+    useEffect(() => {
+        loadStudentFees();
+    }, [classFilter, studentFilter]);
+
+    const selectedRecord = useMemo(
+        () => studentFees.find((r) => String(r.id) === String(selectedFeeId)),
+        [studentFees, selectedFeeId]
+    );
+
+    const fullRecordPayments = useMemo(() => {
+        if (!selectedRecord?.payments) return [];
+        return selectedRecord.payments;
+    }, [selectedRecord]);
+
+    const filteredStudentFees = useMemo(() => {
+        const q = searchStudent.trim().toLowerCase();
+        if (!q) return studentFees;
+        return studentFees.filter((row) => {
+            const name = (row.student_name || '').toLowerCase();
+            const cls = (row.class_display || '').toLowerCase();
+            return name.includes(q) || cls.includes(q);
+        });
+    }, [studentFees, searchStudent]);
+
+    const studentsForAssignDropdown = useMemo(() => {
+        if (!syncClassId) return students;
+        const selectedClass = mainClasses.find((c) => String(c.id) === String(syncClassId));
+        const selectedName = (selectedClass?.name || '').toLowerCase();
+        if (!selectedName) return students;
+        return students.filter((s) => ((s.class_name || '').toLowerCase().includes(selectedName)));
+    }, [students, mainClasses, syncClassId]);
+
+    const refreshSelectedWithPayments = async () => {
+        if (!selectedFeeId) return;
+        try {
+            const res = await api.get(`fees/admin/student-fees/${selectedFeeId}/`);
+            setStudentFees((prev) =>
+                prev.map((row) => (String(row.id) === String(selectedFeeId) ? { ...row, ...res.data } : row))
+            );
+        } catch (_) {}
+    };
+
+    useEffect(() => {
+        refreshSelectedWithPayments();
+    }, [selectedFeeId]);
+
+    const saveStructure = async (e) => {
+        e.preventDefault();
+        try {
+            const amount = Number(structureForm.amount || 0);
+            const tuition = structureForm.fee_type === 'School Fee' ? amount : 0;
+            const exam = structureForm.fee_type === 'Exam Fee' ? amount : 0;
+            const transport = structureForm.fee_type === 'Transport Fee' ? amount : 0;
+            const payload = {
+                class_ref: structureForm.class_ref,
+                tuition_fees: String(tuition),
+                exam_fees: String(exam),
+                other_charges: String(transport),
+                due_date: structureForm.due_date,
+                description: structureForm.description,
+            };
+            if (editingStructureId) {
+                await api.patch(`fees/admin/structures/${editingStructureId}/`, payload);
+                showMsg('Fee structure updated');
+            } else {
+                await api.post('fees/admin/structures/', payload);
+                showMsg('Fee structure created');
+            }
+            setEditingStructureId(null);
+            setStructureForm({
+                class_ref: '',
+                fee_type: 'School Fee',
+                amount: '',
+                due_date: '',
+                description: '',
+            });
+            await loadAll();
+        } catch (err) {
+            showMsg(err.response?.data?.error || JSON.stringify(err.response?.data) || 'Save failed', true);
+        }
+    };
+
+    const editStructure = (s) => {
+        let feeType = 'School Fee';
+        let amount = s.tuition_fees;
+        if (Number(s.exam_fees || 0) > 0) {
+            feeType = 'Exam Fee';
+            amount = s.exam_fees;
+        } else if (Number(s.other_charges || 0) > 0) {
+            feeType = 'Transport Fee';
+            amount = s.other_charges;
+        }
+        setEditingStructureId(s.id);
+        setStructureForm({
+            class_ref: s.class_ref,
+            fee_type: feeType,
+            amount,
+            due_date: s.due_date,
+            description: s.description || '',
+        });
+    };
+
+    const deleteStructure = async (id) => {
+        if (!window.confirm('Delete this fee structure?')) return;
+        try {
+            await api.delete(`fees/admin/structures/${id}/`);
+            showMsg('Deleted');
+            await loadAll();
+        } catch (err) {
+            showMsg(err.response?.data?.error || 'Delete failed', true);
+        }
+    };
+
+    const syncClass = async () => {
+        if (!syncClassId) return;
+        try {
+            const res = await api.post('fees/admin/sync-class/', { class_id: syncClassId });
+            showMsg(`Synced: ${res.data.created} new records`);
+            await loadStudentFees();
+        } catch (err) {
+            showMsg(err.response?.data?.error || 'Sync failed', true);
+        }
+    };
+
+    const assignStudentFee = async () => {
+        if (!assignStudentId) return;
+        try {
+            await api.post('fees/admin/student-fees/create/', { student_id: assignStudentId });
+            showMsg('Student fee record ready');
+            await loadStudentFees();
+        } catch (err) {
+            showMsg(err.response?.data?.error || 'Assign failed', true);
+        }
+    };
+
+    const submitPayment = async (e) => {
+        e.preventDefault();
+        if (!selectedFeeId) {
+            showMsg('Select a student fee row first', true);
+            return;
+        }
+        try {
+            await api.post('fees/admin/payments/', {
+                student_fee_id: selectedFeeId,
+                amount: paymentForm.amount,
+                payment_date: paymentForm.payment_date,
+                payment_mode: paymentForm.payment_mode,
+                transaction_id: paymentForm.transaction_id,
+            });
+            showMsg('Payment recorded');
+            setPaymentForm((p) => ({ ...p, amount: '', transaction_id: '' }));
+            await loadStudentFees();
+            await refreshSelectedWithPayments();
+        } catch (err) {
+            showMsg(err.response?.data?.error || 'Payment failed', true);
+        }
+    };
+
+    const downloadReceipt = async (paymentId) => {
+        try {
+            const res = await api.get(`fees/admin/receipt/${paymentId}/`, { responseType: 'blob' });
+            const url = window.URL.createObjectURL(new Blob([res.data]));
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `fee_receipt_${paymentId}.pdf`;
+            a.click();
+            window.URL.revokeObjectURL(url);
+        } catch (_) {
+            showMsg('Receipt download failed', true);
+        }
+    };
+
+    const exportCsv = async () => {
+        try {
+            const params = classFilter ? { class_id: classFilter } : {};
+            const res = await api.get('fees/admin/export/csv/', { params, responseType: 'blob' });
+            const url = window.URL.createObjectURL(new Blob([res.data]));
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'student_fees.csv';
+            a.click();
+            window.URL.revokeObjectURL(url);
+        } catch (_) {
+            showMsg('Export failed', true);
+        }
+    };
+
+    const sendReminder = async () => {
+        if (!selectedFeeId) return;
+        try {
+            const res = await api.post('fees/admin/reminder/', { student_fee_id: selectedFeeId });
+            showMsg(res.data?.message || 'Reminder sent');
+        } catch (err) {
+            showMsg(err.response?.data?.error || 'Reminder failed', true);
+>>>>>>> shalini-rajput1
         }
     };
 
     return (
+<<<<<<< HEAD
+        <div className="max-w-4xl space-y-8 animate-in fade-in duration-500">
+            <div>
+                <h1 className="text-2xl font-bold text-school-text">Finance Management</h1>
+                <p className="text-sm text-school-body">Process student fee payments and manage school revenue.</p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-8">
+                    <h3 className="text-lg font-bold text-school-text mb-6 flex items-center gap-2">
+                        <span className="w-8 h-8 rounded-lg bg-school-navy/5 flex items-center justify-center text-school-navy text-sm">💰</span>
+                        Collect Fee
+                    </h3>
+                    <div className="space-y-4">
+                        <div className="space-y-1">
+                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1 mb-1 block">Student Fee ID</label>
+                            <input 
+                                type="number" 
+                                placeholder="Enter system fee ID (e.g., 204)" 
+                                value={feeId} 
+                                onChange={e => setFeeId(e.target.value)} 
+                                className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-school-navy/5 outline-none focus:bg-white focus:border-school-navy/20 transition-all font-medium" 
+                            />
+                        </div>
+                        <button 
+                            onClick={handleMarkPaid} 
+                            disabled={busy || !feeId}
+                            className="w-full py-3.5 bg-school-navy text-white text-xs font-bold rounded-xl shadow-lg shadow-school-navy/10 hover:bg-school-blue transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                        >
+                            {busy ? (
+                                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                            ) : (
+                                <>Mark as Paid</>
+                            )}
+                        </button>
+                    </div>
+                </div>
+
+                <div className="bg-school-navy rounded-3xl p-8 text-white relative overflow-hidden group">
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -mr-16 -mt-16 group-hover:scale-150 transition-transform duration-700"></div>
+                    <div className="relative z-10">
+                        <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest mb-1">Quick Tip</p>
+                        <h4 className="text-lg font-bold mb-4">Financial Records</h4>
+                        <p className="text-sm text-white/70 leading-relaxed mb-6">
+                            Marking a fee as paid will automatically update the student's financial status and generate a transaction log. Ensure the Fee ID is correct before proceeding.
+                        </p>
+                        <div className="p-4 bg-white/10 rounded-2xl border border-white/10 flex items-center gap-4">
+                            <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center text-xl">💡</div>
+                            <p className="text-xs font-medium text-white/90">Fee IDs can be found in the Student Management report section.</p>
+                        </div>
+=======
         <div style={{ padding: '20px' }}>
-            <h1>Finance Management</h1>
-            <div style={{ border: '1px solid #ddd', padding: '20px', maxWidth: '400px' }}>
-                <h3>Collect Fee</h3>
-                <input type="number" placeholder="Student Fee ID" value={feeId} onChange={e => setFeeId(e.target.value)} style={{ width: '100%', padding: '10px', marginBottom: '10px' }} />
-                <button onClick={handleMarkPaid} style={{ width: '100%', padding: '10px', backgroundColor: '#007bff', color: '#fff', border: 'none' }}>Mark as Paid</button>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '16px' }}>
+                <div>
+                    <h1 style={{ margin: 0 }}>Finance Management</h1>
+                    <p style={{ margin: '8px 0 0', color: '#6b7280', fontSize: '14px' }}>
+                        Define fee structure, assign fees, verify student payments, and monitor due records.
+                    </p>
+                </div>
+                {message ? (
+                    <div style={{ fontWeight: 800, color: message.includes('fail') || message.includes('Failed') ? '#b91c1c' : '#166534' }}>{message}</div>
+                ) : null}
+            </div>
+
+            {loading && <p style={{ color: '#6b7280' }}>Loading…</p>}
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '14px', marginTop: '20px' }}>
+                <div style={card}>
+                    <div style={labelStyle}>Total Fees</div>
+                    <div style={{ fontSize: '22px', fontWeight: 900 }}>₹{dashboard?.total_fees_scheduled ?? '—'}</div>
+                </div>
+                <div style={card}>
+                    <div style={labelStyle}>Total Paid</div>
+                    <div style={{ fontSize: '22px', fontWeight: 900, color: '#166534' }}>₹{dashboard?.total_paid ?? '—'}</div>
+                </div>
+                <div style={card}>
+                    <div style={labelStyle}>Total Due</div>
+                    <div style={{ fontSize: '22px', fontWeight: 900, color: '#b45309' }}>₹{dashboard?.total_due ?? '—'}</div>
+                </div>
+                <div style={card}>
+                    <div style={labelStyle}>Overdue Payments</div>
+                    <div style={{ fontSize: '22px', fontWeight: 900, color: '#b91c1c' }}>{dashboard?.overdue_records ?? '—'}</div>
+                </div>
+            </div>
+
+            <div style={{ ...card, marginTop: '18px' }}>
+                <h2 style={{ margin: '0 0 12px', fontSize: '18px' }}>Fee structure (class-wise)</h2>
+                <form onSubmit={saveStructure} style={{ display: 'grid', gap: '12px', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))' }}>
+                    <div>
+                        <div style={labelStyle}>Class</div>
+                        <select
+                            value={structureForm.class_ref}
+                            onChange={(e) => setStructureForm({ ...structureForm, class_ref: e.target.value })}
+                            style={inputStyle}
+                            required
+                            disabled={!!editingStructureId}
+                        >
+                            <option value="">-- Select --</option>
+                            {mainClasses.map((c) => (
+                                <option key={c.id} value={c.id}>
+                                    {c.name}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+                    <div>
+                        <div style={labelStyle}>Fee Type</div>
+                        <select value={structureForm.fee_type} onChange={(e) => setStructureForm({ ...structureForm, fee_type: e.target.value })} style={inputStyle} required>
+                            <option value="School Fee">School Fee</option>
+                            <option value="Exam Fee">Exam Fee</option>
+                            <option value="Transport Fee">Transport Fee</option>
+                        </select>
+                    </div>
+                    <div>
+                        <div style={labelStyle}>Amount</div>
+                        <input type="number" step="0.01" value={structureForm.amount} onChange={(e) => setStructureForm({ ...structureForm, amount: e.target.value })} style={inputStyle} required />
+                    </div>
+                    <div>
+                        <div style={labelStyle}>Due date</div>
+                        <input type="date" value={structureForm.due_date} onChange={(e) => setStructureForm({ ...structureForm, due_date: e.target.value })} style={inputStyle} required />
+                    </div>
+                    <div style={{ gridColumn: '1 / -1' }}>
+                        <div style={labelStyle}>Description (optional)</div>
+                        <input type="text" value={structureForm.description} onChange={(e) => setStructureForm({ ...structureForm, description: e.target.value })} style={inputStyle} />
+                    </div>
+                    <div style={{ gridColumn: '1 / -1', display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                        <button type="submit" style={{ padding: '12px 18px', borderRadius: '12px', border: 'none', backgroundColor: '#2563eb', color: '#fff', fontWeight: 900, cursor: 'pointer' }}>
+                            {editingStructureId ? 'Update structure' : 'Save structure'}
+                        </button>
+                        {editingStructureId ? (
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setEditingStructureId(null);
+                                    setStructureForm({
+                                        class_ref: '',
+                                        fee_type: 'School Fee',
+                                        amount: '',
+                                        due_date: '',
+                                        description: '',
+                                    });
+                                }}
+                                style={{ padding: '12px 18px', borderRadius: '12px', border: '1px solid #e5e7eb', backgroundColor: '#fff', fontWeight: 900, cursor: 'pointer' }}
+                            >
+                                Cancel edit
+                            </button>
+                        ) : null}
+                    </div>
+                </form>
+
+                <div style={{ marginTop: '16px', overflowX: 'auto' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                        <thead>
+                            <tr style={{ backgroundColor: '#f2f4f7' }}>
+                                <th style={{ padding: '10px', textAlign: 'left' }}>Class</th>
+                                <th style={{ padding: '10px', textAlign: 'left' }}>Total</th>
+                                <th style={{ padding: '10px', textAlign: 'left' }}>Fee Breakdown</th>
+                                <th style={{ padding: '10px', textAlign: 'left' }}>Due date</th>
+                                <th style={{ padding: '10px', textAlign: 'left' }}>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {structures.map((s) => (
+                                <tr key={s.id} style={{ borderTop: '1px solid #eef2f7' }}>
+                                    <td style={{ padding: '10px', fontWeight: 800 }}>{s.class_name}</td>
+                                    <td style={{ padding: '10px' }}>₹{s.total_fees}</td>
+                                    <td style={{ padding: '10px', fontSize: '13px', color: '#4b5563' }}>
+                                        ₹{s.tuition_fees} / ₹{s.exam_fees} / ₹{s.other_charges}
+                                    </td>
+                                    <td style={{ padding: '10px' }}>{s.due_date}</td>
+                                    <td style={{ padding: '10px' }}>
+                                        <button type="button" onClick={() => editStructure(s)} style={{ marginRight: '8px', padding: '6px 10px', borderRadius: '8px', border: 'none', backgroundColor: '#16a34a', color: '#fff', fontWeight: 800, cursor: 'pointer' }}>
+                                            Edit
+                                        </button>
+                                        <button type="button" onClick={() => deleteStructure(s.id)} style={{ padding: '6px 10px', borderRadius: '8px', border: 'none', backgroundColor: '#ef4444', color: '#fff', fontWeight: 800, cursor: 'pointer' }}>
+                                            Delete
+                                        </button>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div style={{ ...card, marginTop: '18px' }}>
+                <h2 style={{ margin: '0 0 12px', fontSize: '18px' }}>Assign Fees</h2>
+                <div style={{ display: 'grid', gap: '12px', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', alignItems: 'end' }}>
+                    <div>
+                        <div style={labelStyle}>Class</div>
+                        <select value={syncClassId} onChange={(e) => setSyncClassId(e.target.value)} style={inputStyle}>
+                            <option value="">-- Select Class --</option>
+                            {mainClasses.map((c) => (
+                                <option key={c.id} value={c.id}>
+                                    {c.name}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+                    <div>
+                        <div style={labelStyle}>Student (optional)</div>
+                        <select value={assignStudentId} onChange={(e) => setAssignStudentId(e.target.value)} style={inputStyle}>
+                            <option value="">Assign to all students in selected class</option>
+                                {studentsForAssignDropdown.map((s) => (
+                                    <option key={s.id} value={s.id}>
+                                        {s.name} ({s.class_name})
+                                    </option>
+                                ))}
+                        </select>
+                    </div>
+                    <button
+                        type="button"
+                        onClick={() => (assignStudentId ? assignStudentFee() : syncClass())}
+                        style={{ padding: '10px 16px', borderRadius: '12px', border: 'none', backgroundColor: '#2563eb', color: '#fff', fontWeight: 900, cursor: 'pointer', height: '40px' }}
+                    >
+                        Assign Fee
+                    </button>
+                </div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.2fr) minmax(0, 1fr)', gap: '18px', marginTop: '18px' }}>
+                <div style={card}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+                        <h2 style={{ margin: 0, fontSize: '18px' }}>Fee Records</h2>
+                        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
+                            <select value={classFilter} onChange={(e) => setClassFilter(e.target.value)} style={{ ...inputStyle, width: 'auto', minWidth: '160px' }}>
+                                <option value="">All classes</option>
+                                {mainClasses.map((c) => (
+                                    <option key={c.id} value={c.id}>
+                                        {c.name}
+                                    </option>
+                                ))}
+                            </select>
+                            <input
+                                value={searchStudent}
+                                onChange={(e) => setSearchStudent(e.target.value)}
+                                placeholder="Search student..."
+                                style={{ ...inputStyle, width: '220px' }}
+                            />
+                            <button type="button" onClick={exportCsv} style={{ padding: '10px 14px', borderRadius: '10px', border: '1px solid #e5e7eb', backgroundColor: '#fff', fontWeight: 800, cursor: 'pointer' }}>
+                                Export CSV
+                            </button>
+                        </div>
+                    </div>
+
+                    <div style={{ marginTop: '14px', overflowX: 'auto' }}>
+                        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                            <thead>
+                                <tr style={{ backgroundColor: '#f2f4f7' }}>
+                                    <th style={{ padding: '10px', textAlign: 'left' }}>Select</th>
+                                    <th style={{ padding: '10px', textAlign: 'left' }}>Student</th>
+                                    <th style={{ padding: '10px', textAlign: 'left' }}>Class</th>
+                                    <th style={{ padding: '10px', textAlign: 'left' }}>Total</th>
+                                    <th style={{ padding: '10px', textAlign: 'left' }}>Paid</th>
+                                    <th style={{ padding: '10px', textAlign: 'left' }}>Due</th>
+                                    <th style={{ padding: '10px', textAlign: 'left' }}>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {filteredStudentFees.map((row) => {
+                                    const overdue = row.overdue && row.status !== 'paid';
+                                    return (
+                                        <tr
+                                            key={row.id}
+                                            style={{
+                                                borderTop: '1px solid #eef2f7',
+                                                backgroundColor: overdue ? '#fef2f2' : selectedFeeId === String(row.id) ? '#eff6ff' : 'transparent',
+                                            }}
+                                        >
+                                            <td style={{ padding: '10px' }}>
+                                                <input
+                                                    type="radio"
+                                                    name="feePick"
+                                                    checked={selectedFeeId === String(row.id)}
+                                                    onChange={() => setSelectedFeeId(String(row.id))}
+                                                />
+                                            </td>
+                                            <td style={{ padding: '10px', fontWeight: 800 }}>{row.student_name}</td>
+                                            <td style={{ padding: '10px', fontSize: '13px' }}>{row.class_display}</td>
+                                            <td style={{ padding: '10px' }}>₹{row.total_fees}</td>
+                                            <td style={{ padding: '10px' }}>₹{row.amount_paid}</td>
+                                            <td style={{ padding: '10px', fontWeight: 800 }}>₹{row.due_amount}</td>
+                                            <td style={{ padding: '10px' }}>
+                                                <span
+                                                    style={{
+                                                        display: 'inline-block',
+                                                        padding: '6px 10px',
+                                                        borderRadius: '999px',
+                                                        fontSize: '12px',
+                                                        fontWeight: 900,
+                                                        backgroundColor: row.status === 'paid' ? '#dcfce7' : row.status === 'partial' ? '#fef9c3' : '#fee2e2',
+                                                        color: row.status === 'paid' ? '#166534' : row.status === 'partial' ? '#854d0e' : '#991b1b',
+                                                    }}
+                                                >
+                                                    {row.status}
+                                                </span>
+                                                {overdue ? <span style={{ marginLeft: '8px', fontSize: '12px', color: '#b91c1c', fontWeight: 900 }}>OVERDUE</span> : null}
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div style={{ display: 'grid', gap: '16px' }}>
+                    <div style={card}>
+                        <h2 style={{ margin: '0 0 12px', fontSize: '18px' }}>Update / Verify Payment</h2>
+                        <p style={{ margin: '0 0 12px', color: '#6b7280', fontSize: '13px' }}>
+                            Admin records and verifies received payments from students/guardians.
+                        </p>
+                        <form onSubmit={submitPayment} style={{ display: 'grid', gap: '12px' }}>
+                            <div>
+                                <div style={labelStyle}>Select Student</div>
+                                <div style={{ fontWeight: 800 }}>{selectedRecord ? `#${selectedRecord.id} — ${selectedRecord.student_name}` : 'Select a row from the table'}</div>
+                            </div>
+                            <div>
+                                <div style={labelStyle}>Amount paid</div>
+                                <input type="number" step="0.01" value={paymentForm.amount} onChange={(e) => setPaymentForm({ ...paymentForm, amount: e.target.value })} style={inputStyle} required />
+                            </div>
+                            <div>
+                                <div style={labelStyle}>Payment date</div>
+                                <input type="date" value={paymentForm.payment_date} onChange={(e) => setPaymentForm({ ...paymentForm, payment_date: e.target.value })} style={inputStyle} required />
+                            </div>
+                            <div>
+                                <div style={labelStyle}>Payment mode</div>
+                                <select value={paymentForm.payment_mode} onChange={(e) => setPaymentForm({ ...paymentForm, payment_mode: e.target.value })} style={inputStyle}>
+                                    <option value="Cash">Cash</option>
+                                    <option value="Online">Online</option>
+                                </select>
+                            </div>
+                            <div>
+                                <div style={labelStyle}>Transaction ID (optional)</div>
+                                <input type="text" value={paymentForm.transaction_id} onChange={(e) => setPaymentForm({ ...paymentForm, transaction_id: e.target.value })} style={inputStyle} />
+                            </div>
+                            <button
+                                type="submit"
+                                style={{ padding: '14px 18px', borderRadius: '14px', border: 'none', backgroundColor: '#2563eb', color: '#fff', fontWeight: 900, fontSize: '15px', cursor: 'pointer' }}
+                            >
+                                Update Payment
+                            </button>
+                            <button type="button" onClick={sendReminder} style={{ padding: '12px 16px', borderRadius: '12px', border: '1px solid #e5e7eb', backgroundColor: '#fff', fontWeight: 800, cursor: 'pointer' }}>
+                                Send Reminder
+                            </button>
+                        </form>
+                    </div>
+
+                    <div style={card}>
+                        <h2 style={{ margin: '0 0 12px', fontSize: '18px' }}>Payment history</h2>
+                        {!selectedFeeId ? (
+                            <p style={{ color: '#6b7280' }}>Select a student fee record to view transactions.</p>
+                        ) : (
+                            <div style={{ overflowX: 'auto' }}>
+                                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                                    <thead>
+                                        <tr style={{ backgroundColor: '#f2f4f7' }}>
+                                            <th style={{ padding: '10px', textAlign: 'left' }}>Date</th>
+                                            <th style={{ padding: '10px', textAlign: 'left' }}>Amount</th>
+                                            <th style={{ padding: '10px', textAlign: 'left' }}>Mode</th>
+                                            <th style={{ padding: '10px', textAlign: 'left' }}>Txn ID</th>
+                                            <th style={{ padding: '10px', textAlign: 'left' }}>Receipt</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {(fullRecordPayments || []).map((p) => (
+                                            <tr key={p.id} style={{ borderTop: '1px solid #eef2f7' }}>
+                                                <td style={{ padding: '10px' }}>{p.payment_date}</td>
+                                                <td style={{ padding: '10px', fontWeight: 800 }}>₹{p.amount}</td>
+                                                <td style={{ padding: '10px' }}>{p.payment_mode}</td>
+                                                <td style={{ padding: '10px', fontSize: '13px' }}>{p.transaction_id || '—'}</td>
+                                                <td style={{ padding: '10px' }}>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => downloadReceipt(p.id)}
+                                                        style={{ padding: '6px 10px', borderRadius: '8px', border: 'none', backgroundColor: '#6d28d9', color: '#fff', fontWeight: 800, cursor: 'pointer' }}
+                                                    >
+                                                        PDF
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                                {(!fullRecordPayments || fullRecordPayments.length === 0) && <p style={{ color: '#6b7280', marginTop: '10px' }}>No payments yet.</p>}
+                            </div>
+                        )}
+>>>>>>> shalini-rajput1
+                    </div>
+                </div>
             </div>
         </div>
     );

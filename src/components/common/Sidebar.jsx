@@ -1,95 +1,209 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import authService from '../../services/authService';
 
 const Sidebar = () => {
-    const { role } = authService.getCurrentUser();
     const location = useLocation();
+    const { role, name } = authService.getCurrentUser();
+    const [openMenus, setOpenMenus] = useState({});
 
     if (!role) return null;
 
+<<<<<<< HEAD
+    const toggleMenu = (label) => {
+        setOpenMenus(prev => ({
+            [label]: !prev[label]
+        }));
+    };
+
+    const studentLinks = [
+        { path: '/student/dashboard', label: 'Dashboard', icon: '📊' },
+        { 
+            label: 'Academic', 
+            icon: '🎓',
+            subLinks: [
+                { path: '/student/assignments', label: 'Assignment' },
+                { path: '/student/attendance', label: 'Attendance Status' },
+                { 
+                    label: 'Exam Result',
+                    subLinks: [
+                        { path: '/student/results/exam', label: 'Main Exam Result' },
+                        { path: '/student/results/mst', label: 'MST Result' }
+                    ]
+                },
+                { path: '/student/timetable', label: 'Time Table' }
+            ]
+        },
+        {
+            label: 'Account',
+            icon: '💰',
+            subLinks: [
+                { path: '/student/fees', label: 'Fees Receipt' },
+                { path: '/student/ledger', label: 'Student Ledgers' }
+            ]
+        },
+        {
+            label: 'General Info',
+            icon: 'ℹ️',
+            subLinks: [
+                { path: '/student/contact', label: 'Contact' },
+                { path: '/student/notifications', label: 'Notice' },
+                { path: '/student/syllabus', label: 'Syllabus' },
+                { path: '/student/profile', label: 'Your Profile' }
+            ]
+        }
+    ];
+
+    const teacherLinks = [
+        { path: '/teacher/dashboard', label: 'Dashboard', icon: '📊' },
+        { path: '/teacher/attendance', label: 'Mark Attendance', icon: '✅' },
+        { path: '/teacher/upload-result', label: 'Upload Results', icon: '📤' },
+        { path: '/teacher/assignment', label: 'Create Assignment', icon: '➕' },
+        { path: '/teacher/students', label: 'My Students', icon: '👥' },
+    ];
+
+    const adminLinks = [
+        { path: '/admin/dashboard', label: 'Dashboard', icon: '📊' },
+        { 
+            label: 'User Management', 
+            icon: '👥',
+            subLinks: [
+                { path: '/admin/manage-students', label: 'Student List' },
+                { path: '/admin/manage-teachers', label: 'Teacher List' },
+                { path: '/admin/add-student', label: 'Add Student' },
+                { path: '/admin/add-teacher', label: 'Add Teacher' },
+            ]
+        },
+        {
+            label: 'Academic',
+            icon: '🎓',
+            subLinks: [
+                { path: '/admin/classes', label: 'Classes & Sections' },
+                { path: '/admin/assign-teacher', label: 'Assign Teacher' },
+                { path: '/admin/exams', label: 'Exams' },
+                { path: '/admin/holidays', label: 'Holidays' },
+            ]
+        },
+        { path: '/admin/fees', label: 'Finance', icon: '💰' },
+    ];
+
+    const links = role === 'student' ? studentLinks : (role === 'teacher' ? teacherLinks : adminLinks);
+
+    const NavItem = ({ item, depth = 0 }) => {
+        const hasSubLinks = item.subLinks && item.subLinks.length > 0;
+        const isOpen = openMenus[item.label];
+        const isActive = location.pathname === item.path;
+        
+        // Auto-open parent if child is active (simplified for 2 levels)
+        const isChildActive = hasSubLinks && item.subLinks.some(sub => 
+            sub.path === location.pathname || (sub.subLinks && sub.subLinks.some(ss => ss.path === location.pathname))
+        );
+
+        return (
+            <div className="flex flex-col">
+                {item.path ? (
+                    <Link
+                        to={item.path}
+                        className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 group ${
+                            isActive 
+                            ? 'bg-school-navy text-white shadow-md shadow-school-navy/10' 
+                            : 'text-school-body hover:bg-slate-50 hover:text-school-navy'
+                        }`}
+                        style={{ marginLeft: `${depth * 12}px` }}
+                    >
+                        {item.icon && <span className="text-lg">{item.icon}</span>}
+                        <span>{item.label}</span>
+                        {isActive && <div className="ml-auto w-1.5 h-1.5 rounded-full bg-white opacity-50"></div>}
+                    </Link>
+                ) : (
+                    <button
+                        onClick={() => toggleMenu(item.label)}
+                        className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 group ${
+                            isChildActive ? 'text-school-navy' : 'text-school-body hover:bg-slate-50 hover:text-school-navy'
+                        }`}
+                        style={{ marginLeft: `${depth * 12}px` }}
+                    >
+                        {item.icon && <span className="text-lg">{item.icon}</span>}
+                        <span>{item.label}</span>
+                        <span className={`ml-auto text-[10px] transition-transform duration-200 ${isOpen || isChildActive ? 'rotate-180' : ''}`}>
+                            ▼
+                        </span>
+                    </button>
+                )}
+
+                {(isOpen || isChildActive) && hasSubLinks && (
+                    <div className="mt-1 space-y-1">
+                        {item.subLinks.map((sub, i) => (
+                            <NavItem key={i} item={sub} depth={depth + 1} />
+                        ))}
+                    </div>
+                )}
+            </div>
+        );
+=======
     const links = {
         student: [
-            { path: '/student/dashboard', label: 'Dashboard', icon: '📊' },
-            { path: '/student/attendance', label: 'Attendance', icon: '📅' },
-            { path: '/student/results', label: 'My Results', icon: '🏆' },
-            { path: '/student/assignments', label: 'Assignments', icon: '📝' },
-            { path: '/student/timetable', label: 'Timetable', icon: '⏰' },
-            { path: '/student/notifications', label: 'Notifications', icon: '🔔' },
-            { path: '/student/fees', label: 'Fees Status', icon: '💳' },
-            { path: '/student/profile', label: 'Profile', icon: '👤' }
+            { path: '/student/dashboard', label: 'Dashboard' },
+            { path: '/student/attendance', label: 'Attendance' },
+            { path: '/student/results', label: 'My Results' },
+            { path: '/student/assignments', label: 'Assignments' },
+            { path: '/student/timetable', label: 'Timetable' },
+            { path: '/student/notifications', label: 'Notifications' },
+            { path: '/student/holidays', label: 'Holidays' },
+            { path: '/student/fees', label: 'Fees Status' },
+            { path: '/student/profile', label: 'Profile' }
         ],
         teacher: [
-            { path: '/teacher/dashboard', label: 'Dashboard', icon: '📊' },
-            { path: '/teacher/attendance', label: 'Mark Attendance', icon: '✅' },
-            { path: '/teacher/upload-result', label: 'Upload Results', icon: '📤' },
-            { path: '/teacher/assignment', label: 'Create Assignment', icon: '➕' },
-            { path: '/teacher/students', label: 'My Students', icon: '👥' },
-            { path: '/teacher/messaging', label: 'Messages', icon: '💬' },
-            { path: '/teacher/profile', label: 'Profile', icon: '👤' }
+            { path: '/teacher/dashboard', label: 'Dashboard' },
+            { path: '/teacher/attendance', label: 'Mark Attendance' },
+            { path: '/teacher/upload-result', label: 'Upload Results' },
+            { path: '/teacher/assignment', label: 'Create Assignment' },
+            { path: '/teacher/students', label: 'My Students' },
+            { path: '/teacher/messaging', label: 'Messages' },
+            { path: '/teacher/holidays', label: 'Holidays' },
+            { path: '/teacher/profile', label: 'Profile' }
         ],
         admin: [
-            { path: '/admin/dashboard', label: 'Dashboard', icon: '🏠' },
-            { path: '/admin/manage-students', label: 'Students', icon: '👥' },
-            { path: '/admin/manage-teachers', label: 'Teachers', icon: '👨‍🏫' },
-            { path: '/admin/classes', label: 'Classes', icon: '🏫' },
-            { path: '/admin/assign-teacher', label: 'Assignments', icon: '🔗' },
-            { path: '/admin/exams', label: 'Exams', icon: '📝' },
-            { path: '/admin/fees', label: 'Finance', icon: '💰' },
-            { path: '/admin/holidays', label: 'Holidays', icon: '🌴' },
-            { path: '/admin/reports', label: 'Reports', icon: '📈' },
-            { path: '/admin/profile', label: 'Profile', icon: '👤' }
+            { path: '/admin/dashboard', label: 'Add Student' },
+            { path: '/admin/add-teacher', label: 'Add Teacher' },
+            { path: '/admin/manage-students', label: 'Student List' },
+            { path: '/admin/manage-teachers', label: 'Teacher List' },
+            { path: '/admin/classes', label: 'Classes & Sections' },
+            { path: '/admin/assign-teacher', label: 'Assign Teacher' },
+            { path: '/admin/subjects', label: 'Subjects' },
+            { path: '/admin/exams', label: 'Exams' },
+            { path: '/admin/fees', label: 'Finance' },
+            { path: '/admin/holidays', label: 'Holidays' },
+            { path: '/admin/reports', label: 'Reports' },
+            { path: '/admin/profile', label: 'Profile' }
         ]
+>>>>>>> shalini-rajput1
     };
 
     const activeLinks = links[role] || [];
 
     return (
-        <aside className="w-64 bg-white border-r border-slate-200 h-full flex flex-col sticky top-0 overflow-y-auto">
-            {/* Logo Section */}
-            <div className="p-6 border-b border-slate-50 flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg bg-school-navy flex items-center justify-center text-white font-bold text-lg">A</div>
-                <div>
-                    <h1 className="text-sm font-bold text-school-text leading-none">Atheris Lab</h1>
-                    <p className="text-[10px] text-school-body mt-0.5 uppercase tracking-wider font-semibold">Intelligence System</p>
-                </div>
-            </div>
+        <aside className="w-64 bg-white border-r border-slate-200 h-full flex flex-col transition-all duration-300 z-50">
+            {/* Branding Removed from Sidebar as per request */}
 
             {/* Navigation */}
-            <nav className="flex-1 p-4">
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-4 px-2">Main Menu</p>
-                <ul className="space-y-1">
-                    {activeLinks.map(link => {
-                        const isActive = location.pathname === link.path;
-                        return (
-                            <li key={link.path}>
-                                <Link 
-                                    to={link.path} 
-                                    className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 group ${
-                                        isActive 
-                                        ? 'bg-school-navy text-white shadow-md shadow-school-navy/20' 
-                                        : 'text-slate-600 hover:bg-slate-50 hover:text-school-navy'
-                                    }`}
-                                >
-                                    <span className={`text-lg transition-transform duration-200 ${isActive ? 'scale-110' : 'group-hover:scale-110'}`}>
-                                        {link.icon}
-                                    </span>
-                                    <span className="text-sm font-medium">{link.label}</span>
-                                </Link>
-                            </li>
-                        );
-                    })}
-                </ul>
+            <nav className="flex-1 overflow-y-auto p-4 space-y-1 custom-scrollbar scrollbar-hide">
+                <p className="px-3 text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-4 mt-2">Main Menu</p>
+                {links.map((link, i) => (
+                    <NavItem key={i} item={link} />
+                ))}
             </nav>
 
-            {/* Bottom Section */}
-            <div className="p-4 mt-auto">
-                <div className="bg-slate-50 rounded-2xl p-4 border border-slate-100">
-                    <p className="text-xs font-bold text-school-text mb-1">Need help?</p>
-                    <p className="text-[10px] text-school-body leading-relaxed mb-3">Check our documentation or contact support.</p>
-                    <button className="w-full py-2 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-school-navy hover:bg-slate-50 transition-colors">
-                        Documentation
-                    </button>
+            {/* User Footer */}
+            <div className="p-4 border-t border-slate-50 bg-slate-50/50">
+                <div className="flex items-center gap-3 p-2 rounded-xl">
+                    <div className="w-8 h-8 rounded-lg bg-school-blue/10 flex items-center justify-center text-school-blue font-bold text-xs uppercase">
+                        {name?.[0] || 'U'}
+                    </div>
+                    <div className="flex flex-col min-w-0">
+                        <span className="text-xs font-bold text-school-text truncate">{name || 'User'}</span>
+                        <span className="text-[10px] font-semibold text-slate-400 uppercase">{role}</span>
+                    </div>
                 </div>
             </div>
         </aside>

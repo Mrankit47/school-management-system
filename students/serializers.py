@@ -9,4 +9,19 @@ class StudentProfileSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = StudentProfile
-        fields = ['id', 'user', 'admission_number', 'rfid_code', 'class_name', 'section_name', 'dob', 'gender', 'address']
+        fields = [
+            'id',
+            'user',
+            'admission_number',
+            'rfid_code',
+            'class_name',
+            'section_name',
+            'dob',
+            'gender',
+            'blood_group',
+            'parent_guardian_name',
+            'parent_contact_number',
+            'address',
+            'date_of_admission',
+            'category',
+        ]
