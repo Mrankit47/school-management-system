@@ -30,8 +30,6 @@ const Classes = () => {
     const [loading, setLoading] = useState(false);
 
     const [message, setMessage] = useState('');
-<<<<<<< HEAD
-    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         refreshSections();
@@ -45,78 +43,6 @@ const Classes = () => {
         } finally {
             setLoading(false);
         }
-=======
-    const [error, setError] = useState('');
-
-    const [sectionSearch, setSectionSearch] = useState('');
-    const [sectionClassFilter, setSectionClassFilter] = useState('');
-
-    const [classModalOpen, setClassModalOpen] = useState(false);
-    const [editingClass, setEditingClass] = useState(null);
-    const [classForm, setClassForm] = useState({
-        name: '',
-        code: '',
-        description: '',
-    });
-
-    const [sectionModalOpen, setSectionModalOpen] = useState(false);
-    const [editingSection, setEditingSection] = useState(null);
-    const [sectionForm, setSectionForm] = useState({
-        class_id: '',
-        section_name: '',
-        class_teacher: '',
-        room_number: '',
-    });
-
-    const [assignForm, setAssignForm] = useState({
-        student_id: '',
-        class_section_id: '',
-    });
-
-    const clearMessage = () => {
-        window.setTimeout(() => {
-            setMessage('');
-            setError('');
-        }, 4000);
-    };
-
-    const fetchData = async () => {
-        setLoading(true);
-        try {
-            const sectionParams = {};
-            if (sectionClassFilter) sectionParams.class_id = sectionClassFilter;
-            if (sectionSearch.trim()) sectionParams.search = sectionSearch.trim();
-
-            const [cRes, sRes, hRes, tRes, stRes] = await Promise.all([
-                api.get('classes/main-classes/'),
-                api.get('classes/admin-sections/', { params: sectionParams }),
-                api.get('classes/admin-structure/'),
-                api.get('teachers/'),
-                api.get('students/'),
-            ]);
-            setClasses(cRes.data || []);
-            setSections(sRes.data || []);
-            setHierarchy(hRes.data || []);
-            setTeachers(tRes.data || []);
-            setStudents(stRes.data || []);
-        } catch (e) {
-            setError('Error loading classes & sections');
-            clearMessage();
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    useEffect(() => {
-        fetchData();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [sectionClassFilter, sectionSearch]);
-
-    const openAddClass = () => {
-        setEditingClass(null);
-        setClassForm({ name: '', code: '', description: '' });
-        setClassModalOpen(true);
->>>>>>> shalini-rajput1
     };
 
     const openEditClass = (c) => {
@@ -132,28 +58,12 @@ const Classes = () => {
     const saveClass = async (e) => {
         e.preventDefault();
         try {
-<<<<<<< HEAD
             await api.post('classes/admin-create-class/', { name: className });
             setMessage({ type: 'success', text: 'Class created successfully!' });
             setClassName('');
             await refreshSections();
         } catch (err) {
             setMessage({ type: 'error', text: 'Error creating class.' });
-=======
-            if (editingClass) {
-                await api.patch(`classes/admin-class/${editingClass.id}/`, classForm);
-                setMessage('Class updated');
-            } else {
-                await api.post('classes/admin-create-class/', classForm);
-                setMessage('Class created');
-            }
-            setClassModalOpen(false);
-            await fetchData();
-        } catch (err) {
-            setError(err?.response?.data?.error || 'Failed to save class');
-        } finally {
-            clearMessage();
->>>>>>> shalini-rajput1
         }
     };
 
@@ -161,7 +71,6 @@ const Classes = () => {
         const ok = window.confirm('Delete this class?');
         if (!ok) return;
         try {
-<<<<<<< HEAD
             await api.post('classes/admin-create-section/', { name: sectionName });
             setMessage({ type: 'success', text: 'Section created successfully!' });
             setSectionName('');
@@ -262,120 +171,6 @@ const Classes = () => {
                         </div>
                     )}
                 </div>
-=======
-            await api.delete(`classes/admin-class/${id}/`);
-            setMessage('Class deleted');
-            await fetchData();
-        } catch (err) {
-            setError(err?.response?.data?.error || 'Failed to delete class');
-        } finally {
-            clearMessage();
-        }
-    };
-
-    const openAddSection = () => {
-        setEditingSection(null);
-        setSectionForm({
-            class_id: classes[0]?.id || '',
-            section_name: '',
-            class_teacher: '',
-            room_number: '',
-        });
-        setSectionModalOpen(true);
-    };
-
-    const openEditSection = (s) => {
-        setEditingSection(s);
-        setSectionForm({
-            class_id: s.class_id || '',
-            section_name: s.section_name || '',
-            class_teacher: s.class_teacher || '',
-            room_number: s.room_number || '',
-        });
-        setSectionModalOpen(true);
-    };
-
-    const saveSection = async (e) => {
-        e.preventDefault();
-        const payload = {
-            class_id: sectionForm.class_id,
-            section_name: sectionForm.section_name,
-            class_teacher: sectionForm.class_teacher || null,
-            room_number: sectionForm.room_number || null,
-        };
-        try {
-            if (editingSection) {
-                await api.patch(`classes/admin-sections/${editingSection.id}/`, payload);
-                setMessage('Section updated');
-            } else {
-                await api.post('classes/admin-sections/create/', payload);
-                setMessage('Section created');
-            }
-            setSectionModalOpen(false);
-            await fetchData();
-        } catch (err) {
-            setError(err?.response?.data?.error || 'Failed to save section');
-        } finally {
-            clearMessage();
-        }
-    };
-
-    const deleteSection = async (id) => {
-        const ok = window.confirm('Delete this section?');
-        if (!ok) return;
-        try {
-            await api.delete(`classes/admin-sections/${id}/`);
-            setMessage('Section deleted');
-            await fetchData();
-        } catch (err) {
-            setError(err?.response?.data?.error || 'Failed to delete section');
-        } finally {
-            clearMessage();
-        }
-    };
-
-    const assignStudent = async (e) => {
-        e.preventDefault();
-        if (!assignForm.student_id || !assignForm.class_section_id) return;
-        try {
-            await api.post('classes/admin-assign-student/', assignForm);
-            setMessage('Student assigned successfully');
-            await fetchData();
-        } catch (err) {
-            setError(err?.response?.data?.error || 'Failed to assign student');
-        } finally {
-            clearMessage();
-        }
-    };
-
-    const sectionOptions = useMemo(() => sections, [sections]);
-
-    return (
-        <div style={{ padding: '20px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '16px', flexWrap: 'wrap' }}>
-                <div>
-                    <h1 style={{ margin: 0 }}>Class & Section Management</h1>
-                    <div style={{ marginTop: '6px', color: '#6b7280', fontSize: '13px', fontWeight: 700 }}>
-                        Organize classes, sections, teachers, and student placement.
-                    </div>
-                </div>
-                <div style={{ display: 'flex', gap: '10px' }}>
-                    <button
-                        type="button"
-                        onClick={openAddClass}
-                        style={{ padding: '10px 14px', borderRadius: '12px', border: 'none', backgroundColor: '#16a34a', color: '#fff', fontWeight: 900, cursor: 'pointer' }}
-                    >
-                        + Add Class
-                    </button>
-                    <button
-                        type="button"
-                        onClick={openAddSection}
-                        style={{ padding: '10px 14px', borderRadius: '12px', border: 'none', backgroundColor: '#2563eb', color: '#fff', fontWeight: 900, cursor: 'pointer' }}
-                    >
-                        + Add Section
-                    </button>
-                </div>
->>>>>>> shalini-rajput1
             </div>
 
             {(message || error) && (

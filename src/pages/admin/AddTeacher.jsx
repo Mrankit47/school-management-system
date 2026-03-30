@@ -58,7 +58,6 @@ const AddTeacher = () => {
         if (!form.first_name.trim()) nextErrors.first_name = 'First name is required';
         if (!form.last_name.trim()) nextErrors.last_name = 'Last name is required';
         if (!form.email.trim()) nextErrors.email = 'Email is required';
-<<<<<<< HEAD
         else if (!emailRegex.test(form.email.trim())) nextErrors.email = 'Enter a valid email';
         if (!form.phone_number.trim()) nextErrors.phone_number = 'Phone required';
         if (!form.gender) nextErrors.gender = 'Gender required';
@@ -67,25 +66,6 @@ const AddTeacher = () => {
         if (!form.password) nextErrors.password = 'Password required';
         else if (form.password.length < 6) nextErrors.password = 'Min 6 chars';
         if (form.confirm_password !== form.password) nextErrors.confirm_password = 'No match';
-=======
-        else if (!emailRegex.test(form.email.trim())) nextErrors.email = 'Enter a valid email address';
-
-        if (!form.phone_number.trim()) nextErrors.phone_number = 'Phone number is required';
-        else if (phoneDigits.length !== 10) nextErrors.phone_number = 'Phone number must be exactly 10 digits';
-
-        if (!form.gender) nextErrors.gender = 'Gender is required';
-        if (!form.dob) nextErrors.dob = 'Date of birth is required';
-
-        if (!form.employee_id.trim()) nextErrors.employee_id = 'Employee ID is required';
-        if (!form.subject_specialization) nextErrors.subject_specialization = 'Subject specialization is required';
-
-        if (!form.password) nextErrors.password = 'Password is required';
-        else if (form.password.length < 6) nextErrors.password = 'Password must be at least 6 characters';
-
-        if (!form.confirm_password) nextErrors.confirm_password = 'Confirm password is required';
-        else if (form.confirm_password !== form.password) nextErrors.confirm_password = 'Passwords do not match';
-
->>>>>>> shalini-rajput1
         return nextErrors;
     };
 
@@ -122,21 +102,6 @@ const AddTeacher = () => {
                 ...form,
                 username: form.email.split('@')[0].toLowerCase() + "_" + form.employee_id,
                 name: `${form.first_name} ${form.last_name}`.trim(),
-<<<<<<< HEAD
-=======
-                employee_id: form.employee_id.trim(),
-                subject_specialization: form.subject_specialization,
-
-                // Extra fields (backend may ignore but UI requirements are satisfied)
-                phone_number: `+91${phoneDigits}`,
-                gender: form.gender,
-                dob: form.dob,
-                qualification: form.qualification,
-                experience_years: form.experience_years,
-                joining_date: form.joining_date,
-                status: form.status,
-                profile_image_base64: form.profile_image_base64,
->>>>>>> shalini-rajput1
             };
             await api.post('teachers/admin/create-teacher/', payload);
             setMessage('Teacher created successfully!');
@@ -165,7 +130,6 @@ const AddTeacher = () => {
     const errorClasses = "text-[10px] text-red-500 font-bold mt-1";
 
     return (
-<<<<<<< HEAD
         <div className="space-y-8 animate-in fade-in duration-500 max-w-5xl mx-auto">
             <div className="flex items-center justify-between">
                 <div>
@@ -184,130 +148,6 @@ const AddTeacher = () => {
                             <div className="flex items-center gap-3 pb-2 border-b border-slate-50">
                                 <span className="text-xl">👤</span>
                                 <h3 className="font-bold text-school-text uppercase tracking-wider text-sm">Personal Information</h3>
-=======
-        <div style={{ padding: '20px' }}>
-            <div style={{ width: '100%' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px' }}>
-                    <h1 style={{ margin: 0 }}>Add Teacher</h1>
-                    <button
-                        type="button"
-                        onClick={() => setIsFormOpen(true)}
-                        style={{
-                            backgroundColor: '#1e40af',
-                            color: '#fff',
-                            border: 'none',
-                            cursor: 'pointer',
-                            padding: '10px 14px',
-                            borderRadius: '10px',
-                            fontWeight: 800,
-                        }}
-                    >
-                        + Add
-                    </button>
-                </div>
-
-                {isFormOpen && (
-                    <div style={{ border: '1px solid #e5e7eb', padding: '22px', backgroundColor: '#fff', borderRadius: '16px', marginTop: '18px' }}>
-                    <form onSubmit={handleSubmit} style={{ display: 'grid', gap: '18px' }}>
-                        <div>
-                            <h3 style={{ margin: 0, marginBottom: '12px', color: '#111827' }}>Section: Personal Information</h3>
-                            <div style={{ display: 'grid', gap: '12px' }}>
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                                    <div>
-                                        <div style={labelStyle}>First Name</div>
-                                        <input
-                                            type="text"
-                                            value={form.first_name}
-                                            onChange={(e) => setForm({ ...form, first_name: e.target.value })}
-                                            placeholder="Enter first name"
-                                            style={inputStyle}
-                                            required
-                                        />
-                                        {errors.first_name && <div style={errorStyle}>{errors.first_name}</div>}
-                                    </div>
-                                    <div>
-                                        <div style={labelStyle}>Last Name</div>
-                                        <input
-                                            type="text"
-                                            value={form.last_name}
-                                            onChange={(e) => setForm({ ...form, last_name: e.target.value })}
-                                            placeholder="Enter last name"
-                                            style={inputStyle}
-                                            required
-                                        />
-                                        {errors.last_name && <div style={errorStyle}>{errors.last_name}</div>}
-                                    </div>
-                                </div>
-
-                                <div>
-                                    <div style={labelStyle}>Email</div>
-                                    <input
-                                        type="email"
-                                        value={form.email}
-                                        onChange={(e) => setForm({ ...form, email: e.target.value })}
-                                        placeholder="Enter email"
-                                        style={inputStyle}
-                                        required
-                                    />
-                                    {errors.email && <div style={errorStyle}>{errors.email}</div>}
-                                </div>
-
-                                <div>
-                                    <div style={labelStyle}>Phone Number</div>
-                                    <div style={{ display: 'grid', gridTemplateColumns: '70px 1fr', gap: '8px' }}>
-                                        <input
-                                            type="text"
-                                            value="+91"
-                                            disabled
-                                            style={{ ...inputStyle, textAlign: 'center', backgroundColor: '#f9fafb', color: '#6b7280' }}
-                                        />
-                                        <input
-                                            type="tel"
-                                            inputMode="numeric"
-                                            pattern="[0-9]{10}"
-                                            value={phoneDigits}
-                                            onChange={(e) => {
-                                                const digits = (e.target.value || '').replace(/\D/g, '').slice(0, 10);
-                                                setForm({ ...form, phone_number: digits });
-                                            }}
-                                            placeholder="10-digit phone number"
-                                            style={inputStyle}
-                                            required
-                                        />
-                                    </div>
-                                    {errors.phone_number && <div style={errorStyle}>{errors.phone_number}</div>}
-                                </div>
-
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                                    <div>
-                                        <div style={labelStyle}>Gender</div>
-                                        <select
-                                            value={form.gender}
-                                            onChange={(e) => setForm({ ...form, gender: e.target.value })}
-                                            style={inputStyle}
-                                            required
-                                        >
-                                            <option value="">-- Select Gender --</option>
-                                            <option value="Male">Male</option>
-                                            <option value="Female">Female</option>
-                                            <option value="Other">Other</option>
-                                        </select>
-                                        {errors.gender && <div style={errorStyle}>{errors.gender}</div>}
-                                    </div>
-
-                                    <div>
-                                        <div style={labelStyle}>Date of Birth</div>
-                                        <input
-                                            type="date"
-                                            value={form.dob}
-                                            onChange={(e) => setForm({ ...form, dob: e.target.value })}
-                                            style={inputStyle}
-                                            required
-                                        />
-                                        {errors.dob && <div style={errorStyle}>{errors.dob}</div>}
-                                    </div>
-                                </div>
->>>>>>> shalini-rajput1
                             </div>
                             
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -442,23 +282,7 @@ const AddTeacher = () => {
                         </div>
                     </div>
                 </div>
-<<<<<<< HEAD
             </form>
-=======
-                )}
-
-                {!isFormOpen && (
-                    <div style={{ marginTop: '24px' }}>
-                        <h2 style={{ marginBottom: '12px' }}>Teachers</h2>
-                        {teachersLoading ? (
-                            <p>Loading teachers...</p>
-                        ) : (
-                            <TeacherCards teachers={teachers} refreshTeachers={fetchTeachers} />
-                        )}
-                    </div>
-                )}
-            </div>
->>>>>>> shalini-rajput1
         </div>
     );
 };

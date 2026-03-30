@@ -41,15 +41,6 @@ const StudentCards = ({ students, refreshStudents }) => {
 
     const saveEdit = async (e) => {
         e.preventDefault();
-<<<<<<< HEAD
-=======
-        if (!editStudent || !editForm) return;
-        const parentDigits = (editForm.parent_contact_number || '').replace(/\D/g, '').slice(0, 10);
-        if (parentDigits.length !== 10) {
-            alert('Parent contact number must be exactly 10 digits');
-            return;
-        }
->>>>>>> shalini-rajput1
         setBusy(true);
         try {
             await api.patch(`students/update/${editStudent.id}/`, {
@@ -206,95 +197,9 @@ const StudentCards = ({ students, refreshStudents }) => {
                                         <button type="button" onClick={closeModal} className="px-6 py-2.5 text-xs font-bold text-slate-500 hover:bg-slate-50 rounded-xl transition-colors">Cancel</button>
                                         <button type="submit" disabled={busy} className="px-8 py-2.5 bg-school-navy text-white text-xs font-bold rounded-xl shadow-lg shadow-school-navy/10 hover:bg-school-blue transition-all disabled:opacity-50">Save Changes</button>
                                     </div>
-<<<<<<< HEAD
                                 </form>
                             )}
                         </div>
-=======
-                                </div>
-
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                                    <div>
-                                        <div style={labelStyle}>Blood Group</div>
-                                        <input
-                                            type="text"
-                                            value={editForm.blood_group}
-                                            onChange={(e) => setEditForm({ ...editForm, blood_group: e.target.value })}
-                                            style={inputStyle}
-                                        />
-                                    </div>
-                                    <div>
-                                        <div style={labelStyle}>Category</div>
-                                        <input
-                                            type="text"
-                                            value={editForm.category}
-                                            onChange={(e) => setEditForm({ ...editForm, category: e.target.value })}
-                                            style={inputStyle}
-                                        />
-                                    </div>
-                                </div>
-
-                                <div>
-                                    <div style={labelStyle}>Parent/Guardian Name</div>
-                                    <input
-                                        type="text"
-                                        value={editForm.parent_guardian_name}
-                                        onChange={(e) => setEditForm({ ...editForm, parent_guardian_name: e.target.value })}
-                                        style={inputStyle}
-                                    />
-                                </div>
-
-                                <div>
-                                    <div style={labelStyle}>Parent Contact Number</div>
-                                    <div style={{ display: 'grid', gridTemplateColumns: '70px 1fr', gap: '8px' }}>
-                                        <input
-                                            type="text"
-                                            value="+91"
-                                            disabled
-                                            style={{ ...inputStyle, textAlign: 'center', backgroundColor: '#f9fafb', color: '#6b7280' }}
-                                        />
-                                        <input
-                                            type="tel"
-                                            inputMode="numeric"
-                                            pattern="[0-9]{10}"
-                                            value={(editForm.parent_contact_number || '').replace(/\D/g, '').slice(0, 10)}
-                                            onChange={(e) => {
-                                                const digits = (e.target.value || '').replace(/\D/g, '').slice(0, 10);
-                                                setEditForm({ ...editForm, parent_contact_number: digits });
-                                            }}
-                                            style={inputStyle}
-                                        />
-                                    </div>
-                                </div>
-
-                                <div>
-                                    <div style={labelStyle}>Residential Address</div>
-                                    <textarea
-                                        value={editForm.address}
-                                        onChange={(e) => setEditForm({ ...editForm, address: e.target.value })}
-                                        style={{ ...inputStyle, minHeight: '90px', resize: 'vertical' }}
-                                    />
-                                </div>
-
-                                <button
-                                    type="submit"
-                                    disabled={busy}
-                                    style={{
-                                        padding: '12px 16px',
-                                        borderRadius: '10px',
-                                        border: 'none',
-                                        cursor: 'pointer',
-                                        backgroundColor: '#28a745',
-                                        color: '#fff',
-                                        fontWeight: 800,
-                                        opacity: busy ? 0.7 : 1,
-                                    }}
-                                >
-                                    Save
-                                </button>
-                            </form>
-                        )}
->>>>>>> shalini-rajput1
                     </div>
                 </div>
             )}

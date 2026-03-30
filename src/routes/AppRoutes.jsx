@@ -60,13 +60,9 @@ const AppRoutes = () => {
                 <Route path="timetable" element={<StudentTimetable />} />
                 <Route path="attendance" element={<StudentAttendance />} />
                 <Route path="fees" element={<StudentFees />} />
-<<<<<<< HEAD
                 <Route path="ledger" element={<StudentFees />} />
                 <Route path="contact" element={<StudentDashboard />} />
                 <Route path="syllabus" element={<StudentDashboard />} />
-=======
-                <Route path="holidays" element={<StudentHolidays />} />
->>>>>>> shalini-rajput1
               </Routes>
             </ProtectedRoute>} />
 

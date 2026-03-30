@@ -85,43 +85,15 @@ const AdminDashboard = () => {
             payload.username = emailLocal || 'student';
             payload.name = `${first} ${last}`.trim();
 
-<<<<<<< HEAD
-=======
-            // Prefer email-local-part (typically unique). Fallback to first/last.
-            payload.username = emailLocal ? emailLocal : (generatedFromName && generatedFromName !== '.' ? generatedFromName : 'student');
-
-            payload.name = `${formData.first_name} ${formData.last_name}`.trim();
-            payload.parent_contact_number = `+91${parentPhoneDigits}`;
->>>>>>> shalini-rajput1
             await api.post('students/admin-create/', payload);
             setMessage('Student created successfully!');
             await fetchCounts();
             setIsFormOpen(false);
             setFormData({
-<<<<<<< HEAD
                 email: '', password: '', first_name: '', last_name: '', name: '',
                 admission_number: '', class_id: '', section_id: '', dob: '',
                 gender: '', blood_group: '', parent_guardian_name: '',
                 parent_contact_number: '', address: '', date_of_admission: '', category: '',
-=======
-                email: '',
-                password: '',
-                confirm_password: '',
-                first_name: '',
-                last_name: '',
-                name: '',
-                admission_number: '',
-                class_id: '',
-                section_id: '',
-                dob: '',
-                gender: '',
-                blood_group: '',
-                parent_guardian_name: '',
-                parent_contact_number: '',
-                address: '',
-                date_of_admission: '',
-                category: '',
->>>>>>> shalini-rajput1
             });
             setTimeout(() => setMessage(''), 3000);
         } catch (err) {
@@ -132,7 +104,6 @@ const AdminDashboard = () => {
     };
 
     return (
-<<<<<<< HEAD
         <div className="space-y-8 animate-in fade-in duration-500">
             {/* Header Section */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 pb-4">
@@ -150,276 +121,10 @@ const AdminDashboard = () => {
                             ? 'bg-white border border-slate-200 text-school-body hover:bg-slate-50 shadow-slate-200/50' 
                             : 'bg-gradient-to-r from-school-navy to-school-blue text-white hover:shadow-school-blue/20 hover:-translate-y-0.5 active:scale-95'
                         }`}
-=======
-        <div style={{ padding: '20px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px' }}>
-                <h1 style={{ margin: 0 }}>Add Student</h1>
-                <button
-                    type="button"
-                    onClick={() => setIsFormOpen(true)}
-                    style={{
-                        backgroundColor: '#1e40af',
-                        color: '#fff',
-                        border: 'none',
-                        cursor: 'pointer',
-                        padding: '10px 14px',
-                        borderRadius: '10px',
-                        fontWeight: 700,
-                    }}
-                >
-                    + Add
-                </button>
-            </div>
-
-            {isFormOpen && (
-                <div
-                    style={{
-                        border: '1px solid #e5e7eb',
-                        padding: '22px',
-                        width: '100%',
-                        backgroundColor: '#fff',
-                        borderRadius: '16px',
-                        marginTop: '18px',
-                    }}
-                >
-                    <h3>Quick Addition: New Student</h3>
-                    <form onSubmit={handleSubmit} style={{ display: 'grid', gap: '18px' }}>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                        <div>
-                            <div style={labelStyle}>First Name</div>
-                            <input
-                                type="text"
-                                placeholder="First Name"
-                                value={formData.first_name}
-                                onChange={(e) => setFormData({ ...formData, first_name: e.target.value })}
-                                style={inputStyle}
-                                required
-                            />
-                        </div>
-                        <div>
-                            <div style={labelStyle}>Last Name</div>
-                            <input
-                                type="text"
-                                placeholder="Last Name"
-                                value={formData.last_name}
-                                onChange={(e) => setFormData({ ...formData, last_name: e.target.value })}
-                                style={inputStyle}
-                                required
-                            />
-                        </div>
-                    </div>
-
-                    <div>
-                        <div style={labelStyle}>Email</div>
-                        <input
-                            type="email"
-                            placeholder="Email"
-                            value={formData.email}
-                            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                            style={inputStyle}
-                            required
-                        />
-                    </div>
-
-                    <div>
-                        <div style={labelStyle}>Password</div>
-                        <input
-                            type="password"
-                            placeholder="Password"
-                            value={formData.password}
-                            onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                            style={inputStyle}
-                            required
-                        />
-                    </div>
-
-                    <div>
-                        <div style={labelStyle}>Confirm Password</div>
-                        <input
-                            type="password"
-                            placeholder="Confirm Password"
-                            value={formData.confirm_password || ''}
-                            onChange={(e) => setFormData({ ...formData, confirm_password: e.target.value })}
-                            style={inputStyle}
-                            required
-                        />
-                    </div>
-
-                    <div>
-                        <div style={labelStyle}>Admission Number</div>
-                        <input
-                            type="text"
-                            placeholder="Admission Number"
-                            value={formData.admission_number}
-                            onChange={(e) => setFormData({ ...formData, admission_number: e.target.value })}
-                            style={inputStyle}
-                            required
-                        />
-                    </div>
-
-                    <div>
-                        <div style={labelStyle}>Date of Birth (DOB)</div>
-                        <input
-                            type="date"
-                            value={formData.dob}
-                            onChange={(e) => setFormData({ ...formData, dob: e.target.value })}
-                            style={inputStyle}
-                            required
-                        />
-                    </div>
-
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                        <div>
-                            <div style={labelStyle}>Gender</div>
-                            <select
-                                value={formData.gender}
-                                onChange={(e) => setFormData({ ...formData, gender: e.target.value })}
-                                required
-                                style={inputStyle}
-                            >
-                                <option value="">-- Select Gender --</option>
-                                <option value="Male">Male</option>
-                                <option value="Female">Female</option>
-                                <option value="Other">Other</option>
-                            </select>
-                        </div>
-                        <div>
-                            <div style={labelStyle}>Blood Group</div>
-                            <select
-                                value={formData.blood_group}
-                                onChange={(e) => setFormData({ ...formData, blood_group: e.target.value })}
-                                required
-                                style={inputStyle}
-                            >
-                                <option value="">-- Select Blood Group --</option>
-                                <option value="A+">A+</option>
-                                <option value="A-">A-</option>
-                                <option value="B+">B+</option>
-                                <option value="B-">B-</option>
-                                <option value="AB+">AB+</option>
-                                <option value="AB-">AB-</option>
-                                <option value="O+">O+</option>
-                                <option value="O-">O-</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <div>
-                        <div style={labelStyle}>Parent/Guardian Name</div>
-                        <input
-                            type="text"
-                            placeholder="Parent/Guardian Name"
-                            value={formData.parent_guardian_name}
-                            onChange={(e) => setFormData({ ...formData, parent_guardian_name: e.target.value })}
-                            style={inputStyle}
-                            required
-                        />
-                    </div>
-
-                    <div>
-                        <div style={labelStyle}>Parent Contact Number</div>
-                        <div style={{ display: 'grid', gridTemplateColumns: '70px 1fr', gap: '8px' }}>
-                            <input
-                                type="text"
-                                value="+91"
-                                disabled
-                                style={{ ...inputStyle, textAlign: 'center', backgroundColor: '#f9fafb', color: '#6b7280' }}
-                            />
-                            <input
-                                type="tel"
-                                inputMode="numeric"
-                                pattern="[0-9]{10}"
-                                placeholder="10-digit number"
-                                value={parentPhoneDigits}
-                                onChange={(e) => {
-                                    const digits = (e.target.value || '').replace(/\D/g, '').slice(0, 10);
-                                    setFormData({ ...formData, parent_contact_number: digits });
-                                }}
-                                style={inputStyle}
-                                required
-                            />
-                        </div>
-                    </div>
-
-                    <div>
-                        <div style={labelStyle}>Residential Address</div>
-                        <input
-                            type="text"
-                            placeholder="Residential Address"
-                            value={formData.address}
-                            onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                            style={inputStyle}
-                            required
-                        />
-                    </div>
-
-                    <div>
-                        <div style={labelStyle}>Date of Admission</div>
-                        <input
-                            type="date"
-                            value={formData.date_of_admission}
-                            onChange={(e) => setFormData({ ...formData, date_of_admission: e.target.value })}
-                            style={inputStyle}
-                            required
-                        />
-                    </div>
-
-                    <div>
-                        <div style={labelStyle}>Category</div>
-                        <input
-                            type="text"
-                            placeholder="Category"
-                            value={formData.category}
-                            onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                            style={inputStyle}
-                            required
-                        />
-                    </div>
-
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                        <div>
-                            <div style={labelStyle}>Class</div>
-                            <select
-                                value={formData.class_id}
-                                onChange={(e) => setFormData({ ...formData, class_id: e.target.value })}
-                                required
-                                style={inputStyle}
-                            >
-                                <option value="">-- Select Class --</option>
-                                {mainClasses.map((c) => (
-                                    <option key={c.id} value={c.id}>{c.name}</option>
-                                ))}
-                            </select>
-                        </div>
-                        <div>
-                            <div style={labelStyle}>Section</div>
-                            <select
-                                value={formData.section_id}
-                                onChange={(e) => setFormData({ ...formData, section_id: e.target.value })}
-                                required
-                                style={inputStyle}
-                            >
-                                <option value="">-- Select Section --</option>
-                                {mainSections.map((s) => (
-                                    <option key={s.id} value={s.id}>{s.name}</option>
-                                ))}
-                            </select>
-                        </div>
-                    </div>
-
-                    <button
-                        type="submit"
-                        style={{ backgroundColor: '#28a745', color: '#fff', padding: '12px 18px', border: 'none', cursor: 'pointer', borderRadius: '10px', width: '100%', fontWeight: 700 }}
->>>>>>> shalini-rajput1
                     >
                         {isFormOpen ? '✕ Close Registration' : '＋ Register New Student'}
                     </button>
-<<<<<<< HEAD
                 </div>
-=======
-                </form>
-                {message && <p style={{ color: message.startsWith('Error') ? '#dc2626' : 'green' }}>{message}</p>}
->>>>>>> shalini-rajput1
             </div>
 
             {/* Dashboard Stats & Overview */}
