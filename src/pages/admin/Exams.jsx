@@ -42,18 +42,15 @@ const stepBadgeStyle = (active, done) => ({
 const Exams = () => {
     const [exams, setExams] = useState([]);
     const [sections, setSections] = useState([]);
-    const [students, setStudents] = useState([]);
     const [subjects, setSubjects] = useState([]);
     const [schedules, setSchedules] = useState([]);
-    const [resultDashboard, setResultDashboard] = useState([]);
 
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState('');
     const [error, setError] = useState('');
 
-    const [step, setStep] = useState(1); // 1 create, 2 schedule, 3 marks
+    const [step, setStep] = useState(1); // 1 create, 2 schedule, 3 publish
     const [selectedExamId, setSelectedExamId] = useState('');
-    const [selectedStudentId, setSelectedStudentId] = useState('');
     const [scheduleForm, setScheduleForm] = useState({
         subject: '',
         exam_date: '',
@@ -80,8 +77,9 @@ const Exams = () => {
         description: '',
     });
 
-    const [marksRows, setMarksRows] = useState([]); // [{subject,max_marks,marks,absent}]
     const [publishing, setPublishing] = useState(false);
+    const [overviewClassFilter, setOverviewClassFilter] = useState('all');
+    const [overviewStatusFilter, setOverviewStatusFilter] = useState('all');
 
     const selectedExam = useMemo(() => exams.find((e) => String(e.id) === String(selectedExamId)) || null, [exams, selectedExamId]);
 
@@ -91,9 +89,8 @@ const Exams = () => {
     };
 
     const loadMeta = async () => {
-        const [sRes, stRes] = await Promise.all([api.get('classes/sections/'), api.get('students/')]);
+        const [sRes] = await Promise.all([api.get('classes/sections/')]);
         setSections(sRes.data || []);
-        setStudents(stRes.data || []);
     };
 
     useEffect(() => {
@@ -107,8 +104,6 @@ const Exams = () => {
         if (!selectedExam) {
             setSchedules([]);
             setSubjects([]);
-            setMarksRows([]);
-            setResultDashboard([]);
             return;
         }
         const sec = sections.find((s) => String(s.id) === String(selectedExam.class_section));
@@ -121,32 +116,22 @@ const Exams = () => {
             .then(([schRes, subRes]) => {
                 setSchedules(schRes.data || []);
                 setSubjects(subRes.data || []);
-                setMarksRows(
-                    (subRes.data || []).map((s) => ({
-                        subject: s.name,
-                        max_marks: '',
-                        marks: '',
-                        absent: false,
-                    }))
-                );
             })
             .catch(() => {});
     }, [selectedExamId, sections, selectedExam]);
-
-    useEffect(() => {
-        if (!selectedExamId || !selectedStudentId) {
-            setResultDashboard([]);
-            return;
-        }
-        api.get(`academics/exams/${selectedExamId}/result-dashboard/`, { params: { student_id: selectedStudentId } })
-            .then((res) => setResultDashboard(res.data || []))
-            .catch(() => setResultDashboard([]));
-    }, [selectedExamId, selectedStudentId]);
 
     const onCreateExam = async (e) => {
         e.preventDefault();
         setError('');
         setMessage('');
+        if (!examForm.name || !examForm.class_section || !examForm.start_date || !examForm.end_date || !examForm.total_marks || !examForm.passing_marks) {
+            setError('Please fill all required fields.');
+            return;
+        }
+        if (examForm.start_date > examForm.end_date) {
+            setError('Start date must be before end date.');
+            return;
+        }
         try {
             const payload = {
                 ...examForm,
@@ -178,6 +163,14 @@ const Exams = () => {
     const addSchedule = async (e) => {
         e.preventDefault();
         if (!selectedExamId) return;
+        if (!scheduleForm.subject || !scheduleForm.exam_date || !scheduleForm.start_time || !scheduleForm.end_time) {
+            setError('Please fill all schedule fields.');
+            return;
+        }
+        if (scheduleForm.start_time >= scheduleForm.end_time) {
+            setError('Start time must be before end time.');
+            return;
+        }
         setError('');
         try {
             await api.post(`academics/exams/${selectedExamId}/schedule/`, scheduleForm);
@@ -185,6 +178,7 @@ const Exams = () => {
             setSchedules(res.data || []);
             setScheduleForm({ subject: '', exam_date: '', start_time: '', end_time: '' });
             setMessage('Subject schedule added');
+            setStep(3);
         } catch (err) {
             setError(err?.response?.data?.error || 'Failed to add schedule');
         }
@@ -223,6 +217,10 @@ const Exams = () => {
     const saveScheduleEdit = async () => {
         if (!editingScheduleId) return;
         setError('');
+        if (editScheduleForm.start_time >= editScheduleForm.end_time) {
+            setError('Start time must be before end time.');
+            return;
+        }
         try {
             await api.patch(`academics/schedule/${editingScheduleId}/`, editScheduleForm);
             const res = await api.get(`academics/exams/${selectedExamId}/schedule/`);
@@ -231,127 +229,6 @@ const Exams = () => {
             cancelEditSchedule();
         } catch (err) {
             setError(err?.response?.data?.error || 'Failed to update schedule');
-        }
-    };
-
-    const updateMarkRow = (subject, patch) => {
-        setMarksRows((prev) => prev.map((r) => (r.subject === subject ? { ...r, ...patch } : r)));
-    };
-
-    const downloadMarksCsvTemplate = () => {
-        const header = 'subject,max_marks,marks,absent';
-        const sampleRows = marksRows.length
-            ? marksRows.map((r) => `${r.subject},100,0,false`)
-            : ['Maths,100,0,false', 'Science,100,0,false', 'English,100,,true'];
-        const csvText = [header, ...sampleRows].join('\n');
-
-        const blob = new Blob([csvText], { type: 'text/csv;charset=utf-8;' });
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'marks_upload_template.csv';
-        a.click();
-        window.URL.revokeObjectURL(url);
-    };
-
-    const handleMarksCsvUpload = async (e) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
-        try {
-            const text = await file.text();
-            const lines = text.split(/\r?\n/).filter((ln) => ln.trim());
-            if (lines.length < 2) {
-                setError('CSV is empty');
-                return;
-            }
-            const header = lines[0].split(',').map((h) => h.trim().toLowerCase());
-            const idxSubject = header.indexOf('subject');
-            const idxMax = header.indexOf('max_marks');
-            const idxMarks = header.indexOf('marks');
-            const idxAbsent = header.indexOf('absent');
-            if (idxSubject < 0 || idxMax < 0 || idxMarks < 0) {
-                setError('CSV headers required: subject,max_marks,marks,absent(optional)');
-                return;
-            }
-
-            const parsedRows = lines.slice(1).map((line) => {
-                const cols = line.split(',').map((c) => c.trim());
-                return {
-                    subject: cols[idxSubject] || '',
-                    max_marks: cols[idxMax] || '',
-                    marks: cols[idxMarks] || '',
-                    absent: idxAbsent >= 0 ? ['1', 'true', 'yes', 'abs', 'absent'].includes((cols[idxAbsent] || '').toLowerCase()) : false,
-                };
-            }).filter((r) => r.subject);
-
-            if (!parsedRows.length) {
-                setError('No valid rows found in CSV');
-                return;
-            }
-
-            setMarksRows((prev) => {
-                const next = [...prev];
-                parsedRows.forEach((csvRow) => {
-                    const i = next.findIndex((r) => r.subject.toLowerCase() === csvRow.subject.toLowerCase());
-                    if (i >= 0) {
-                        next[i] = { ...next[i], ...csvRow };
-                    } else {
-                        next.push(csvRow);
-                    }
-                });
-                return next;
-            });
-            setMessage('CSV imported. Please review before upload.');
-        } catch (err) {
-            setError('Failed to parse CSV');
-        } finally {
-            e.target.value = '';
-        }
-    };
-
-    const totals = useMemo(() => {
-        let obtained = 0;
-        let max = 0;
-        marksRows.forEach((r) => {
-            const m = Number(r.marks || 0);
-            const mm = Number(r.max_marks || 0);
-            if (!r.absent) obtained += m;
-            max += mm;
-        });
-        const percentage = max > 0 ? (obtained / max) * 100 : 0;
-        let grade = 'F';
-        if (percentage >= 90) grade = 'A+';
-        else if (percentage >= 80) grade = 'A';
-        else if (percentage >= 70) grade = 'B';
-        else if (percentage >= 60) grade = 'C';
-        else if (percentage >= 50) grade = 'D';
-        return { obtained, max, percentage, grade };
-    }, [marksRows]);
-
-    const uploadMarks = async () => {
-        if (!selectedExamId || !selectedStudentId) return;
-        setError('');
-        try {
-            const invalid = marksRows.find((r) => !r.absent && Number(r.marks) > Number(r.max_marks));
-            if (invalid) {
-                setError(`Invalid marks for ${invalid.subject}`);
-                return;
-            }
-            await api.post('academics/results/upload/', {
-                exam: selectedExamId,
-                student: selectedStudentId,
-                results: marksRows.map((r) => ({
-                    subject: r.subject,
-                    marks: r.absent ? null : (r.marks === '' ? 0 : r.marks),
-                    max_marks: r.max_marks === '' ? 0 : r.max_marks,
-                    absent: r.absent,
-                })),
-            });
-            setMessage('Marks uploaded successfully');
-            const dashRes = await api.get(`academics/exams/${selectedExamId}/result-dashboard/`, { params: { student_id: selectedStudentId } });
-            setResultDashboard(dashRes.data || []);
-        } catch (err) {
-            setError(err?.response?.data?.error || 'Failed to upload marks');
         }
     };
 
@@ -370,13 +247,13 @@ const Exams = () => {
         }
     };
 
-    const upcomingExams = useMemo(() => {
-        const today = new Date();
+    const overviewExams = useMemo(() => {
         return (exams || []).filter((e) => {
-            const d = new Date(e.start_date || e.date);
-            return d >= new Date(today.getFullYear(), today.getMonth(), today.getDate());
+            if (overviewClassFilter !== 'all' && String(e.class_section) !== String(overviewClassFilter)) return false;
+            if (overviewStatusFilter !== 'all' && String(e.status) !== String(overviewStatusFilter)) return false;
+            return true;
         });
-    }, [exams]);
+    }, [exams, overviewClassFilter, overviewStatusFilter]);
 
     const done1 = !!selectedExamId;
     const done2 = done1 && schedules.length > 0;
@@ -387,13 +264,13 @@ const Exams = () => {
                 <div>
                     <h1 style={{ margin: 0 }}>Exam Management</h1>
                     <div style={{ marginTop: '6px', color: '#6b7280', fontWeight: 700, fontSize: '13px' }}>
-                        Create exams, schedule subjects, upload marks, and publish results.
+                        Create exams, add schedule, and publish/unpublish results.
                     </div>
                 </div>
                 <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                     <span style={stepBadgeStyle(step === 1, done1)}>Step 1: Create Exam</span>
                     <span style={stepBadgeStyle(step === 2, done2)}>Step 2: Add Schedule</span>
-                    <span style={stepBadgeStyle(step === 3, done2 && !!selectedStudentId)}>Step 3: Upload Marks</span>
+                    <span style={stepBadgeStyle(step === 3, done2)}>Step 3: Publish Result</span>
                 </div>
             </div>
 
@@ -498,7 +375,7 @@ const Exams = () => {
 
                         {!selectedExamId ? (
                             <div style={{ color: '#6b7280', fontWeight: 800, fontSize: '13px' }}>
-                                Create/select an exam first to add schedule.
+                                Create exam first, then select it to add schedule.
                             </div>
                         ) : (
                             <>
@@ -527,7 +404,7 @@ const Exams = () => {
                                         <input type="time" value={scheduleForm.end_time} onChange={(e) => setScheduleForm({ ...scheduleForm, end_time: e.target.value })} style={input} required />
                                     </div>
                                     <button type="submit" style={{ padding: '10px 14px', borderRadius: '10px', border: 'none', backgroundColor: '#16a34a', color: '#fff', fontWeight: 900, cursor: 'pointer', height: '40px' }}>
-                                        Add
+                                        Add Schedule
                                     </button>
                                 </form>
 
@@ -632,142 +509,68 @@ const Exams = () => {
                     </div>
 
                     <div style={card}>
-                        <div style={{ fontWeight: 900, marginBottom: '10px' }}>Step 3: Upload Marks</div>
+                        <div style={{ fontWeight: 900, marginBottom: '10px' }}>Step 3: Publish Result</div>
                         {!selectedExamId ? (
-                            <div style={{ color: '#6b7280', fontWeight: 800 }}>Select an exam first.</div>
+                            <div style={{ color: '#6b7280', fontWeight: 800 }}>Create/select an exam first.</div>
+                        ) : !done2 ? (
+                            <div style={{ color: '#6b7280', fontWeight: 800 }}>Add schedule first to enable publishing.</div>
                         ) : (
                             <>
                                 <div style={{ display: 'grid', gridTemplateColumns: '1fr auto auto', gap: '10px', alignItems: 'end', marginBottom: '10px' }}>
                                     <div>
-                                        <div style={label}>Student</div>
-                                        <select value={selectedStudentId} onChange={(e) => { setSelectedStudentId(e.target.value); setStep(e.target.value ? 3 : 2); }} style={input}>
-                                            <option value="">-- Select Student --</option>
-                                            {students
-                                                .filter((s) => s.class_name === `${selectedExam?.class_name} - ${selectedExam?.section_name}`)
-                                                .map((s) => (
-                                                    <option key={s.id} value={s.id}>
-                                                        {s.name}
-                                                    </option>
-                                                ))}
-                                        </select>
+                                        <div style={label}>Exam + Result Status</div>
+                                        <div style={{ ...input, backgroundColor: '#f9fafb', color: '#374151', fontWeight: 700 }}>
+                                            {selectedExam?.name} - {selectedExam?.result_published ? 'Published' : 'Unpublished'}
+                                        </div>
                                     </div>
-                                    <button type="button" onClick={() => togglePublishResults(true)} disabled={publishing || !selectedExamId} style={{ padding: '10px 14px', borderRadius: '10px', border: 'none', backgroundColor: '#2563eb', color: '#fff', fontWeight: 900, cursor: 'pointer' }}>
-                                        Publish
+                                    <button type="button" onClick={() => togglePublishResults(true)} disabled={publishing || !selectedExamId || !done2} style={{ padding: '10px 14px', borderRadius: '10px', border: 'none', backgroundColor: '#2563eb', color: '#fff', fontWeight: 900, cursor: 'pointer' }}>
+                                        Publish Result
                                     </button>
-                                    <button type="button" onClick={() => togglePublishResults(false)} disabled={publishing || !selectedExamId} style={{ padding: '10px 14px', borderRadius: '10px', border: '1px solid #e5e7eb', backgroundColor: '#fff', color: '#111827', fontWeight: 900, cursor: 'pointer' }}>
-                                        Unpublish
+                                    <button type="button" onClick={() => togglePublishResults(false)} disabled={publishing || !selectedExamId || !done2} style={{ padding: '10px 14px', borderRadius: '10px', border: '1px solid #e5e7eb', backgroundColor: '#fff', color: '#111827', fontWeight: 900, cursor: 'pointer' }}>
+                                        Unpublish Result
                                     </button>
                                 </div>
-                                <div style={{ display: 'flex', gap: '10px', alignItems: 'center', marginBottom: '10px', flexWrap: 'wrap' }}>
-                                    <label style={{ fontSize: '12px', fontWeight: 800, color: '#4b5563' }}>
-                                        Bulk CSV Upload
-                                    </label>
-                                    <button
-                                        type="button"
-                                        onClick={downloadMarksCsvTemplate}
-                                        style={{
-                                            padding: '7px 10px',
-                                            borderRadius: '8px',
-                                            border: '1px solid #e5e7eb',
-                                            backgroundColor: '#fff',
-                                            color: '#111827',
-                                            fontWeight: 800,
-                                            cursor: 'pointer',
-                                            fontSize: '12px',
-                                        }}
-                                    >
-                                        Download CSV Template
-                                    </button>
-                                    <input
-                                        type="file"
-                                        accept=".csv,text/csv"
-                                        onChange={handleMarksCsvUpload}
-                                        style={{ fontSize: '12px' }}
-                                    />
-                                    <span style={{ fontSize: '12px', color: '#6b7280' }}>
-                                        Header: <code>subject,max_marks,marks,absent</code>
-                                    </span>
-                                </div>
-                                <div style={{ overflowX: 'auto' }}>
-                                    <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                                        <thead>
-                                            <tr style={{ backgroundColor: '#f2f4f7' }}>
-                                                <th style={{ padding: '10px', textAlign: 'left' }}>Subject</th>
-                                                <th style={{ padding: '10px', textAlign: 'left' }}>Max Marks</th>
-                                                <th style={{ padding: '10px', textAlign: 'left' }}>Obtained</th>
-                                                <th style={{ padding: '10px', textAlign: 'left' }}>Absent</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {marksRows.map((r) => (
-                                                <tr key={r.subject} style={{ borderTop: '1px solid #eef2f7' }}>
-                                                    <td style={{ padding: '10px', fontWeight: 800 }}>{r.subject}</td>
-                                                    <td style={{ padding: '10px', width: '160px' }}>
-                                                        <input type="number" value={r.max_marks} onChange={(e) => updateMarkRow(r.subject, { max_marks: e.target.value })} style={input} />
-                                                    </td>
-                                                    <td style={{ padding: '10px', width: '160px' }}>
-                                                        <input type="number" value={r.marks} onChange={(e) => updateMarkRow(r.subject, { marks: e.target.value })} style={{ ...input, opacity: r.absent ? 0.6 : 1 }} disabled={r.absent} />
-                                                    </td>
-                                                    <td style={{ padding: '10px', width: '90px' }}>
-                                                        <input type="checkbox" checked={r.absent} onChange={(e) => updateMarkRow(r.subject, { absent: e.target.checked })} />
-                                                    </td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                </div>
-                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: '10px', marginTop: '10px' }}>
-                                    <div style={{ ...card, padding: '10px' }}>
-                                        <div style={label}>Total Marks</div>
-                                        <div style={{ fontWeight: 900 }}>{totals.max}</div>
-                                    </div>
-                                    <div style={{ ...card, padding: '10px' }}>
-                                        <div style={label}>Obtained</div>
-                                        <div style={{ fontWeight: 900 }}>{totals.obtained}</div>
-                                    </div>
-                                    <div style={{ ...card, padding: '10px' }}>
-                                        <div style={label}>Percentage</div>
-                                        <div style={{ fontWeight: 900 }}>{totals.percentage.toFixed(2)}%</div>
-                                    </div>
-                                    <div style={{ ...card, padding: '10px' }}>
-                                        <div style={label}>Grade</div>
-                                        <div style={{ fontWeight: 900 }}>{totals.grade}</div>
+                                <div style={{ border: '1px dashed #cbd5e1', borderRadius: '10px', padding: '12px', backgroundColor: '#f8fafc' }}>
+                                    <div style={{ fontWeight: 800, color: '#334155', marginBottom: '4px' }}>Role-based control</div>
+                                    <div style={{ fontSize: '13px', color: '#64748b' }}>
+                                        Admin can only control result visibility. Marks upload is managed by teachers.
                                     </div>
                                 </div>
-                                <button type="button" onClick={uploadMarks} disabled={!selectedStudentId} style={{ marginTop: '10px', padding: '12px 14px', borderRadius: '12px', border: 'none', backgroundColor: '#16a34a', color: '#fff', fontWeight: 900, cursor: 'pointer', width: '100%' }}>
-                                    Upload Marks
-                                </button>
-
-                                {resultDashboard.length > 0 && (
-                                    <div style={{ marginTop: '12px', borderTop: '1px solid #eef2f7', paddingTop: '10px' }}>
-                                        <div style={{ fontWeight: 900, marginBottom: '8px' }}>Result Dashboard</div>
-                                        {resultDashboard.map((d) => (
-                                            <div key={d.student_id} style={{ border: '1px solid #eef2f7', borderRadius: '10px', padding: '10px', marginBottom: '8px' }}>
-                                                <div style={{ fontWeight: 900 }}>{d.student_name}</div>
-                                                <div style={{ fontSize: '13px', color: '#374151' }}>
-                                                    Total: {d.obtained_marks}/{d.total_marks} • Percentage: {d.percentage}% • Grade: {d.grade} • {d.status}
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                )}
                             </>
                         )}
                     </div>
                 </div>
 
-                {/* Upcoming widget */}
+                {/* Overview widget */}
                 <div style={card}>
-                    <div style={{ fontWeight: 900, marginBottom: '10px' }}>Upcoming Exams</div>
+                    <div style={{ fontWeight: 900, marginBottom: '10px' }}>Exam Overview</div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '8px', marginBottom: '10px' }}>
+                        <select value={overviewClassFilter} onChange={(e) => setOverviewClassFilter(e.target.value)} style={input}>
+                            <option value="all">All Classes/Sections</option>
+                            {sections.map((s) => (
+                                <option key={s.id} value={s.id}>
+                                    {s.class_name} - {s.section_name}
+                                </option>
+                            ))}
+                        </select>
+                        <select value={overviewStatusFilter} onChange={(e) => setOverviewStatusFilter(e.target.value)} style={input}>
+                            <option value="all">All Status</option>
+                            <option value="Draft">Draft</option>
+                            <option value="Published">Published</option>
+                        </select>
+                    </div>
+                    <div style={{ marginBottom: '10px', fontSize: '12px', fontWeight: 800, color: '#4b5563' }}>
+                        Total Exams: {overviewExams.length}
+                    </div>
                     {loading ? (
                         <div style={{ color: '#6b7280' }}>Loading...</div>
-                    ) : upcomingExams.length === 0 ? (
+                    ) : overviewExams.length === 0 ? (
                         <div style={{ color: '#6b7280', fontWeight: 800 }}>
-                            No upcoming exams yet. Create one in Step 1.
+                            No exams found for selected filters.
                         </div>
                     ) : (
                         <div style={{ display: 'grid', gap: '10px' }}>
-                            {upcomingExams.slice(0, 8).map((e) => (
+                            {overviewExams.slice(0, 8).map((e) => (
                                 <div key={e.id} style={{ border: '1px solid #eef2f7', borderRadius: '10px', padding: '10px', backgroundColor: '#fafafa' }}>
                                     <div style={{ fontWeight: 900 }}>{e.name}</div>
                                     <div style={{ marginTop: '4px', fontSize: '12px', color: '#6b7280' }}>

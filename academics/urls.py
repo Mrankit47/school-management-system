@@ -6,6 +6,7 @@ from .views import (
     ExamScheduleDetailView,
     ExamScheduleListCreateView,
     MyResultsView,
+    MyResultMarksheetPDFView,
     PublishResultView,
     ResultUploadView,
 )
@@ -19,4 +20,5 @@ urlpatterns = [
     path('exams/<int:exam_id>/publish-results/', PublishResultView.as_view(), name='exam-publish-results'),
     path('results/upload/', ResultUploadView.as_view(), name='result-upload'),
     path('results/my/', MyResultsView.as_view(), name='my-results'),
+    path('results/my/<int:exam_id>/pdf/', MyResultMarksheetPDFView.as_view(), name='my-marksheet-pdf'),
 ]

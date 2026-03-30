@@ -37,14 +37,14 @@ const AdminFees = () => {
     const [studentFees, setStudentFees] = useState([]);
     const [classFilter, setClassFilter] = useState('');
     const [studentFilter, setStudentFilter] = useState('');
+    const [searchStudent, setSearchStudent] = useState('');
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState('');
 
     const [structureForm, setStructureForm] = useState({
         class_ref: '',
-        tuition_fees: '',
-        exam_fees: '',
-        other_charges: '',
+        fee_type: 'School Fee',
+        amount: '',
         due_date: '',
         description: '',
     });
@@ -113,6 +113,24 @@ const AdminFees = () => {
         return selectedRecord.payments;
     }, [selectedRecord]);
 
+    const filteredStudentFees = useMemo(() => {
+        const q = searchStudent.trim().toLowerCase();
+        if (!q) return studentFees;
+        return studentFees.filter((row) => {
+            const name = (row.student_name || '').toLowerCase();
+            const cls = (row.class_display || '').toLowerCase();
+            return name.includes(q) || cls.includes(q);
+        });
+    }, [studentFees, searchStudent]);
+
+    const studentsForAssignDropdown = useMemo(() => {
+        if (!syncClassId) return students;
+        const selectedClass = mainClasses.find((c) => String(c.id) === String(syncClassId));
+        const selectedName = (selectedClass?.name || '').toLowerCase();
+        if (!selectedName) return students;
+        return students.filter((s) => ((s.class_name || '').toLowerCase().includes(selectedName)));
+    }, [students, mainClasses, syncClassId]);
+
     const refreshSelectedWithPayments = async () => {
         if (!selectedFeeId) return;
         try {
@@ -130,11 +148,15 @@ const AdminFees = () => {
     const saveStructure = async (e) => {
         e.preventDefault();
         try {
+            const amount = Number(structureForm.amount || 0);
+            const tuition = structureForm.fee_type === 'School Fee' ? amount : 0;
+            const exam = structureForm.fee_type === 'Exam Fee' ? amount : 0;
+            const transport = structureForm.fee_type === 'Transport Fee' ? amount : 0;
             const payload = {
                 class_ref: structureForm.class_ref,
-                tuition_fees: structureForm.tuition_fees,
-                exam_fees: structureForm.exam_fees || '0',
-                other_charges: structureForm.other_charges || '0',
+                tuition_fees: String(tuition),
+                exam_fees: String(exam),
+                other_charges: String(transport),
                 due_date: structureForm.due_date,
                 description: structureForm.description,
             };
@@ -148,9 +170,8 @@ const AdminFees = () => {
             setEditingStructureId(null);
             setStructureForm({
                 class_ref: '',
-                tuition_fees: '',
-                exam_fees: '',
-                other_charges: '',
+                fee_type: 'School Fee',
+                amount: '',
                 due_date: '',
                 description: '',
             });
@@ -161,12 +182,20 @@ const AdminFees = () => {
     };
 
     const editStructure = (s) => {
+        let feeType = 'School Fee';
+        let amount = s.tuition_fees;
+        if (Number(s.exam_fees || 0) > 0) {
+            feeType = 'Exam Fee';
+            amount = s.exam_fees;
+        } else if (Number(s.other_charges || 0) > 0) {
+            feeType = 'Transport Fee';
+            amount = s.other_charges;
+        }
         setEditingStructureId(s.id);
         setStructureForm({
             class_ref: s.class_ref,
-            tuition_fees: s.tuition_fees,
-            exam_fees: s.exam_fees,
-            other_charges: s.other_charges,
+            fee_type: feeType,
+            amount,
             due_date: s.due_date,
             description: s.description || '',
         });
@@ -273,7 +302,7 @@ const AdminFees = () => {
                 <div>
                     <h1 style={{ margin: 0 }}>Finance Management</h1>
                     <p style={{ margin: '8px 0 0', color: '#6b7280', fontSize: '14px' }}>
-                        Fee structures, student balances, payments, receipts, and exports.
+                        Define fee structure, assign fees, verify student payments, and monitor due records.
                     </p>
                 </div>
                 {message ? (
@@ -285,19 +314,19 @@ const AdminFees = () => {
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '14px', marginTop: '20px' }}>
                 <div style={card}>
-                    <div style={labelStyle}>Total scheduled</div>
+                    <div style={labelStyle}>Total Fees</div>
                     <div style={{ fontSize: '22px', fontWeight: 900 }}>₹{dashboard?.total_fees_scheduled ?? '—'}</div>
                 </div>
                 <div style={card}>
-                    <div style={labelStyle}>Total paid</div>
+                    <div style={labelStyle}>Total Paid</div>
                     <div style={{ fontSize: '22px', fontWeight: 900, color: '#166534' }}>₹{dashboard?.total_paid ?? '—'}</div>
                 </div>
                 <div style={card}>
-                    <div style={labelStyle}>Total due</div>
+                    <div style={labelStyle}>Total Due</div>
                     <div style={{ fontSize: '22px', fontWeight: 900, color: '#b45309' }}>₹{dashboard?.total_due ?? '—'}</div>
                 </div>
                 <div style={card}>
-                    <div style={labelStyle}>Overdue records</div>
+                    <div style={labelStyle}>Overdue Payments</div>
                     <div style={{ fontSize: '22px', fontWeight: 900, color: '#b91c1c' }}>{dashboard?.overdue_records ?? '—'}</div>
                 </div>
             </div>
@@ -323,16 +352,16 @@ const AdminFees = () => {
                         </select>
                     </div>
                     <div>
-                        <div style={labelStyle}>Tuition</div>
-                        <input type="number" step="0.01" value={structureForm.tuition_fees} onChange={(e) => setStructureForm({ ...structureForm, tuition_fees: e.target.value })} style={inputStyle} required />
+                        <div style={labelStyle}>Fee Type</div>
+                        <select value={structureForm.fee_type} onChange={(e) => setStructureForm({ ...structureForm, fee_type: e.target.value })} style={inputStyle} required>
+                            <option value="School Fee">School Fee</option>
+                            <option value="Exam Fee">Exam Fee</option>
+                            <option value="Transport Fee">Transport Fee</option>
+                        </select>
                     </div>
                     <div>
-                        <div style={labelStyle}>Exam</div>
-                        <input type="number" step="0.01" value={structureForm.exam_fees} onChange={(e) => setStructureForm({ ...structureForm, exam_fees: e.target.value })} style={inputStyle} />
-                    </div>
-                    <div>
-                        <div style={labelStyle}>Other</div>
-                        <input type="number" step="0.01" value={structureForm.other_charges} onChange={(e) => setStructureForm({ ...structureForm, other_charges: e.target.value })} style={inputStyle} />
+                        <div style={labelStyle}>Amount</div>
+                        <input type="number" step="0.01" value={structureForm.amount} onChange={(e) => setStructureForm({ ...structureForm, amount: e.target.value })} style={inputStyle} required />
                     </div>
                     <div>
                         <div style={labelStyle}>Due date</div>
@@ -353,9 +382,8 @@ const AdminFees = () => {
                                     setEditingStructureId(null);
                                     setStructureForm({
                                         class_ref: '',
-                                        tuition_fees: '',
-                                        exam_fees: '',
-                                        other_charges: '',
+                                        fee_type: 'School Fee',
+                                        amount: '',
                                         due_date: '',
                                         description: '',
                                     });
@@ -374,7 +402,7 @@ const AdminFees = () => {
                             <tr style={{ backgroundColor: '#f2f4f7' }}>
                                 <th style={{ padding: '10px', textAlign: 'left' }}>Class</th>
                                 <th style={{ padding: '10px', textAlign: 'left' }}>Total</th>
-                                <th style={{ padding: '10px', textAlign: 'left' }}>Tuition / Exam / Other</th>
+                                <th style={{ padding: '10px', textAlign: 'left' }}>Fee Breakdown</th>
                                 <th style={{ padding: '10px', textAlign: 'left' }}>Due date</th>
                                 <th style={{ padding: '10px', textAlign: 'left' }}>Actions</th>
                             </tr>
@@ -403,10 +431,45 @@ const AdminFees = () => {
                 </div>
             </div>
 
+            <div style={{ ...card, marginTop: '18px' }}>
+                <h2 style={{ margin: '0 0 12px', fontSize: '18px' }}>Assign Fees</h2>
+                <div style={{ display: 'grid', gap: '12px', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', alignItems: 'end' }}>
+                    <div>
+                        <div style={labelStyle}>Class</div>
+                        <select value={syncClassId} onChange={(e) => setSyncClassId(e.target.value)} style={inputStyle}>
+                            <option value="">-- Select Class --</option>
+                            {mainClasses.map((c) => (
+                                <option key={c.id} value={c.id}>
+                                    {c.name}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+                    <div>
+                        <div style={labelStyle}>Student (optional)</div>
+                        <select value={assignStudentId} onChange={(e) => setAssignStudentId(e.target.value)} style={inputStyle}>
+                            <option value="">Assign to all students in selected class</option>
+                                {studentsForAssignDropdown.map((s) => (
+                                    <option key={s.id} value={s.id}>
+                                        {s.name} ({s.class_name})
+                                    </option>
+                                ))}
+                        </select>
+                    </div>
+                    <button
+                        type="button"
+                        onClick={() => (assignStudentId ? assignStudentFee() : syncClass())}
+                        style={{ padding: '10px 16px', borderRadius: '12px', border: 'none', backgroundColor: '#2563eb', color: '#fff', fontWeight: 900, cursor: 'pointer', height: '40px' }}
+                    >
+                        Assign Fee
+                    </button>
+                </div>
+            </div>
+
             <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.2fr) minmax(0, 1fr)', gap: '18px', marginTop: '18px' }}>
                 <div style={card}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
-                        <h2 style={{ margin: 0, fontSize: '18px' }}>Student fee records</h2>
+                        <h2 style={{ margin: 0, fontSize: '18px' }}>Fee Records</h2>
                         <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
                             <select value={classFilter} onChange={(e) => setClassFilter(e.target.value)} style={{ ...inputStyle, width: 'auto', minWidth: '160px' }}>
                                 <option value="">All classes</option>
@@ -416,49 +479,16 @@ const AdminFees = () => {
                                     </option>
                                 ))}
                             </select>
-                            <select value={studentFilter} onChange={(e) => setStudentFilter(e.target.value)} style={{ ...inputStyle, width: 'auto', minWidth: '200px' }}>
-                                <option value="">All students</option>
-                                {students.map((s) => (
-                                    <option key={s.id} value={s.id}>
-                                        {s.name} ({s.class_name})
-                                    </option>
-                                ))}
-                            </select>
+                            <input
+                                value={searchStudent}
+                                onChange={(e) => setSearchStudent(e.target.value)}
+                                placeholder="Search student..."
+                                style={{ ...inputStyle, width: '220px' }}
+                            />
                             <button type="button" onClick={exportCsv} style={{ padding: '10px 14px', borderRadius: '10px', border: '1px solid #e5e7eb', backgroundColor: '#fff', fontWeight: 800, cursor: 'pointer' }}>
                                 Export CSV
                             </button>
                         </div>
-                    </div>
-
-                    <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', marginTop: '14px', alignItems: 'flex-end' }}>
-                        <div style={{ flex: '1 1 200px' }}>
-                            <div style={labelStyle}>Bulk link class → student fees</div>
-                            <select value={syncClassId} onChange={(e) => setSyncClassId(e.target.value)} style={inputStyle}>
-                                <option value="">-- Class --</option>
-                                {mainClasses.map((c) => (
-                                    <option key={c.id} value={c.id}>
-                                        {c.name}
-                                    </option>
-                                ))}
-                            </select>
-                        </div>
-                        <button type="button" onClick={syncClass} style={{ padding: '10px 16px', borderRadius: '12px', border: 'none', backgroundColor: '#7c3aed', color: '#fff', fontWeight: 900, cursor: 'pointer', height: '40px' }}>
-                            Generate records
-                        </button>
-                        <div style={{ flex: '1 1 220px' }}>
-                            <div style={labelStyle}>Assign one student</div>
-                            < select value={assignStudentId} onChange={(e) => setAssignStudentId(e.target.value)} style={inputStyle}>
-                                <option value="">-- Student --</option>
-                                {students.map((s) => (
-                                    <option key={s.id} value={s.id}>
-                                        {s.name} ({s.class_name})
-                                    </option>
-                                ))}
-                            </select>
-                        </div>
-                        <button type="button" onClick={assignStudentFee} style={{ padding: '10px 16px', borderRadius: '12px', border: 'none', backgroundColor: '#0ea5e9', color: '#fff', fontWeight: 900, cursor: 'pointer', height: '40px' }}>
-                            Link fee
-                        </button>
                     </div>
 
                     <div style={{ marginTop: '14px', overflowX: 'auto' }}>
@@ -475,7 +505,7 @@ const AdminFees = () => {
                                 </tr>
                             </thead>
                             <tbody>
-                                {studentFees.map((row) => {
+                                {filteredStudentFees.map((row) => {
                                     const overdue = row.overdue && row.status !== 'paid';
                                     return (
                                         <tr
@@ -524,10 +554,13 @@ const AdminFees = () => {
 
                 <div style={{ display: 'grid', gap: '16px' }}>
                     <div style={card}>
-                        <h2 style={{ margin: '0 0 12px', fontSize: '18px' }}>Record payment</h2>
+                        <h2 style={{ margin: '0 0 12px', fontSize: '18px' }}>Update / Verify Payment</h2>
+                        <p style={{ margin: '0 0 12px', color: '#6b7280', fontSize: '13px' }}>
+                            Admin records and verifies received payments from students/guardians.
+                        </p>
                         <form onSubmit={submitPayment} style={{ display: 'grid', gap: '12px' }}>
                             <div>
-                                <div style={labelStyle}>Selected record</div>
+                                <div style={labelStyle}>Select Student</div>
                                 <div style={{ fontWeight: 800 }}>{selectedRecord ? `#${selectedRecord.id} — ${selectedRecord.student_name}` : 'Select a row from the table'}</div>
                             </div>
                             <div>
@@ -539,14 +572,10 @@ const AdminFees = () => {
                                 <input type="date" value={paymentForm.payment_date} onChange={(e) => setPaymentForm({ ...paymentForm, payment_date: e.target.value })} style={inputStyle} required />
                             </div>
                             <div>
-                                <div style={labelStyle}>Mode</div>
+                                <div style={labelStyle}>Payment mode</div>
                                 <select value={paymentForm.payment_mode} onChange={(e) => setPaymentForm({ ...paymentForm, payment_mode: e.target.value })} style={inputStyle}>
                                     <option value="Cash">Cash</option>
-                                    <option value="UPI">UPI</option>
-                                    <option value="Card">Card</option>
-                                    <option value="Bank Transfer">Bank Transfer</option>
-                                    <option value="Cheque">Cheque</option>
-                                    <option value="Other">Other</option>
+                                    <option value="Online">Online</option>
                                 </select>
                             </div>
                             <div>
@@ -557,10 +586,10 @@ const AdminFees = () => {
                                 type="submit"
                                 style={{ padding: '14px 18px', borderRadius: '14px', border: 'none', backgroundColor: '#2563eb', color: '#fff', fontWeight: 900, fontSize: '15px', cursor: 'pointer' }}
                             >
-                                Record payment
+                                Update Payment
                             </button>
                             <button type="button" onClick={sendReminder} style={{ padding: '12px 16px', borderRadius: '12px', border: '1px solid #e5e7eb', backgroundColor: '#fff', fontWeight: 800, cursor: 'pointer' }}>
-                                Send payment reminder (demo)
+                                Send Reminder
                             </button>
                         </form>
                     </div>

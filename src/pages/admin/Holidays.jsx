@@ -34,6 +34,31 @@ function formatDateRange(h) {
     return `${h.start_date} — ${h.end_date}`;
 }
 
+function parseDateOnly(value) {
+    // DRF DateField generally comes as `YYYY-MM-DD`. Using `new Date(value)` may interpret it in UTC
+    // and cause timezone shifts. We parse it as local date to keep calendar cells consistent.
+    if (typeof value !== 'string') {
+        const d = new Date(value);
+        if (Number.isNaN(d.getTime())) return null;
+        d.setHours(0, 0, 0, 0);
+        return d;
+    }
+    const m = value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (!m) return null;
+    const y = parseInt(m[1], 10);
+    const mo = parseInt(m[2], 10);
+    const da = parseInt(m[3], 10);
+    return new Date(y, mo - 1, da);
+}
+
+function toDateKey(date) {
+    // Local `YYYY-MM-DD` key (NOT UTC-based `toISOString()`), used for Map lookups + rendering.
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+}
+
 const AdminHolidays = () => {
     const [tab, setTab] = useState('list'); // 'list' | 'calendar'
 
@@ -174,14 +199,13 @@ const AdminHolidays = () => {
 
         sortedHolidays.forEach((h) => {
             if (!h.start_date) return;
-            const start = new Date(h.start_date);
-            const end = new Date(h.end_date || h.start_date);
-            start.setHours(0, 0, 0, 0);
-            end.setHours(0, 0, 0, 0);
+            const start = parseDateOnly(h.start_date);
+            const end = parseDateOnly(h.end_date || h.start_date);
+            if (!start || !end) return;
 
             const cursor = new Date(start);
             while (cursor <= end) {
-                const key = cursor.toISOString().slice(0, 10);
+                const key = toDateKey(cursor);
                 if (!map.has(key)) map.set(key, []);
                 map.get(key).push(h);
                 cursor.setDate(cursor.getDate() + 1);
@@ -201,7 +225,7 @@ const AdminHolidays = () => {
         const cells = [];
         for (let i = 0; i < mondayBased; i++) cells.push(null);
         for (let d = 1; d <= totalDays; d++) {
-            const key = new Date(calYear, calMonth - 1, d).toISOString().slice(0, 10);
+            const key = toDateKey(new Date(calYear, calMonth - 1, d));
             cells.push(key);
         }
         while (cells.length % 7 !== 0) cells.push(null);
@@ -538,7 +562,7 @@ const AdminHolidays = () => {
                                     if (!key) return <div key={`empty-${idx}`} style={{ height: '70px' }} />;
                                     const dayHolidays = holidayByDay.map.get(key) || [];
                                     const isHoliday = dayHolidays.length > 0;
-                                    const isToday = key === new Date().toISOString().slice(0, 10);
+                                    const isToday = key === toDateKey(new Date());
 
                                     return (
                                         <button

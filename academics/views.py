@@ -10,6 +10,9 @@ from rest_framework.response import Response
 from core.permissions import IsAdmin, IsStudent, IsTeacher
 from .models import Exam, ExamSchedule, Result
 from .serializers import ExamScheduleSerializer, ExamSerializer, ResultSerializer
+from .pdf_marksheet import build_student_marksheet_pdf, _pct_to_grade
+from django.conf import settings
+from django.http import HttpResponse
 
 
 class ExamListCreateView(views.APIView):
@@ -325,3 +328,101 @@ class MyResultsView(views.APIView):
         )
         serializer = ResultSerializer(results, many=True)
         return Response(serializer.data)
+
+
+class MyResultMarksheetPDFView(views.APIView):
+    """
+    Student-only marksheet PDF for a given exam.
+    """
+
+    permission_classes = [IsStudent]
+
+    def get(self, request, exam_id: int):
+        exam = Exam.objects.filter(id=exam_id).first()
+        if not exam:
+            return Response({'error': 'Exam not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        student_results = (
+            Result.objects.select_related('exam')
+            .filter(student__user=request.user, exam_id=exam_id, exam__result_published=True)
+            .order_by('subject')
+        )
+
+        if not student_results.exists():
+            return Response({'error': 'Results not found or not published'}, status=status.HTTP_404_NOT_FOUND)
+
+        profile = getattr(request.user, 'student_profile', None)
+        if not profile:
+            return Response({'error': 'Student profile not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        total_max = 0.0
+        total_obt = 0.0
+
+        subject_rows = []
+        passing_marks = float(exam.passing_marks or 0)
+
+        for r in student_results:
+            max_marks = float(r.max_marks) if r.max_marks is not None else 0.0
+            marks = float(r.marks) if (r.marks is not None and not r.absent) else 0.0
+
+            total_max += max_marks
+            total_obt += marks
+
+            if r.absent or r.marks is None:
+                grade = 'ABS'
+                result_text = 'Absent'
+            else:
+                pct = (marks / max_marks * 100.0) if max_marks > 0 else 0.0
+                grade = _pct_to_grade(pct)
+                result_text = 'Pass' if marks >= passing_marks else 'Fail'
+
+            subject_rows.append(
+                {
+                    'subject': r.subject,
+                    'max_marks': max_marks,
+                    'marks': marks,
+                    'grade': grade,
+                    'result': result_text,
+                }
+            )
+
+        percentage = (total_obt / total_max * 100.0) if total_max > 0 else 0.0
+        overall_grade = _pct_to_grade(percentage)
+        final_result = 'Pass' if total_obt >= passing_marks else 'Fail'
+
+        start_date = exam.start_date
+        end_date = exam.end_date or exam.start_date
+        if start_date and end_date:
+            academic_year = f"{start_date.year}-{str(end_date.year)[-2:]}"
+        else:
+            academic_year = '—'
+
+        class_label = 'N/A'
+        if profile.class_section_id:
+            cs = profile.class_section
+            class_label = f"{cs.class_ref.name}-{cs.section_ref.name}"
+
+        school_name = getattr(settings, 'SCHOOL_NAME', 'School Management System')
+        declaration_date = str(exam.start_date) if exam.start_date else '—'
+
+        pdf_bytes = build_student_marksheet_pdf(
+            school_name=school_name,
+            student_name=request.user.name or request.user.username,
+            roll_number=str(profile.admission_number or ''),
+            class_label=class_label,
+            academic_year=academic_year,
+            exam_type=exam.exam_type,
+            declaration_date=declaration_date,
+            total_obtained=total_obt,
+            total_max=total_max,
+            percentage=percentage,
+            overall_grade=overall_grade,
+            final_result=final_result,
+            subject_rows=subject_rows,
+            class_teacher_name='—',
+            remarks='—',
+        )
+
+        response = HttpResponse(pdf_bytes, content_type='application/pdf')
+        response['Content-Disposition'] = f'attachment; filename="marksheet_exam_{exam_id}.pdf"'
+        return response
