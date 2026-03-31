@@ -13,6 +13,8 @@ from holidays.models import Holiday
 from timetable.models import Timetable
 from .pdf_report import build_student_attendance_report_pdf
 from django.http import HttpResponse
+from classes.models import ClassSection
+from students.models import StudentProfile
 
 class AttendanceMarkView(views.APIView):
     """
@@ -26,6 +28,137 @@ class AttendanceMarkView(views.APIView):
             serializer.save(marked_by=request.user.teacher_profile)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class TeacherClassAttendanceSummaryView(views.APIView):
+    """
+    Teacher-only class attendance snapshot for dashboard/attendance screens.
+
+    Query params:
+      - class_section_id (required)
+      - date (optional, YYYY-MM-DD, defaults to today)
+    """
+
+    permission_classes = [IsTeacher]
+
+    def get(self, request):
+        class_section_id = request.query_params.get('class_section_id')
+        date_raw = request.query_params.get('date')
+        if not class_section_id:
+            return Response({'error': 'class_section_id is required'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            class_section_id = int(class_section_id)
+        except Exception:
+            return Response({'error': 'Invalid class_section_id'}, status=status.HTTP_400_BAD_REQUEST)
+
+        target_date = date_type.today()
+        if date_raw:
+            try:
+                target_date = date_type.fromisoformat(date_raw)
+            except Exception:
+                return Response({'error': 'Invalid date format'}, status=status.HTTP_400_BAD_REQUEST)
+
+        class_section = (
+            ClassSection.objects.select_related('class_ref', 'section_ref', 'class_teacher__user')
+            .filter(id=class_section_id)
+            .first()
+        )
+        if not class_section:
+            return Response({'error': 'Class section not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        # Teacher should only access sections assigned to them as class teacher.
+        if class_section.class_teacher_id != request.user.teacher_profile.id:
+            return Response({'error': 'Not allowed for this class section'}, status=status.HTTP_403_FORBIDDEN)
+
+        students = list(
+            StudentProfile.objects.select_related('user')
+            .filter(class_section_id=class_section_id)
+            .order_by('id')
+        )
+        student_ids = [s.id for s in students]
+        if not student_ids:
+            return Response(
+                {
+                    'class_section_id': class_section.id,
+                    'class_display': f'{class_section.class_ref.name} - {class_section.section_ref.name}',
+                    'date': target_date.isoformat(),
+                    'summary': {
+                        'present': 0,
+                        'absent': 0,
+                        'late': 0,
+                        'marked': 0,
+                        'total_students': 0,
+                        'attendance_percentage': 0.0,
+                    },
+                    'students': [],
+                }
+            )
+
+        today_records = Attendance.objects.filter(student_id__in=student_ids, date=target_date)
+        today_map = {r.student_id: r for r in today_records}
+
+        # Last 30 day window for low-attendance warning per student.
+        window_start = target_date - timedelta(days=29)
+        recent_records = Attendance.objects.filter(student_id__in=student_ids, date__gte=window_start, date__lte=target_date)
+
+        recent_by_student = defaultdict(list)
+        for r in recent_records:
+            recent_by_student[r.student_id].append(r)
+
+        rows = []
+        present = 0
+        absent = 0
+        late = 0
+        marked = 0
+
+        for s in students:
+            rec = today_map.get(s.id)
+            status_value = rec.status if rec else None
+            if status_value:
+                marked += 1
+                if status_value == 'present':
+                    present += 1
+                elif status_value == 'absent':
+                    absent += 1
+                elif status_value == 'late':
+                    late += 1
+
+            recent_list = recent_by_student.get(s.id, [])
+            recent_present = sum(1 for rr in recent_list if rr.status in ('present', 'late'))
+            recent_marked = sum(1 for rr in recent_list if rr.status in ('present', 'late', 'absent'))
+            recent_pct = (recent_present / recent_marked * 100.0) if recent_marked else 0.0
+
+            rows.append(
+                {
+                    'id': s.id,
+                    'name': s.user.name or s.user.username,
+                    'admission_number': s.admission_number,
+                    'status': status_value,
+                    'status_marked_via': rec.marked_via if rec else None,
+                    'recent_attendance_percentage': round(recent_pct, 2),
+                    'low_attendance': recent_marked > 0 and recent_pct < 75.0,
+                }
+            )
+
+        class_attendance_pct = (sum(1 for r in rows if r.get('status') in ('present', 'late')) / marked * 100.0) if marked else 0.0
+
+        return Response(
+            {
+                'class_section_id': class_section.id,
+                'class_display': f'{class_section.class_ref.name} - {class_section.section_ref.name}',
+                'date': target_date.isoformat(),
+                'summary': {
+                    'present': present,
+                    'absent': absent,
+                    'late': late,
+                    'marked': marked,
+                    'total_students': len(students),
+                    'attendance_percentage': round(class_attendance_pct, 2),
+                },
+                'students': rows,
+            }
+        )
 
 class MyAttendanceView(views.APIView):
     """
