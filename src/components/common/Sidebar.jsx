@@ -86,6 +86,7 @@ const Sidebar = () => {
             icon: '🎓',
             subLinks: [
                 { path: '/admin/classes', label: 'Classes & Sections' },
+                { path: '/admin/subjects', label: 'Subjects' },
                 { path: '/admin/assign-teacher', label: 'Assign Teacher' },
                 { path: '/admin/exams', label: 'Exams' },
                 { path: '/admin/holidays', label: 'Holidays' },

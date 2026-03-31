@@ -2,85 +2,188 @@ import React, { useState, useEffect } from 'react';
 import api from '../../services/api';
 
 const AssignTeacher = () => {
-    const [classes, setClasses] = useState([]);
-    const [formData, setFormData] = useState({ class_section: '', teacher: '' });
+    const [hierarchy, setHierarchy] = useState([]);
+    const [subjects, setSubjects] = useState([]);
+    const [assignments, setAssignments] = useState([]);
+    const [loading, setLoading] = useState(true);
+
+    const [formClass, setFormClass] = useState('');
+    const [formSubject, setFormSubject] = useState('');
+    const [formTeacherId, setFormTeacherId] = useState('');
     const [busy, setBusy] = useState(false);
+    
+    const [filterClass, setFilterClass] = useState('All Classes');
 
     useEffect(() => {
-        api.get('classes/sections/').then(res => setClasses(res.data));
+        fetchData();
     }, []);
 
-    const handleSubmit = (e) => {
-        e.preventDefault();
-        setBusy(true);
-        setTimeout(() => {
-            alert('Teacher assignment updated! (Backend logic integration pending)');
-            setBusy(false);
-        }, 800);
+    const fetchData = async () => {
+        setLoading(true);
+        try {
+            const [hierRes, subjRes, assignRes] = await Promise.all([
+                api.get('admin/classes-hierarchy'),
+                api.get('admin/subjects'),
+                api.get('admin/subject-teachers')
+            ]);
+            setHierarchy(hierRes.data.data);
+            setSubjects(subjRes.data.data);
+            setAssignments(assignRes.data.data);
+        } catch (err) {
+            console.error(err);
+        } finally {
+            setLoading(false);
+        }
     };
 
-    const inputClasses = "w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-school-navy/5 outline-none focus:bg-white focus:border-school-navy/20 transition-all font-medium appearance-none";
-    const labelClasses = "text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1 mb-1 block";
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        setBusy(true);
+        try {
+            await api.post('admin/subject-teachers/assign', {
+                class_section_id: parseInt(formClass),
+                subject_id: parseInt(formSubject),
+                teacher_employee_id: formTeacherId
+            });
+            alert('Teacher assignment updated successfully!');
+            fetchData();
+            setFormClass('');
+            setFormSubject('');
+            setFormTeacherId('');
+        } catch (err) {
+            alert('Failed to assign teacher. Ensure Employee ID is correct.');
+        } finally {
+            setBusy(false);
+        }
+    };
+
+    const inputClasses = "w-full text-xs border border-slate-200 rounded-lg px-3 py-2.5 bg-white text-slate-600 focus:ring-1 focus:ring-indigo-500 outline-none";
+    const labelClasses = "block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5";
+
+    // Flatten sections for dropdown
+    const allSections = [];
+    hierarchy.forEach(c => c.sections.forEach(s => allSections.push({ ...s, class_name: c.name })));
+
+    // Filter available subjects based on selected class (Wait, we can't easily extract MainClass ID from ClassSection ID without looking up, but we can filter logic)
+    // We simplify: show all active subjects or common subjects
+    // The filter logic for Subjects says `class_ref` is optional (Common).
+
+    // Filter assignments table
+    const displayAssignments = assignments.filter(a => {
+        if (filterClass !== 'All Classes' && !a.class_name.startsWith(filterClass)) return false;
+        return true;
+    });
 
     return (
-        <div className="max-w-xl space-y-8 animate-in fade-in duration-500">
+        <div className="max-w-4xl space-y-8 animate-in fade-in duration-500">
             <div>
-                <h1 className="text-2xl font-bold text-school-text">Academic Assignment</h1>
-                <p className="text-sm text-school-body">Link faculty members to their respective class sections.</p>
+                <h1 className="text-[1.35rem] font-semibold text-slate-800">Assign Teacher to Class</h1>
+                <p className="text-[13px] text-slate-500 mt-1">Link teacher with class and subject in one place.</p>
             </div>
 
-            <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-8">
-                <h3 className="text-lg font-bold text-school-text mb-6 flex items-center gap-2">
-                    <span className="w-8 h-8 rounded-lg bg-school-blue/5 flex items-center justify-center text-school-blue text-sm">🔗</span>
-                    Assignment Details
-                </h3>
-                <form onSubmit={handleSubmit} className="space-y-6">
-                    <div className="space-y-1 relative">
-                        <label className={labelClasses}>Class & Section</label>
+            <div className="bg-slate-50/50 rounded-2xl border border-slate-200 shadow-sm p-8">
+                <form onSubmit={handleSubmit} className="space-y-6 max-w-2xl">
+                    <div>
+                        <label className={labelClasses}>CLASS</label>
                         <select 
-                            onChange={e => setFormData({...formData, class_section: e.target.value})} 
+                            value={formClass}
+                            onChange={e => setFormClass(e.target.value)} 
                             required 
                             className={inputClasses}
                         >
-                            <option value="">-- Choose Target Class --</option>
-                            {classes.map(c => (
-                                <option key={c.id} value={c.id}>
-                                    Grade {c.class_name} - Section {c.section_name}
-                                </option>
+                            <option value="">-- Select Class --</option>
+                            {allSections.map(s => (
+                                <option key={s.id} value={s.id}>{s.class_name} - {s.name}</option>
                             ))}
                         </select>
-                        <div className="absolute right-4 bottom-3.5 pointer-events-none text-slate-400">▼</div>
                     </div>
 
-                    <div className="space-y-1">
-                        <label className={labelClasses}>Teacher Employee ID</label>
+                    <div>
+                        <label className={labelClasses}>SUBJECT</label>
+                        <select 
+                            value={formSubject}
+                            onChange={e => setFormSubject(e.target.value)} 
+                            required 
+                            className={inputClasses}
+                            disabled={!formClass}
+                        >
+                            <option value="">{formClass ? "-- Select Subject --" : "Select class first"}</option>
+                            {subjects.filter(s => s.status === 'Active').map(s => (
+                                <option key={s.id} value={s.id}>{s.name} ({s.class_name})</option>
+                            ))}
+                        </select>
+                    </div>
+
+                    <div>
+                        <label className={labelClasses}>TEACHER (SEARCH BY NAME OR EMPLOYEE ID)</label>
                         <input 
                             type="text" 
-                            placeholder="e.g., T-1025" 
-                            onChange={e => setFormData({...formData, teacher: e.target.value})} 
+                            placeholder="Search teacher employee ID (e.g., T-100)..." 
+                            value={formTeacherId}
+                            onChange={e => setFormTeacherId(e.target.value)} 
                             className={inputClasses}
                             required
                         />
                     </div>
 
-                    <div className="pt-4">
+                    <div className="pt-2">
                         <button 
                             type="submit" 
                             disabled={busy}
-                            className="w-full py-3.5 bg-school-navy text-white text-xs font-bold rounded-xl shadow-lg shadow-school-navy/10 hover:bg-school-blue transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                            className="px-6 py-2.5 bg-[#4B70F5] hover:bg-blue-600 text-white text-xs font-semibold rounded-lg transition-colors disabled:opacity-50"
                         >
-                            {busy ? (
-                                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                            ) : (
-                                <>Confirm Assignment</>
-                            )}
+                            {busy ? "Assigning..." : "Assign"}
                         </button>
                     </div>
                 </form>
             </div>
 
-            <div className="p-6 bg-slate-50 rounded-2xl border border-slate-100 italic text-[11px] text-slate-500 leading-relaxed text-center">
-                Note: Updating an assignment will re-synchronize student rosters and communication channels for the selected class immediately.
+            {/* Assignments Table section */}
+            <div className="space-y-4">
+                <div className="flex items-center gap-4">
+                    <label className={labelClasses}>FILTER BY CLASS</label>
+                    <select 
+                        value={filterClass}
+                        onChange={e => setFilterClass(e.target.value)}
+                        className="w-48 text-xs border border-slate-200 rounded-lg px-3 py-2 bg-white outline-none"
+                    >
+                        <option>All Classes</option>
+                        {hierarchy.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
+                    </select>
+                </div>
+
+                <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-x-auto">
+                    {loading ? (
+                        <div className="p-6 text-center text-xs text-slate-500">Loading assignments...</div>
+                    ) : displayAssignments.length === 0 ? (
+                        <div className="p-6 text-center text-xs text-slate-400">No assignments found.</div>
+                    ) : (
+                        <table className="w-full text-left text-xs text-slate-600">
+                            <thead className="bg-slate-50 text-slate-500 font-medium border-b border-slate-100">
+                                <tr>
+                                    <th className="py-2.5 px-4 font-semibold uppercase tracking-wider text-[10px]">Class</th>
+                                    <th className="py-2.5 px-4 font-semibold uppercase tracking-wider text-[10px]">Subject</th>
+                                    <th className="py-2.5 px-4 font-semibold uppercase tracking-wider text-[10px]">Teacher</th>
+                                    <th className="py-2.5 px-4 font-semibold uppercase tracking-wider text-[10px]">Employee ID</th>
+                                    <th className="py-2.5 px-4 text-right font-semibold uppercase tracking-wider text-[10px]">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100">
+                                {displayAssignments.map(a => (
+                                    <tr key={a.id} className="hover:bg-slate-50/50">
+                                        <td className="py-3 px-4 font-medium text-slate-700">{a.class_name}</td>
+                                        <td className="py-3 px-4">{a.subject_name}</td>
+                                        <td className="py-3 px-4">{a.teacher_name}</td>
+                                        <td className="py-3 px-4">{a.employee_id}</td>
+                                        <td className="py-3 px-4 text-right">
+                                            <button className="text-red-500 hover:text-red-600">Unassign</button>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    )}
+                </div>
             </div>
         </div>
     );

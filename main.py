@@ -127,6 +127,38 @@ class ResultUploadSchema(BaseModel):
     marks: float = Field(..., ge=0)
     max_marks: float = Field(..., gt=0)
 
+class StudentAssignClassSchema(BaseModel):
+    student_id: int
+    class_section_id: int
+
+class SubjectCreateSchema(BaseModel):
+    name: str = Field(..., min_length=1)
+    class_id: Optional[int] = None
+    status: str = "Active"
+
+class SubjectTeacherAssignSchema(BaseModel):
+    class_section_id: int
+    subject_id: int
+    teacher_employee_id: str
+
+class ExamExtendedCreateSchema(BaseModel):
+    name: str
+    class_section_id: int
+    exam_type: str
+    start_date: date
+    end_date: date
+    total_marks: float
+    passing_marks: float
+    status: str = "Draft"
+    description: Optional[str] = None
+
+class FeeStructureCreateSchema(BaseModel):
+    class_id: int
+    fee_type: str
+    amount: float
+    due_date: Optional[date] = None
+    description: Optional[str] = None
+
 # --- ENDPOINTS ---
 
 @app.get("/", tags=["General"])
@@ -505,6 +537,211 @@ def get_admin_dashboard_stats(user = Depends(get_current_user)):
     }
     
     return {"success": True, "message": "Admin stats generated", "data": stats}
+
+# --- NEW ADMIN MODULE ENDPOINTS ---
+
+@app.get("/api/admin/classes-hierarchy", tags=["Admin Classes"])
+def get_classes_hierarchy(user = Depends(get_current_user)):
+    if user.role != 'admin':
+        return JSONResponse(status_code=403, content={"success": False, "message": "Unauthorized", "data": None})
+    
+    classes = MainClass.objects.prefetch_related('sections').all()
+    data = []
+    
+    for c in classes:
+        # Get sections associated via ClassSection
+        sections = ClassSection.objects.filter(class_ref=c).select_related('section_ref', 'class_teacher__user')
+        sec_data = []
+        for s in sections:
+            sec_data.append({
+                "id": s.id,
+                "name": s.section_ref.name,
+                "teacher": s.class_teacher.user.name or s.class_teacher.user.username if s.class_teacher else "None"
+            })
+            
+        data.append({
+            "id": c.id,
+            "name": c.name,
+            "sections": sec_data
+        })
+        
+    return {"success": True, "message": "Hierarchy fetched", "data": data}
+
+@app.post("/api/admin/students/assign", tags=["Admin Classes"])
+def admin_assign_student(data: StudentAssignClassSchema, user = Depends(get_current_user)):
+    if user.role != 'admin':
+        return JSONResponse(status_code=403, content={"success": False, "message": "Unauthorized", "data": None})
+        
+    try:
+        student = StudentProfile.objects.get(id=data.student_id)
+        cs = ClassSection.objects.get(id=data.class_section_id)
+        student.class_section = cs
+        student.save()
+        return {"success": True, "message": "Student assigned to class successfully", "data": None}
+    except Exception as e:
+        return JSONResponse(status_code=400, content={"success": False, "message": str(e), "data": None})
+
+@app.get("/api/admin/subjects", tags=["Admin Subjects"])
+def get_admin_subjects(user = Depends(get_current_user)):
+    if user.role != 'admin': return JSONResponse(status_code=403, content={"success": False, "message": "Unauthorized", "data": None})
+    from academics.models import Subject # type: ignore
+    subjects = Subject.objects.select_related('class_ref').all()
+    data = []
+    for s in subjects:
+        data.append({
+            "id": s.id,
+            "name": s.name,
+            "class_name": s.class_ref.name if s.class_ref else "All Classes",
+            "status": s.status
+        })
+    return {"success": True, "data": data}
+
+@app.post("/api/admin/subjects", tags=["Admin Subjects"])
+def create_admin_subject(data: SubjectCreateSchema, user=Depends(get_current_user)):
+    if user.role != 'admin': return JSONResponse(status_code=403, content={"success": False, "message": "Unauthorized", "data": None})
+    from academics.models import Subject # type: ignore
+    
+    class_ref = None
+    if data.class_id:
+        class_ref = MainClass.objects.get(id=data.class_id)
+        
+    s = Subject.objects.create(name=data.name, class_ref=class_ref, status=data.status)
+    return {"success": True, "message": "Subject created", "data": {"id": s.id}}
+
+@app.get("/api/admin/subject-teachers", tags=["Admin Teachers"])
+def get_subject_teachers(user = Depends(get_current_user)):
+    if user.role != 'admin': return JSONResponse(status_code=403, content={"success": False, "message": "Unauthorized", "data": None})
+    from academics.models import SubjectTeacherMapping # type: ignore
+    mappings = SubjectTeacherMapping.objects.select_related('subject', 'class_section__class_ref', 'class_section__section_ref', 'teacher__user').all()
+    
+    data = []
+    for m in mappings:
+        data.append({
+            "id": m.id,
+            "subject_name": m.subject.name,
+            "class_name": f"{m.class_section.class_ref.name} - {m.class_section.section_ref.name}",
+            "teacher_name": m.teacher.user.name or m.teacher.user.username,
+            "employee_id": m.teacher.employee_id
+        })
+    return {"success": True, "data": data}
+
+@app.post("/api/admin/subject-teachers/assign", tags=["Admin Teachers"])
+def assign_subject_teacher(data: SubjectTeacherAssignSchema, user = Depends(get_current_user)):
+    if user.role != 'admin': return JSONResponse(status_code=403, content={"success": False, "message": "Unauthorized", "data": None})
+    from academics.models import SubjectTeacherMapping, Subject # type: ignore
+    
+    try:
+        teacher = TeacherProfile.objects.get(employee_id=data.teacher_employee_id)
+        subject = Subject.objects.get(id=data.subject_id)
+        cs = ClassSection.objects.get(id=data.class_section_id)
+        
+        obj, created = SubjectTeacherMapping.objects.update_or_create(
+            subject=subject,
+            class_section=cs,
+            defaults={"teacher": teacher}
+        )
+        return {"success": True, "message": "Teacher assigned to subject successfully", "data": None}
+    except Exception as e:
+        return JSONResponse(status_code=400, content={"success": False, "message": str(e), "data": None})
+
+@app.post("/api/admin/exams", tags=["Admin Exams"])
+def create_admin_exam(data: ExamExtendedCreateSchema, user = Depends(get_current_user)):
+    if user.role != 'admin': return JSONResponse(status_code=403, content={"success": False, "message": "Unauthorized", "data": None})
+    
+    exam = Exam.objects.create(
+        name=data.name,
+        class_section_id=data.class_section_id,
+        exam_type=data.exam_type,
+        start_date=data.start_date,
+        end_date=data.end_date,
+        total_marks=data.total_marks,
+        passing_marks=data.passing_marks,
+        status=data.status,
+        description=data.description
+    )
+    return {"success": True, "message": "Exam created successfully!", "data": {"id": exam.id}}
+
+@app.get("/api/admin/exams", tags=["Admin Exams"])
+def get_extended_exams(user = Depends(get_current_user)):
+    if user.role != 'admin': return JSONResponse(status_code=403, content={"success": False, "message": "Unauthorized", "data": None})
+    exams = Exam.objects.select_related('class_section__class_ref', 'class_section__section_ref').all().order_by('-start_date')
+    
+    data = []
+    for e in exams:
+        data.append({
+            "id": e.id,
+            "name": e.name,
+            "exam_type": e.exam_type,
+            "class_name": f"{e.class_section.class_ref.name}-{e.class_section.section_ref.name}",
+            "start_date": str(e.start_date) if e.start_date else None,
+            "end_date": str(e.end_date) if e.end_date else None,
+            "status": e.status
+        })
+    return {"success": True, "data": data}
+
+@app.get("/api/admin/fees/stats", tags=["Admin Fees"])
+def admin_fees_stats(user = Depends(get_current_user)):
+    if user.role != 'admin': return JSONResponse(status_code=403, content={"success": False, "message": "Unauthorized", "data": None})
+    from fees.models import StudentFee, FeeStructure # type: ignore
+    from django.db.models import Sum # type: ignore
+    
+    # Simple aggregates
+    total_structures = FeeStructure.objects.aggregate(Sum('amount'))['amount__sum'] or 0
+    # Note: Accurately calculating "Total Fees" requires multiplying structure by enrollment.
+    # For speed, we just sum up the StudentFee objects.
+    
+    fees = StudentFee.objects.all()
+    total_fees = sum([f.fee_structure.amount for f in fees])
+    total_paid = sum([f.amount_paid for f in fees])
+    total_due = total_fees - total_paid
+    
+    overdue_count = 0
+    today = date.today()
+    for f in fees:
+        if f.due_date and f.due_date < today and f.status != 'paid':
+            overdue_count += 1
+            
+    return {
+        "success": True,
+        "data": {
+            "total_fees": total_fees,
+            "total_paid": total_paid,
+            "total_due": total_due,
+            "overdue_payments": overdue_count
+        }
+    }
+
+@app.get("/api/admin/fees/structure", tags=["Admin Fees"])
+def admin_fees_structure(user = Depends(get_current_user)):
+    if user.role != 'admin': return JSONResponse(status_code=403, content={"success": False, "message": "Unauthorized", "data": None})
+    from fees.models import FeeStructure # type: ignore
+    structs = FeeStructure.objects.select_related('class_ref').all()
+    
+    data = []
+    for s in structs:
+        data.append({
+            "id": s.id,
+            "class_name": s.class_ref.name,
+            "fee_type": s.fee_type,
+            "amount": float(s.amount),
+            "due_date": str(s.due_date) if s.due_date else None,
+            "description": s.description
+        })
+    return {"success": True, "data": data}
+
+@app.post("/api/admin/fees/structure", tags=["Admin Fees"])
+def create_fee_structure(data: FeeStructureCreateSchema, user = Depends(get_current_user)):
+    if user.role != 'admin': return JSONResponse(status_code=403, content={"success": False, "message": "Unauthorized", "data": None})
+    from fees.models import FeeStructure # type: ignore
+    
+    fs = FeeStructure.objects.create(
+        class_ref_id=data.class_id,
+        fee_type=data.fee_type,
+        amount=data.amount,
+        due_date=data.due_date,
+        description=data.description
+    )
+    return {"success": True, "message": "Fee structure added successfully", "data": {"id": fs.id}}
 
 # --- SECURITY & UTILS ---
 from fastapi.security import OAuth2PasswordBearer # type: ignore
