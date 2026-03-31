@@ -43,7 +43,10 @@ const StudentCards = ({ students, refreshStudents }) => {
         e.preventDefault();
         setBusy(true);
         try {
-            await api.patch(`students/update/${editStudent.id}/`, editForm);
+            await api.patch(`students/update/${editStudent.id}/`, {
+                ...editForm,
+                parent_contact_number: `+91${parentDigits}`,
+            });
             await refreshStudents();
             closeModal();
         } catch (err) {

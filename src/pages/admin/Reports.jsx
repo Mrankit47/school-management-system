@@ -1,4 +1,43 @@
-import React from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
+import api from '../../services/api';
+
+const card = {
+    backgroundColor: '#fff',
+    borderRadius: '14px',
+    border: '1px solid #e5e7eb',
+    padding: '16px',
+    boxShadow: '0 1px 6px rgba(16,24,40,0.06)',
+};
+
+const input = {
+    width: '100%',
+    padding: '10px 12px',
+    border: '1px solid #e5e7eb',
+    borderRadius: '10px',
+    fontSize: '13px',
+    outline: 'none',
+    boxSizing: 'border-box',
+    backgroundColor: '#fff',
+};
+
+const label = {
+    fontSize: '12px',
+    color: '#6b7280',
+    fontWeight: 700,
+    marginBottom: '6px',
+    textTransform: 'uppercase',
+    letterSpacing: '0.03em',
+};
+
+const TAB_KEYS = ['student', 'teacher', 'fees', 'attendance', 'exam'];
+
+const tabTitle = {
+    student: 'Student Report',
+    teacher: 'Teacher Report',
+    fees: 'Fees Report',
+    attendance: 'Attendance Report',
+    exam: 'Exam & Result Report',
+};
 
 const Reports = () => {
     const stats = [

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import api from '../../services/api';
 
 const AssignTeacher = () => {
@@ -15,25 +15,33 @@ const AssignTeacher = () => {
     const [filterClass, setFilterClass] = useState('All Classes');
 
     useEffect(() => {
-        fetchData();
+        fetchMeta();
     }, []);
 
-    const fetchData = async () => {
-        setLoading(true);
-        try {
-            const [hierRes, subjRes, assignRes] = await Promise.all([
-                api.get('admin/classes-hierarchy'),
-                api.get('admin/subjects'),
-                api.get('admin/subject-teachers')
-            ]);
-            setHierarchy(hierRes.data.data);
-            setSubjects(subjRes.data.data);
-            setAssignments(assignRes.data.data);
-        } catch (err) {
-            console.error(err);
-        } finally {
-            setLoading(false);
-        }
+    useEffect(() => {
+        fetchAssignments();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [classFilter]);
+
+    useEffect(() => {
+        fetchSubjectsForClass(formData.class_id);
+        setFormData((prev) => ({ ...prev, subject_id: '' }));
+    }, [formData.class_id]);
+
+    const filteredTeachers = useMemo(() => {
+        const q = teacherSearch.trim().toLowerCase();
+        if (!q) return teachers;
+        return teachers.filter((t) => {
+            const name = (t.name || '').toLowerCase();
+            const emp = (t.employee_id || '').toLowerCase();
+            return name.includes(q) || emp.includes(q);
+        });
+    }, [teachers, teacherSearch]);
+
+    const resetForm = () => {
+        setFormData({ class_id: '', subject_id: '', teacher_id: '' });
+        setEditingId(null);
+        setTeacherSearch('');
     };
 
     const handleSubmit = async (e) => {

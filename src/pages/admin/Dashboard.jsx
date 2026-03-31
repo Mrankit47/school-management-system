@@ -4,8 +4,11 @@ import StudentCards from './StudentCards';
 import TeacherCards from './TeacherCards';
 
 const AdminDashboard = () => {
+    const [counts, setCounts] = useState({ students: 0, teachers: 0, staff: 0 });
+    const [recentStudents, setRecentStudents] = useState([]);
+    const [loading, setLoading] = useState(true);
     const [formData, setFormData] = useState({
-        email: '', password: '',
+        email: '', password: '', confirm_password: '',
         first_name: '', last_name: '', name: '',
         admission_number: '',
         class_id: '', section_id: '',
@@ -26,6 +29,7 @@ const AdminDashboard = () => {
     const [teachers, setTeachers] = useState([]);
     const [teachersCount, setTeachersCount] = useState(0);
     const [studentsLoading, setStudentsLoading] = useState(false);
+    const parentPhoneDigits = (formData.parent_contact_number || '').replace(/\D/g, '').slice(0, 10);
 
     const fetchCounts = async () => {
         try {
@@ -59,6 +63,16 @@ const AdminDashboard = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        const password = formData.password || '';
+        const confirm = formData.confirm_password || '';
+        if (password !== confirm) {
+            setMessage('Error: Password and confirm password do not match.');
+            return;
+        }
+        if (parentPhoneDigits.length !== 10) {
+            setMessage('Error: Parent contact number must be exactly 10 digits.');
+            return;
+        }
         try {
             const payload = { ...formData };
             const first = (formData.first_name || '').trim();
@@ -83,6 +97,7 @@ const AdminDashboard = () => {
             setMessage('Error creating student.');
             setTimeout(() => setMessage(''), 3000);
         }
+        setTimeout(() => setMessage({ text: '', type: '' }), 3000);
     };
 
     return (

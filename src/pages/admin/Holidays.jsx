@@ -1,11 +1,231 @@
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import api from '../../services/api';
 
-const Holidays = () => {
-    const [holidays, setHolidays] = useState([]);
-    const [busy, setBusy] = useState(false);
+const labelStyle = {
+    fontSize: '12px',
+    color: '#6b7280',
+    fontWeight: 800,
+    marginBottom: '6px',
+    textTransform: 'uppercase',
+    letterSpacing: '0.03em',
+};
 
-    const handleAdd = (e) => {
+const cardStyle = {
+    backgroundColor: '#fff',
+    borderRadius: '16px',
+    border: '1px solid #e5e7eb',
+    padding: '18px',
+    boxShadow: '0 1px 6px rgba(16,24,40,0.06)',
+};
+
+function formatDateRange(h) {
+    if (!h?.end_date || h.end_date === h.start_date) return h.start_date;
+    return `${h.start_date} — ${h.end_date}`;
+}
+
+function parseDateOnly(value) {
+    // DRF DateField generally comes as `YYYY-MM-DD`. Using `new Date(value)` may interpret it in UTC
+    // and cause timezone shifts. We parse it as local date to keep calendar cells consistent.
+    if (typeof value !== 'string') {
+        const d = new Date(value);
+        if (Number.isNaN(d.getTime())) return null;
+        d.setHours(0, 0, 0, 0);
+        return d;
+    }
+    const m = value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (!m) return null;
+    const y = parseInt(m[1], 10);
+    const mo = parseInt(m[2], 10);
+    const da = parseInt(m[3], 10);
+    return new Date(y, mo - 1, da);
+}
+
+function toDateKey(date) {
+    // Local `YYYY-MM-DD` key (NOT UTC-based `toISOString()`), used for Map lookups + rendering.
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+}
+
+const AdminHolidays = () => {
+    const [tab, setTab] = useState('list'); // 'list' | 'calendar'
+
+    const [holidays, setHolidays] = useState([]);
+    const [loading, setLoading] = useState(false);
+
+    const [classes, setClasses] = useState([]);
+
+    const [search, setSearch] = useState('');
+    const [filterType, setFilterType] = useState('all');
+    const [filterMonth, setFilterMonth] = useState('');
+    const [filterYear, setFilterYear] = useState(String(new Date().getFullYear()));
+    const [sortDir, setSortDir] = useState('asc'); // asc|desc
+
+    const now = new Date();
+    const [calMonth, setCalMonth] = useState(now.getMonth() + 1);
+    const [calYear, setCalYear] = useState(now.getFullYear());
+
+    const [selectedDate, setSelectedDate] = useState(null); // 'YYYY-MM-DD'
+    const [detailsOpen, setDetailsOpen] = useState(false);
+
+    const [modalOpen, setModalOpen] = useState(false);
+    const [editingId, setEditingId] = useState(null);
+    const [formError, setFormError] = useState('');
+
+    const [form, setForm] = useState({
+        title: '',
+        start_date: '',
+        end_date: '',
+        description: '',
+        type: 'Public',
+        allClasses: true,
+        applicable_class_ids: [],
+    });
+
+    const openCreate = () => {
+        setEditingId(null);
+        setFormError('');
+        setForm({
+            title: '',
+            start_date: '',
+            end_date: '',
+            description: '',
+            type: 'Public',
+            allClasses: true,
+            applicable_class_ids: [],
+        });
+        setModalOpen(true);
+    };
+
+    const openEdit = (h) => {
+        setEditingId(h.id);
+        setFormError('');
+        setForm({
+            title: h.title || '',
+            start_date: h.start_date || '',
+            end_date: h.end_date || '',
+            description: h.description || '',
+            type: h.type || 'Public',
+            allClasses: !h.applicable_classes || h.applicable_classes.length === 0,
+            applicable_class_ids: (h.applicable_classes || []).map((c) => c.id),
+        });
+        setModalOpen(true);
+    };
+
+    const closeModal = () => {
+        setModalOpen(false);
+        setEditingId(null);
+        setFormError('');
+    };
+
+    const closeDetails = () => {
+        setDetailsOpen(false);
+        setSelectedDate(null);
+    };
+
+    const fetchClasses = async () => {
+        const res = await api.get('classes/main-classes/');
+        setClasses(res.data || []);
+    };
+
+    const loadHolidays = async (params) => {
+        setLoading(true);
+        try {
+            const res = await api.get('holidays/', { params });
+            setHolidays(res.data || []);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchClasses();
+    }, []);
+
+    useEffect(() => {
+        if (tab !== 'list') return;
+        const params = {};
+        if (search.trim()) params.search = search.trim();
+        if (filterType !== 'all') params.type = filterType;
+        if (filterMonth) params.month = filterMonth;
+        if (filterYear) params.year = filterYear;
+        loadHolidays(params).catch(() => {});
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [tab, search, filterType, filterMonth, filterYear]);
+
+    useEffect(() => {
+        if (tab !== 'calendar') return;
+        const params = { month: calMonth, year: calYear };
+        loadHolidays(params).catch(() => {});
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [tab, calMonth, calYear]);
+
+    const sortedHolidays = useMemo(() => {
+        const copy = [...holidays];
+        copy.sort((a, b) => {
+            if (!a.start_date || !b.start_date) return 0;
+            const da = new Date(a.start_date).getTime();
+            const db = new Date(b.start_date).getTime();
+            return sortDir === 'asc' ? da - db : db - da;
+        });
+        return copy;
+    }, [holidays, sortDir]);
+
+    const holidayByDay = useMemo(() => {
+        const map = new Map(); // dateString => [holidays]
+        const coversDate = (h, d) => {
+            const start = new Date(h.start_date);
+            const end = new Date(h.end_date || h.start_date);
+            const dd = new Date(d);
+            dd.setHours(0, 0, 0, 0);
+            const s = new Date(start);
+            const e = new Date(end);
+            s.setHours(0, 0, 0, 0);
+            e.setHours(0, 0, 0, 0);
+            return dd >= s && dd <= e;
+        };
+
+        sortedHolidays.forEach((h) => {
+            if (!h.start_date) return;
+            const start = parseDateOnly(h.start_date);
+            const end = parseDateOnly(h.end_date || h.start_date);
+            if (!start || !end) return;
+
+            const cursor = new Date(start);
+            while (cursor <= end) {
+                const key = toDateKey(cursor);
+                if (!map.has(key)) map.set(key, []);
+                map.get(key).push(h);
+                cursor.setDate(cursor.getDate() + 1);
+            }
+        });
+        return { map, coversDate };
+    }, [sortedHolidays]);
+
+    const daysInMonth = (y, m) => new Date(y, m, 0).getDate();
+    const buildCalendarCells = () => {
+        const first = new Date(calYear, calMonth - 1, 1);
+        // Monday=0 ... Sunday=6
+        const jsDay = first.getDay(); // 0 Sunday .. 6 Saturday
+        const mondayBased = (jsDay + 6) % 7;
+        const totalDays = daysInMonth(calYear, calMonth);
+
+        const cells = [];
+        for (let i = 0; i < mondayBased; i++) cells.push(null);
+        for (let d = 1; d <= totalDays; d++) {
+            const key = toDateKey(new Date(calYear, calMonth - 1, d));
+            cells.push(key);
+        }
+        while (cells.length % 7 !== 0) cells.push(null);
+        return cells;
+    };
+
+    const calendarCells = useMemo(() => buildCalendarCells(), [calMonth, calYear]);
+
+    const classLabel = (hc) => (hc?.applicable_classes?.length ? hc.applicable_classes.map((c) => c.name).join(', ') : 'All Classes');
+
+    const submitHoliday = async (e) => {
         e.preventDefault();
         setBusy(true);
         setTimeout(() => {
@@ -59,4 +279,4 @@ const Holidays = () => {
     );
 };
 
-export default Holidays;
+export default AdminHolidays;

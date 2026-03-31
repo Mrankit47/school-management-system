@@ -1,5 +1,6 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import api from '../../services/api';
+import TeacherCards from './TeacherCards';
 
 const AddTeacher = () => {
     const [form, setForm] = useState({
@@ -25,6 +26,22 @@ const AddTeacher = () => {
     const [errors, setErrors] = useState({});
     const [message, setMessage] = useState('');
     const [busy, setBusy] = useState(false);
+
+    const [isFormOpen, setIsFormOpen] = useState(false);
+    const [teachers, setTeachers] = useState([]);
+    const [teachersLoading, setTeachersLoading] = useState(false);
+
+    const fetchTeachers = async () => {
+        setTeachersLoading(true);
+        try {
+            const res = await api.get('teachers/');
+            setTeachers(res.data);
+        } catch (e) {
+            setTeachers([]);
+        } finally {
+            setTeachersLoading(false);
+        }
+    };
 
     const specializationOptions = useMemo(
         () => [
@@ -67,6 +84,12 @@ const AddTeacher = () => {
         setForm(p => ({ ...p, profile_image: file, profile_image_base64: base64 }));
     };
 
+    useEffect(() => {
+        fetchTeachers();
+        // fetchTeachers already sets loading states
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         const nextErrors = validate();
@@ -82,6 +105,8 @@ const AddTeacher = () => {
             };
             await api.post('teachers/admin/create-teacher/', payload);
             setMessage('Teacher created successfully!');
+            await fetchTeachers();
+            setIsFormOpen(false);
             setForm({
                 first_name: '', last_name: '', email: '', phone_number: '', gender: '',
                 dob: '', employee_id: '', subject_specialization: '', qualification: '',

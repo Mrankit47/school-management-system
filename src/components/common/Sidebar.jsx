@@ -180,6 +180,8 @@ const Sidebar = () => {
         );
     };
 
+    const activeLinks = links[role] || [];
+
     return (
         <aside className="w-64 bg-white border-r border-slate-200 h-full flex flex-col transition-all duration-300 z-50">
             {/* Branding Removed from Sidebar as per request */}
