@@ -1,8 +1,11 @@
 from rest_framework import status, views, permissions
 from rest_framework.response import Response
+from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from .models import Assignment, Submission
 from .serializers import AssignmentSerializer, SubmissionSerializer
 from core.permissions import IsTeacher, IsStudent
+from students.models import StudentProfile
+from communication.models import Notification
 
 class AssignmentListView(views.APIView):
     """
@@ -27,12 +30,33 @@ class AssignmentCreateView(views.APIView):
     Teacher can POST new assignments.
     """
     permission_classes = [IsTeacher]
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
 
     def post(self, request):
         serializer = AssignmentSerializer(data=request.data)
         if serializer.is_valid():
-            serializer.save(created_by=request.user.teacher_profile)
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
+            assignment = serializer.save(created_by=request.user.teacher_profile)
+
+            # Auto notify students of that class section.
+            student_users = StudentProfile.objects.select_related('user').filter(
+                class_section_id=assignment.class_section_id
+            )
+            notifications = []
+            for sp in student_users:
+                notifications.append(
+                    Notification(
+                        user=sp.user,
+                        title='New Assignment',
+                        message=(
+                            f"{assignment.subject}: {assignment.title} | "
+                            f"Due: {assignment.due_date}"
+                        ),
+                    )
+                )
+            if notifications:
+                Notification.objects.bulk_create(notifications)
+
+            return Response(AssignmentSerializer(assignment).data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
