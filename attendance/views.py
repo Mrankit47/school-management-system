@@ -10,7 +10,7 @@ from .models import Attendance
 from .serializers import AttendanceSerializer
 from core.permissions import IsTeacher, IsStudent
 from holidays.models import Holiday
-from timetable.models import Timetable
+from timetable.models import TimeTableEntry
 from .pdf_report import build_student_attendance_report_pdf
 from django.http import HttpResponse
 from classes.models import ClassSection
@@ -239,7 +239,12 @@ class MyAttendanceReportPDFView(views.APIView):
         # Timetable uses class_section. If student doesn't have class_section, we'll keep subject-wise empty.
         timetable_by_day = defaultdict(list)
         if student_profile.class_section_id:
-            timetable_qs = Timetable.objects.filter(class_section=student_profile.class_section).all()
+            class_name = student_profile.class_section.class_ref.name
+            section = student_profile.class_section.section_ref.name
+            timetable_qs = TimeTableEntry.objects.filter(
+                class_name=class_name, 
+                section=section
+            ).all()
             for t in timetable_qs:
                 timetable_by_day[t.day].append(t)
 
@@ -271,8 +276,8 @@ class MyAttendanceReportPDFView(views.APIView):
             if not rec:
                 continue
 
-            day_name = day_names[cur.weekday()]
-            timetable_entries = timetable_by_day.get(day_name) or []
+            day_num = cur.weekday() + 1  # Monday=1, ..., Sunday=7
+            timetable_entries = timetable_by_day.get(day_num) or []
             if not timetable_entries:
                 continue
 
