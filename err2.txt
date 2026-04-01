@@ -1,0 +1,27 @@
+﻿python : C:\Users\Ankit\App
+Data\Local\Programs\Python\
+Python311\Lib\site-packages
+\requests\__init__.py:113: 
+RequestsDependencyWarning: 
+urllib3 (2.6.3) or chardet 
+(7.4.0.post2)/charset_norma
+lizer (3.4.4) doesn't 
+match a supported version!
+At line:1 char:1
++ python manage.py 
+makemigrations academics > 
+err.txt 2>&1 ; Get-Conten 
+...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~
+    + CategoryInfo         
+     : NotSpecified: (C:\  
+  Users\Ankit\...ported    
+ version!:String) [], R    
+emoteException
+    + FullyQualifiedErrorI 
+   d : NativeCommandError
+ 
+  warnings.warn(
+No changes detected in app 'academics'

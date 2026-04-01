@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import authService from '../../services/authService';
 
@@ -9,10 +9,18 @@ const Sidebar = () => {
 
     if (!role) return null;
 
-    const toggleMenu = (label) => {
-        setOpenMenus(prev => ({
-            [label]: !prev[label]
-        }));
+    const toggleMenu = (label, depth) => {
+        setOpenMenus(prev => {
+            if (depth === 0) {
+                // For top-level items, close others (accordion behavior)
+                return { [label]: !prev[label] };
+            }
+            // For nested items, preserve existing open menus
+            return {
+                ...prev,
+                [label]: !prev[label]
+            };
+        });
     };
 
     const studentLinks = [
@@ -48,7 +56,9 @@ const Sidebar = () => {
                 { path: '/student/contact', label: 'Contact' },
                 { path: '/student/notifications', label: 'Notice' },
                 { path: '/student/syllabus', label: 'Syllabus' },
-                { path: '/student/profile', label: 'Your Profile' }
+                { path: '/student/profile', label: 'Your Profile' },
+                { path: '/student/Holidays', label: 'Holidays' },
+                { path: '/student/Message', label: 'Message' }
             ]
         }
     ];
@@ -59,6 +69,9 @@ const Sidebar = () => {
         { path: '/teacher/upload-result', label: 'Upload Results', icon: '📤' },
         { path: '/teacher/assignment', label: 'Create Assignment', icon: '➕' },
         { path: '/teacher/students', label: 'My Students', icon: '👥' },
+        { path: '/teacher/Messaging', label: 'Messages', icon: '💬' },
+        { path: '/teacher/Holidays', label: 'Holidays', icon: '🏝️' },
+        { path: '/teacher/Profile', label: 'Profile', icon: '🧑🏻‍💻' },
     ];
 
     const adminLinks = [
@@ -78,6 +91,7 @@ const Sidebar = () => {
             icon: '🎓',
             subLinks: [
                 { path: '/admin/classes', label: 'Classes & Sections' },
+                { path: '/admin/subjects', label: 'Subjects' },
                 { path: '/admin/assign-teacher', label: 'Assign Teacher' },
                 { path: '/admin/exams', label: 'Exams' },
                 { path: '/admin/holidays', label: 'Holidays' },
@@ -87,6 +101,36 @@ const Sidebar = () => {
     ];
 
     const links = role === 'student' ? studentLinks : (role === 'teacher' ? teacherLinks : adminLinks);
+
+    // Initialize open menus based on current location
+    useEffect(() => {
+        const findActiveParentLabels = (menuItems, currentPath) => {
+            let activeLabels = {};
+            const search = (items, path) => {
+                for (const item of items) {
+                    if (item.subLinks) {
+                        const hasActiveChild = search(item.subLinks, path);
+                        if (hasActiveChild) {
+                            activeLabels[item.label] = true;
+                            return true;
+                        }
+                    } else if (item.path === path) {
+                        return true;
+                    }
+                }
+                return false;
+            };
+            search(menuItems, currentPath);
+            return activeLabels;
+        };
+
+        const initialOpenMenus = findActiveParentLabels(links, location.pathname);
+        setOpenMenus(prev => ({
+            ...initialOpenMenus,
+            // We do not spread `prev` here so that during a fresh navigation to a new section,
+            // we start with a clean accordion state matching the current URL.
+        }));
+    }, [location.pathname, role]); // re-run if location or role changes
 
     const NavItem = ({ item, depth = 0 }) => {
         const hasSubLinks = item.subLinks && item.subLinks.length > 0;
@@ -116,7 +160,7 @@ const Sidebar = () => {
                     </Link>
                 ) : (
                     <button
-                        onClick={() => toggleMenu(item.label)}
+                        onClick={() => toggleMenu(item.label, depth)}
                         className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 group ${
                             isChildActive ? 'text-school-navy' : 'text-school-body hover:bg-slate-50 hover:text-school-navy'
                         }`}
@@ -130,7 +174,7 @@ const Sidebar = () => {
                     </button>
                 )}
 
-                {(isOpen || isChildActive) && hasSubLinks && (
+                {isOpen && hasSubLinks && (
                     <div className="mt-1 space-y-1">
                         {item.subLinks.map((sub, i) => (
                             <NavItem key={i} item={sub} depth={depth + 1} />
