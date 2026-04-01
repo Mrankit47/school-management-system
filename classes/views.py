@@ -10,17 +10,24 @@ from .serializers import ClassSectionSerializer, MainClassSerializer, MainSectio
 
 class ClassSectionListView(views.APIView):
     """
-    List all available class-section mappings. Useful for dropdowns.
+    List all available class-section mappings for the user's school.
     """
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
-        sections = ClassSection.objects.select_related(
+        school = request.user.school
+        if not school and not request.user.is_superuser:
+            return Response([])
+
+        qs = ClassSection.objects.select_related(
             'class_ref',
             'section_ref',
             'class_teacher__user',
         ).all()
-        serializer = ClassSectionSerializer(sections, many=True)
+        if not request.user.is_superuser:
+            qs = qs.filter(school=school)
+        
+        serializer = ClassSectionSerializer(qs, many=True)
         return Response(serializer.data)
 
 
@@ -28,8 +35,12 @@ class MainClassListView(views.APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
-        classes = MainClass.objects.all().order_by('id')
-        serializer = MainClassSerializer(classes, many=True)
+        school = request.user.school
+        qs = MainClass.objects.all().order_by('id')
+        if not request.user.is_superuser:
+            qs = qs.filter(school=school)
+
+        serializer = MainClassSerializer(qs, many=True)
         return Response(serializer.data)
 
 
@@ -37,8 +48,11 @@ class MainSectionListView(views.APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
-        sections = MainSection.objects.all().order_by('id')
-        serializer = MainSectionSerializer(sections, many=True)
+        school = request.user.school
+        qs = MainSection.objects.all().order_by('id')
+        if not request.user.is_superuser:
+            qs = qs.filter(school=school)
+        serializer = MainSectionSerializer(qs, many=True)
         return Response(serializer.data)
 
 
@@ -46,12 +60,15 @@ class AdminMainClassCreateView(views.APIView):
     permission_classes = [IsAdmin]
 
     def post(self, request):
+        school = request.user.school
         name = (request.data.get('name') or '').strip()
         code = (request.data.get('code') or '').strip() or None
         description = (request.data.get('description') or '').strip() or None
         if not name:
             return Response({"error": "name is required"}, status=status.HTTP_400_BAD_REQUEST)
+        
         obj, created = MainClass.objects.get_or_create(
+            school=school,
             name=name,
             defaults={'code': code, 'description': description},
         )
@@ -74,11 +91,12 @@ class AdminMainSectionCreateView(views.APIView):
     permission_classes = [IsAdmin]
 
     def post(self, request):
+        school = request.user.school
         name = request.data.get('name')
         if not name:
             return Response({"error": "name is required"}, status=status.HTTP_400_BAD_REQUEST)
 
-        obj, created = MainSection.objects.get_or_create(name=name)
+        obj, created = MainSection.objects.get_or_create(school=school, name=name)
         return Response(
             {"message": "Section created" if created else "Section already exists", "id": obj.id},
             status=status.HTTP_201_CREATED if created else status.HTTP_200_OK,
@@ -89,7 +107,8 @@ class AdminMainClassDetailView(views.APIView):
     permission_classes = [IsAdmin]
 
     def patch(self, request, class_id: int):
-        obj = MainClass.objects.filter(id=class_id).first()
+        school = request.user.school
+        obj = MainClass.objects.filter(school=school, id=class_id).first()
         if not obj:
             return Response({"error": "Class not found"}, status=status.HTTP_404_NOT_FOUND)
 
@@ -101,7 +120,7 @@ class AdminMainClassDetailView(views.APIView):
             next_name = name.strip()
             if not next_name:
                 return Response({"error": "name cannot be empty"}, status=status.HTTP_400_BAD_REQUEST)
-            if MainClass.objects.filter(name=next_name).exclude(id=obj.id).exists():
+            if MainClass.objects.filter(school=school, name=next_name).exclude(id=obj.id).exists():
                 return Response({"error": "Class name already exists"}, status=status.HTTP_400_BAD_REQUEST)
             obj.name = next_name
         if code is not None:
@@ -113,7 +132,8 @@ class AdminMainClassDetailView(views.APIView):
         return Response(MainClassSerializer(obj).data)
 
     def delete(self, request, class_id: int):
-        obj = MainClass.objects.filter(id=class_id).first()
+        school = request.user.school
+        obj = MainClass.objects.filter(school=school, id=class_id).first()
         if not obj:
             return Response({"error": "Class not found"}, status=status.HTTP_404_NOT_FOUND)
         obj.delete()
@@ -124,6 +144,7 @@ class AdminClassSectionCreateView(views.APIView):
     permission_classes = [IsAdmin]
 
     def post(self, request):
+        school = request.user.school
         class_id = request.data.get('class_id')
         section_name = (request.data.get('section_name') or '').strip()
         class_teacher_id = request.data.get('class_teacher')
@@ -132,17 +153,17 @@ class AdminClassSectionCreateView(views.APIView):
         if not class_id or not section_name:
             return Response({"error": "class_id and section_name are required"}, status=status.HTTP_400_BAD_REQUEST)
 
-        class_obj = MainClass.objects.filter(id=class_id).first()
+        class_obj = MainClass.objects.filter(school=school, id=class_id).first()
         if not class_obj:
             return Response({"error": "Class not found"}, status=status.HTTP_404_NOT_FOUND)
 
-        section_obj, _ = MainSection.objects.get_or_create(name=section_name)
+        section_obj, _ = MainSection.objects.get_or_create(school=school, name=section_name)
 
-        # Validation: no duplicate section in same class
-        if ClassSection.objects.filter(class_ref=class_obj, section_ref=section_obj).exists():
+        if ClassSection.objects.filter(school=school, class_ref=class_obj, section_ref=section_obj).exists():
             return Response({"error": "This section already exists in selected class"}, status=status.HTTP_400_BAD_REQUEST)
 
         obj = ClassSection.objects.create(
+            school=school,
             class_ref=class_obj,
             section_ref=section_obj,
             class_teacher_id=class_teacher_id or None,
@@ -156,7 +177,8 @@ class AdminClassSectionDetailView(views.APIView):
     permission_classes = [IsAdmin]
 
     def patch(self, request, section_id: int):
-        obj = ClassSection.objects.select_related('class_ref', 'section_ref', 'class_teacher__user').filter(id=section_id).first()
+        school = request.user.school
+        obj = ClassSection.objects.select_related('class_ref', 'section_ref', 'class_teacher__user').filter(school=school, id=section_id).first()
         if not obj:
             return Response({"error": "Section not found"}, status=status.HTTP_404_NOT_FOUND)
 
@@ -169,7 +191,7 @@ class AdminClassSectionDetailView(views.APIView):
         target_section = obj.section_ref
 
         if class_id is not None:
-            target_class = MainClass.objects.filter(id=class_id).first()
+            target_class = MainClass.objects.filter(school=school, id=class_id).first()
             if not target_class:
                 return Response({"error": "Class not found"}, status=status.HTTP_404_NOT_FOUND)
 
@@ -177,15 +199,16 @@ class AdminClassSectionDetailView(views.APIView):
             next_name = section_name.strip()
             if not next_name:
                 return Response({"error": "section_name cannot be empty"}, status=status.HTTP_400_BAD_REQUEST)
-            target_section, _ = MainSection.objects.get_or_create(name=next_name)
+            target_section, _ = MainSection.objects.get_or_create(school=school, name=next_name)
 
-        if ClassSection.objects.filter(class_ref=target_class, section_ref=target_section).exclude(id=obj.id).exists():
+        if ClassSection.objects.filter(school=school, class_ref=target_class, section_ref=target_section).exclude(id=obj.id).exists():
             return Response({"error": "Duplicate section in same class"}, status=status.HTTP_400_BAD_REQUEST)
 
         obj.class_ref = target_class
         obj.section_ref = target_section
 
         if class_teacher_id is not None:
+            # optionally verify teacher belongs to school
             obj.class_teacher_id = class_teacher_id or None
         if room_number is not None:
             obj.room_number = (room_number or '').strip() or None
@@ -195,7 +218,8 @@ class AdminClassSectionDetailView(views.APIView):
         return Response(ClassSectionSerializer(obj).data)
 
     def delete(self, request, section_id: int):
-        obj = ClassSection.objects.filter(id=section_id).first()
+        school = request.user.school
+        obj = ClassSection.objects.filter(school=school, id=section_id).first()
         if not obj:
             return Response({"error": "Section not found"}, status=status.HTTP_404_NOT_FOUND)
         obj.delete()
@@ -206,6 +230,7 @@ class AdminClassSectionListView(views.APIView):
     permission_classes = [IsAdmin]
 
     def get(self, request):
+        school = request.user.school
         class_id = request.query_params.get('class_id')
         search = (request.query_params.get('search') or '').strip()
 
@@ -213,7 +238,7 @@ class AdminClassSectionListView(views.APIView):
             'class_ref',
             'section_ref',
             'class_teacher__user',
-        ).all()
+        ).filter(school=school)
         if class_id:
             qs = qs.filter(class_ref_id=class_id)
         if search:
@@ -229,23 +254,25 @@ class AdminClassSectionHierarchyView(views.APIView):
     permission_classes = [IsAdmin]
 
     def get(self, request):
-        classes = MainClass.objects.all().order_by('name')
+        school = request.user.school
+        classes = MainClass.objects.filter(school=school).order_by('name')
         sections = ClassSection.objects.select_related(
             'class_ref',
             'section_ref',
             'class_teacher__user',
-        ).all().order_by('class_ref__name', 'section_ref__name')
+        ).filter(school=school).order_by('class_ref__name', 'section_ref__name')
 
         by_class = {c.id: [] for c in classes}
         for cs in sections:
-            by_class.setdefault(cs.class_ref_id, []).append({
-                "id": cs.id,
-                "section_name": cs.section_ref.name,
-                "class_teacher": cs.class_teacher_id,
-                "class_teacher_name": (cs.class_teacher.user.name or cs.class_teacher.user.username) if cs.class_teacher else None,
-                "room_number": cs.room_number,
-                "student_count": cs.students.count(),
-            })
+            if cs.class_ref_id in by_class:
+                by_class[cs.class_ref_id].append({
+                    "id": cs.id,
+                    "section_name": cs.section_ref.name,
+                    "class_teacher": cs.class_teacher_id,
+                    "class_teacher_name": (cs.class_teacher.user.name or cs.class_teacher.user.username) if cs.class_teacher else None,
+                    "room_number": cs.room_number,
+                    "student_count": cs.students.count(),
+                })
 
         payload = []
         for c in classes:
@@ -263,16 +290,17 @@ class AdminAssignStudentSectionView(views.APIView):
     permission_classes = [IsAdmin]
 
     def post(self, request):
+        school = request.user.school
         student_id = request.data.get('student_id')
         class_section_id = request.data.get('class_section_id')
         if not student_id or not class_section_id:
             return Response({"error": "student_id and class_section_id are required"}, status=status.HTTP_400_BAD_REQUEST)
 
-        student = StudentProfile.objects.select_related('user').filter(id=student_id).first()
+        student = StudentProfile.objects.select_related('user').filter(user__school=school, id=student_id).first()
         if not student:
             return Response({"error": "Student not found"}, status=status.HTTP_404_NOT_FOUND)
 
-        class_section = ClassSection.objects.filter(id=class_section_id).first()
+        class_section = ClassSection.objects.filter(school=school, id=class_section_id).first()
         if not class_section:
             return Response({"error": "ClassSection not found"}, status=status.HTTP_404_NOT_FOUND)
 

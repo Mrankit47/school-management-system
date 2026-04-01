@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
+import useSchoolStore from '../store/schoolStore';
 
 /* ─── Global base styles ─── */
 const globalStyles = `
@@ -134,7 +135,7 @@ const roles = [
       </svg>
     ),
     role: 'Admin',
-    desc: 'Oversee the entire school — manage users, classes, fees, reports, and daily operations from a unified dashboard.',
+    desc: 'Oversee the school — manage users, classes, fees, reports, and daily operations from a unified dashboard.',
   },
   {
     icon: (
@@ -169,17 +170,17 @@ const testimonials = [
   {
     name: 'Dr. Priya Sharma',
     role: 'Parent — Grade 9',
-    text: 'Atheris Lab School has completely transformed how our daughter approaches learning. The faculty is deeply invested in each child\'s progress, and the communication between school and parents is exceptional.',
+    text: 'This school has completely transformed how our daughter approaches learning. The faculty is deeply invested in each child\'s progress.',
   },
   {
     name: 'Rahul Mehta',
     role: 'Student — Grade 11',
-    text: 'The digital labs and career guidance here are outstanding. My robotics project won at the national level — the mentorship and facilities made all the difference.',
+    text: 'The digital labs and career guidance here are outstanding. My robotics project won at the national level — the mentorship was amazing.',
   },
   {
     name: 'Ms. Anjali Verma',
     role: 'Teacher — Computer Science',
-    text: 'The school management platform is a genuine time-saver. I can focus entirely on teaching knowing that attendance, results, and communication are handled efficiently.',
+    text: 'The school management platform is a genuine time-saver. I can focus entirely on teaching knowing that attendance and results are handled efficiently.',
   },
 ];
 
@@ -187,10 +188,20 @@ const testimonials = [
    MAIN COMPONENT
 ═══════════════════════════════════════════════ */
 export default function LandingPage() {
+  const { schoolId } = useParams();
   const navigate = useNavigate();
+  const { school, loading, error, fetchSchoolInfo, clearSchool } = useSchoolStore();
+  
   const [menuOpen, setMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [isLoginOpen, setIsLoginOpen] = useState(false);
+
+  useEffect(() => {
+    if (schoolId) {
+      fetchSchoolInfo(schoolId);
+    }
+    return () => clearSchool();
+  }, [schoolId, fetchSchoolInfo, clearSchool]);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 64);
@@ -217,6 +228,9 @@ export default function LandingPage() {
     setMenuOpen(false);
   };
 
+  if (loading) return <div className="min-h-screen flex items-center justify-center text-slate-500 font-inter">Loading Portal...</div>;
+  if (error || !school) return <div className="min-h-screen flex items-center justify-center text-red-500 font-inter">{error || "School not found"}</div>;
+
   /* Hero image — high quality school campus from Unsplash */
   const heroImage = 'https://images.unsplash.com/photo-1562774053-701939374585?w=1600&q=80&auto=format&fit=crop';
   const aboutImage = 'https://images.unsplash.com/photo-1509062522246-3755977927d7?w=800&q=80&auto=format&fit=crop';
@@ -232,11 +246,15 @@ export default function LandingPage() {
 
           {/* Logo */}
           <div className="flex items-center gap-3 cursor-pointer" onClick={() => scrollTo('hero')}>
-            <div className="w-9 h-9 rounded-lg flex items-center justify-center text-white text-base font-bold"
-              style={{ background: '#1e3a8a' }}>A</div>
+            {school.logo ? (
+                <img src={school.logo} alt={school.name} className="w-9 h-9 rounded-lg" />
+            ) : (
+                <div className="w-9 h-9 rounded-lg flex items-center justify-center text-white text-base font-bold"
+                  style={{ background: '#1e3a8a' }}>{school.name[0]}</div>
+            )}
             <div>
-              <p className="text-sm font-bold text-school-text leading-none">Atheris Lab School</p>
-              <p className="text-xs text-school-body leading-none mt-0.5">Est. 2012</p>
+              <p className="text-sm font-bold text-school-text leading-none">{school.name}</p>
+              <p className="text-xs text-school-body leading-none mt-0.5">#{school.school_id}</p>
             </div>
           </div>
 
@@ -271,7 +289,7 @@ export default function LandingPage() {
                 ].map((opt) => (
                   <button
                     key={opt.role}
-                    onClick={() => navigate(`/login?role=${opt.role}`)}
+                    onClick={() => navigate(`/school/${school.school_id}/login?role=${opt.role}`)}
                     className="w-full text-left px-5 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-school-navy transition-colors flex items-center justify-between group"
                   >
                     {opt.label}
@@ -298,9 +316,9 @@ export default function LandingPage() {
             ))}
             <div className="pt-2 border-t border-slate-50 flex flex-col gap-2">
               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-1">Login Portals</p>
-              <button onClick={() => navigate('/login?role=admin')} className="flex items-center justify-between px-4 py-2 bg-slate-50 rounded-xl text-sm font-bold text-school-navy">Admin Portal <span>→</span></button>
-              <button onClick={() => navigate('/login?role=teacher')} className="flex items-center justify-between px-4 py-2 bg-slate-50 rounded-xl text-sm font-bold text-school-blue">Teacher Portal <span>→</span></button>
-              <button onClick={() => navigate('/login?role=student')} className="flex items-center justify-between px-4 py-2 bg-slate-50 rounded-xl text-sm font-bold text-school-sky">Student Portal <span>→</span></button>
+              <button onClick={() => navigate(`/school/${school.school_id}/login?role=admin`)} className="flex items-center justify-between px-4 py-2 bg-slate-50 rounded-xl text-sm font-bold text-school-navy">Admin Portal <span>→</span></button>
+              <button onClick={() => navigate(`/school/${school.school_id}/login?role=teacher`)} className="flex items-center justify-between px-4 py-2 bg-slate-50 rounded-xl text-sm font-bold text-school-blue">Teacher Portal <span>→</span></button>
+              <button onClick={() => navigate(`/school/${school.school_id}/login?role=student`)} className="flex items-center justify-between px-4 py-2 bg-slate-50 rounded-xl text-sm font-bold text-school-sky">Student Portal <span>→</span></button>
             </div>
           </div>
         )}
@@ -310,9 +328,9 @@ export default function LandingPage() {
       <section id="hero" className="relative min-h-screen flex items-center" style={{ paddingTop: '80px' }}>
         {/* Background image */}
         <div className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-          style={{ backgroundImage: `url('${heroImage}')` }} />
+          style={{ backgroundImage: `url('${school.logo || heroImage}')` }} />
         {/* Light overlay */}
-        <div className="absolute inset-0" style={{ background: 'rgba(255,255,255,0.82)' }} />
+        <div className="absolute inset-0" style={{ background: 'rgba(255,255,255,0.85)' }} />
         {/* Left accent bar */}
         <div className="absolute left-0 top-0 bottom-0 w-1.5" style={{ background: '#1e3a8a' }} />
 
@@ -321,12 +339,12 @@ export default function LandingPage() {
           <div>
             <div className="inline-flex items-center gap-2 mb-5">
               <span className="w-8 h-px" style={{ background: '#1e3a8a' }} />
-              <span className="section-label">CBSE Affiliated · Est. 2012</span>
+              <span className="section-label">Institutional Portal</span>
             </div>
 
             <h1 className="font-poppins text-5xl lg:text-6xl font-bold leading-tight mb-5" style={{ color: '#0f172a' }}>
-              Atheris Lab<br />
-              <span style={{ color: '#1e3a8a' }}>School</span>
+              {school.name.split(' ').slice(0, 2).join(' ')}<br />
+              <span style={{ color: '#1e3a8a' }}>{school.name.split(' ').slice(2).join(' ') || 'Portal'}</span>
             </h1>
 
             <p className="text-xl font-medium mb-3" style={{ color: '#2563eb' }}>
@@ -334,12 +352,8 @@ export default function LandingPage() {
             </p>
 
             <p className="text-base leading-relaxed mb-10 max-w-lg" style={{ color: '#475569' }}>
-              Atheris Lab School is a forward-thinking institution dedicated to holistic development,
-              academic rigour, and technology-integrated learning. We prepare students to lead with
-              confidence, creativity, and character in a rapidly changing world.
+              {school.about || `${school.name} is a forward-thinking institution dedicated to holistic development, academic rigour, and technology-integrated learning.`}
             </p>
-
-            {/* Buttons removed as requested */}
 
             {/* Quick stats strip */}
             <div className="mt-12 flex flex-wrap gap-8 pt-8 border-t border-slate-200">
@@ -355,17 +369,15 @@ export default function LandingPage() {
           {/* Right: visual block */}
           <div className="hidden lg:flex justify-end">
             <div className="relative">
-              <div className="w-[420px] h-[520px] rounded-2xl overflow-hidden shadow-2xl ring-1 ring-slate-200">
-                <img src={aboutImage} alt="Students at Atheris Lab School"
-                  className="w-full h-full object-cover" />
+              <div className="w-[420px] h-[520px] rounded-2xl overflow-hidden shadow-2xl ring-1 ring-slate-200 bg-white flex items-center justify-center p-4">
+                <img src={school.logo || aboutImage} alt={school.name}
+                  className="w-full h-full object-cover rounded-xl" />
               </div>
               {/* Floating badge */}
               <div className="absolute -bottom-6 -left-8 bg-white rounded-xl shadow-lg px-5 py-4 border border-slate-100">
                 <p className="text-2xl font-bold" style={{ color: '#1e3a8a' }}>Top Ranked</p>
-                <p className="text-xs text-school-body">Karnataka, 2024</p>
+                <p className="text-xs text-school-body">Recognised Excellence</p>
               </div>
-              <div className="absolute -top-4 -right-6 w-12 h-12 rounded-full flex items-center justify-center text-xs font-bold text-white shadow-lg"
-                style={{ background: '#1e3a8a' }}>#1</div>
             </div>
           </div>
         </div>
@@ -379,7 +391,7 @@ export default function LandingPage() {
             <div className="rounded-2xl overflow-hidden shadow-lg ring-1 ring-slate-100">
               <img
                 src="https://images.unsplash.com/photo-1577896851231-70ef18881754?w=800&q=80&auto=format&fit=crop"
-                alt="Classroom at Atheris Lab School"
+                alt="Classroom"
                 className="w-full h-[460px] object-cover"
               />
             </div>
@@ -395,9 +407,7 @@ export default function LandingPage() {
             </h2>
 
             <p className="text-school-body leading-relaxed mb-8">
-              Founded in 2012, Atheris Lab School is a CBSE-affiliated institution committed to providing
-              exceptional education through a blend of traditional values and modern pedagogy. Our campus
-              is a vibrant learning community where curiosity is encouraged and excellence is celebrated.
+              {school.name} is a premier institution committed to providing exceptional education through a blend of traditional values and modern pedagogy. Our campus is a vibrant learning community.
             </p>
 
             <div className="space-y-5">
@@ -414,7 +424,7 @@ export default function LandingPage() {
                 },
                 {
                   icon: '✦',
-                  title: 'Why Choose Atheris?',
+                  title: `Why Choose ${school.name}?`,
                   text: 'Small class sizes, AI-integrated learning tools, dedicated counselling, and a proven track record of 98% board success.',
                 },
               ].map((item) => (
@@ -434,7 +444,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ════════════ STATS STRIP ════════════ */}
+      {/* ════════════ STATS & FEATURES ════════════ */}
       <section ref={statsRef} className="py-14 px-6" style={{ background: '#1e3a8a' }}>
         <div className="max-w-5xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
           {stats.map((s, i) => (
@@ -444,37 +454,6 @@ export default function LandingPage() {
               <p className="text-sm mt-1" style={{ color: '#93c5fd' }}>{s.label}</p>
             </div>
           ))}
-        </div>
-      </section>
-
-      {/* ════════════ FEATURES ════════════ */}
-      <section id="features" ref={featRef} className="py-24 px-6 lg:px-8" style={{ background: '#f8fafc' }}>
-        <div className="max-w-7xl mx-auto">
-          <div className={`text-center mb-14 ${featInView ? 'opacity-100' : 'opacity-0'} transition-opacity duration-500`}>
-            <span className="section-label">Programmes & Facilities</span>
-            <h2 className="font-poppins text-4xl font-bold mt-3 mb-4" style={{ color: '#0f172a' }}>
-              Everything a Student Needs
-            </h2>
-            <p className="text-school-body max-w-xl mx-auto text-sm leading-relaxed">
-              From cutting-edge labs to dedicated faculty, we provide every resource for academic and personal excellence.
-            </p>
-          </div>
-
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {features.map((f, i) => (
-              <div key={i}
-                className={`bg-white rounded-xl p-7 shadow-sm border border-slate-100 card-lift
-                  ${featInView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'} transition-all duration-500`}
-                style={{ transitionDelay: `${(i % 3) * 80}ms` }}>
-                <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-5"
-                  style={{ background: '#eff6ff', color: '#1e3a8a' }}>
-                  {f.icon}
-                </div>
-                <h3 className="font-semibold text-base mb-2" style={{ color: '#0f172a' }}>{f.title}</h3>
-                <p className="text-sm text-school-body leading-relaxed">{f.desc}</p>
-              </div>
-            ))}
-          </div>
         </div>
       </section>
 
@@ -504,7 +483,7 @@ export default function LandingPage() {
                 <h3 className="font-semibold text-lg mb-2" style={{ color: '#0f172a' }}>{r.role}</h3>
                 <p className="text-sm text-school-body leading-relaxed mb-6 flex-1">{r.desc}</p>
                 <button
-                  onClick={() => navigate(`/login?role=${r.role.toLowerCase()}`)}
+                  onClick={() => navigate(`/school/${school.school_id}/login?role=${r.role.toLowerCase()}`)}
                   className="w-full btn-outline py-2.5 rounded-lg text-sm font-semibold text-center">
                   Login as {r.role}
                 </button>
@@ -514,156 +493,19 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ════════════ TESTIMONIALS ════════════ */}
-      <section ref={testiRef} className="py-24 px-6 lg:px-8" style={{ background: '#f8fafc' }}>
-        <div className="max-w-7xl mx-auto">
-          <div className={`text-center mb-14 ${testiInView ? 'opacity-100' : 'opacity-0'} transition-opacity duration-500`}>
-            <span className="section-label">Testimonials</span>
-            <h2 className="font-poppins text-4xl font-bold mt-3" style={{ color: '#0f172a' }}>
-              What Our Community Says
-            </h2>
-          </div>
-
-          <div className="grid md:grid-cols-3 gap-6">
-            {testimonials.map((t, i) => (
-              <div key={i}
-                className={`bg-white rounded-xl p-7 shadow-sm border border-slate-100 card-lift
-                  ${testiInView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'} transition-all duration-500`}
-                style={{ transitionDelay: `${i * 100}ms` }}>
-                {/* Quote mark */}
-                <svg className="w-8 h-8 mb-4" style={{ color: '#dbeafe' }} fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M14.017 21v-7.391c0-5.704 3.731-9.57 8.983-10.609l.995 2.151c-2.432.917-3.995 3.638-3.995 5.849h4v10h-9.983zm-14.017 0v-7.391c0-5.704 3.748-9.57 9-10.609l.996 2.151c-2.433.917-3.996 3.638-3.996 5.849h3.983v10h-9.983z" />
-                </svg>
-                <p className="text-sm text-school-body leading-relaxed mb-6">"{t.text}"</p>
-                <div className="flex items-center gap-3 pt-5 border-t border-slate-100">
-                  <div className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold text-white"
-                    style={{ background: '#1e3a8a' }}>
-                    {t.name.split(' ').map(n => n[0]).join('').slice(0, 2)}
-                  </div>
-                  <div>
-                    <p className="text-sm font-semibold" style={{ color: '#0f172a' }}>{t.name}</p>
-                    <p className="text-xs text-school-body">{t.role}</p>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
       {/* ════════════ CONTACT ════════════ */}
-      <section id="contact" ref={contRef} className="py-24 px-6 lg:px-8 bg-white">
+      <section id="contact" ref={contRef} className="py-24 px-6 lg:px-8 bg-white" style={{ background: '#f8fafc' }}>
         <div className="max-w-7xl mx-auto">
           <div className={`text-center mb-14 ${contInView ? 'opacity-100' : 'opacity-0'} transition-opacity duration-500`}>
             <span className="section-label">Contact Us</span>
             <h2 className="font-poppins text-4xl font-bold mt-3 mb-4" style={{ color: '#0f172a' }}>
               Get in Touch
             </h2>
-            <p className="text-school-body max-w-xl mx-auto text-sm">
-              We welcome enquiries from prospective students, parents, and partners.
-            </p>
           </div>
 
-          <div className="grid lg:grid-cols-2 gap-12">
-            {/* Info */}
-            <div className={`${contInView ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-6'} transition-all duration-700`}>
-              <div className="space-y-6">
-                {[
-                  {
-                    icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>,
-                    label: 'Address',
-                    value: '42, Technopark Avenue, Sector 18, Innovation City — 560 001, Karnataka',
-                  },
-                  {
-                    icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" /></svg>,
-                    label: 'Phone',
-                    value: '+91 98765 43210',
-                  },
-                  {
-                    icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>,
-                    label: 'Email',
-                    value: 'info@atherislab.school',
-                  },
-                  {
-                    icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>,
-                    label: 'Office Hours',
-                    value: 'Monday – Saturday, 8:00 AM to 5:00 PM',
-                  },
-                ].map(({ icon, label, value }) => (
-                  <div key={label} className="flex gap-4 items-start">
-                    <div className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: '#eff6ff', color: '#1e3a8a' }}>
-                      {icon}
-                    </div>
-                    <div>
-                      <p className="text-xs font-semibold uppercase tracking-wider text-school-body mb-0.5">{label}</p>
-                      <p className="text-sm" style={{ color: '#0f172a' }}>{value}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {/* Accreditation badges */}
-              <div className="mt-10 pt-8 border-t border-slate-100">
-                <p className="text-xs text-school-body mb-4 font-semibold uppercase tracking-wider">Recognised By</p>
-                <div className="flex flex-wrap gap-3">
-                  {['CBSE Affiliated', 'ISO 9001:2015', 'NAAC Certified', 'Govt. Recognised'].map(badge => (
-                    <span key={badge} className="px-3 py-1.5 rounded-full text-xs font-medium border border-slate-200"
-                      style={{ color: '#1e3a8a', background: '#eff6ff' }}>{badge}</span>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            {/* Form */}
-            <form
-              className={`rounded-2xl border border-slate-200 p-8 shadow-sm bg-white
-                ${contInView ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-6'} transition-all duration-700 delay-150`}
-              onSubmit={e => { e.preventDefault(); alert("Thank you for your message. We'll respond within 1–2 business days."); e.target.reset(); }}>
-
-              <h3 className="font-poppins font-semibold text-lg mb-6" style={{ color: '#0f172a' }}>Send a Message</h3>
-
-              <div className="space-y-4">
-                <div className="grid sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-medium text-school-body mb-1.5">Full Name</label>
-                    <input required placeholder="Jane Smith"
-                      className="w-full border border-slate-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:border-transparent"
-                      style={{'--tw-ring-color': '#2563eb'}}
-                      onFocus={e => e.target.style.boxShadow='0 0 0 3px rgb(37 99 235 / 0.15)'}
-                      onBlur={e => e.target.style.boxShadow='none'}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-school-body mb-1.5">Email Address</label>
-                    <input required type="email" placeholder="jane@example.com"
-                      className="w-full border border-slate-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none"
-                      onFocus={e => e.target.style.boxShadow='0 0 0 3px rgb(37 99 235 / 0.15)'}
-                      onBlur={e => e.target.style.boxShadow='none'}
-                    />
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-school-body mb-1.5">Subject</label>
-                  <input placeholder="Admission enquiry"
-                    className="w-full border border-slate-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none"
-                    onFocus={e => e.target.style.boxShadow='0 0 0 3px rgb(37 99 235 / 0.15)'}
-                    onBlur={e => e.target.style.boxShadow='none'}
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-school-body mb-1.5">Message</label>
-                  <textarea rows={4} placeholder="Please write your message here..."
-                    className="w-full border border-slate-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none resize-none"
-                    onFocus={e => e.target.style.boxShadow='0 0 0 3px rgb(37 99 235 / 0.15)'}
-                    onBlur={e => e.target.style.boxShadow='none'}
-                  />
-                </div>
-                <button type="submit"
-                  className="btn-primary w-full py-3 rounded-lg text-sm font-semibold mt-2">
-                  Send Message
-                </button>
-              </div>
-            </form>
+          <div className="max-w-xl mx-auto text-center" style={{ color: '#0f172a' }}>
+             <p className="text-lg font-bold mb-2">{school.name}</p>
+             <p className="text-school-body mb-2">{school.contact_email || 'contact@school.edu'}</p>
           </div>
         </div>
       </section>
@@ -675,34 +517,25 @@ export default function LandingPage() {
             {/* Brand */}
             <div className="md:col-span-2">
               <div className="flex items-center gap-3 mb-4">
-                <div className="w-9 h-9 rounded-lg flex items-center justify-center text-white text-sm font-bold"
-                  style={{ background: '#1e3a8a' }}>A</div>
-                <p className="font-bold text-sm" style={{ color: '#0f172a' }}>Atheris Lab School</p>
+                {school.logo ? (
+                    <img src={school.logo} alt={school.name} className="w-9 h-9 rounded-lg" />
+                ) : (
+                    <div className="w-9 h-9 rounded-lg flex items-center justify-center text-white text-sm font-bold"
+                      style={{ background: '#1e3a8a' }}>{school.name[0]}</div>
+                )}
+                <p className="font-bold text-sm" style={{ color: '#0f172a' }}>{school.name}</p>
               </div>
               <p className="text-sm text-school-body leading-relaxed max-w-xs">
-                A premier CBSE-affiliated institution shaping future leaders through innovation, integrity, and excellence.
+                A premier curriculum institution shaping future leaders through innovation, integrity, and excellence.
               </p>
             </div>
-
             {/* Quick links */}
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-school-body mb-4">Quick Links</p>
-              <ul className="space-y-2">
-                {[['About', 'about'], ['Programmes', 'features'], ['Admissions', 'roles'], ['Contact', 'contact']].map(([label, id]) => (
-                  <li key={id}>
-                    <button onClick={() => scrollTo(id)} className="text-sm text-school-body hover:text-school-navy transition-colors">{label}</button>
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            {/* Portal */}
             <div>
               <p className="text-xs font-semibold uppercase tracking-wider text-school-body mb-4">Portals</p>
               <ul className="space-y-2">
-                {['Admin', 'Teacher', 'Student', 'Parent'].map(r => (
+                {['Admin', 'Teacher', 'Student'].map(r => (
                   <li key={r}>
-                    <button onClick={() => navigate('/login')} className="text-sm text-school-body hover:text-school-navy transition-colors">
+                    <button onClick={() => navigate(`/school/${school.school_id}/login?role=${r.toLowerCase()}`)} className="text-sm text-school-body hover:text-school-navy transition-colors">
                       {r} Login
                     </button>
                   </li>
@@ -710,11 +543,9 @@ export default function LandingPage() {
               </ul>
             </div>
           </div>
-
           {/* Bottom bar */}
           <div className="pt-8 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-3">
-            <p className="text-xs text-school-body">© {new Date().getFullYear()} Atheris Lab School. All rights reserved.</p>
-            <p className="text-xs text-school-body">42, Technopark Avenue, Innovation City, Karnataka</p>
+            <p className="text-xs text-school-body">© {new Date().getFullYear()} {school.name}. All rights reserved.</p>
           </div>
         </div>
       </footer>

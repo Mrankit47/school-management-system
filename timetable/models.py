@@ -23,6 +23,7 @@ class TimeTableEntry(models.Model):
         (6, '02:00 PM - 03:00 PM'),
     ]
 
+    school = models.ForeignKey('tenants.School', on_delete=models.CASCADE, null=True, blank=True, related_name='timetable')
     class_name = models.CharField(max_length=50)
     section = models.CharField(max_length=50)
     subject = models.CharField(max_length=100)

@@ -11,6 +11,7 @@ class CustomTokenObtainPairView(TokenObtainPairView):
     serializer_class = CustomTokenObtainPairSerializer
 
 urlpatterns = [
+    path('api/tenants/', include('tenants.urls')),
     path('admin/', admin.site.urls),
     
     # Auth

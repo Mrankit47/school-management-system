@@ -45,11 +45,14 @@ class SubjectListView(APIView):
     permission_classes = [IsAdmin | IsTeacher]
 
     def get(self, request):
+        school = request.user.school
         class_id = request.query_params.get('class_id')
         search = request.query_params.get('search')
         status_filter = request.query_params.get('status')
 
         qs = Subject.objects.select_related('class_ref').prefetch_related('teachers')
+        if not request.user.is_superuser:
+            qs = qs.filter(school=school)
 
         if class_id:
             qs = qs.filter(class_ref_id=class_id)
@@ -69,6 +72,7 @@ class SubjectCreateView(APIView):
     permission_classes = [IsAdmin]
 
     def post(self, request):
+        school = request.user.school
         name = (request.data.get('name') or request.data.get('subject_name') or '').strip()
         class_id = request.data.get('class_id')
         code = request.data.get('code') or request.data.get('subject_code') or None
@@ -80,10 +84,11 @@ class SubjectCreateView(APIView):
             return Response({"error": "name and class_id are required"}, status=status.HTTP_400_BAD_REQUEST)
 
         # Prevent duplicates (case-insensitive) in same class.
-        if Subject.objects.filter(class_ref_id=class_id, name__iexact=name).exists():
+        if Subject.objects.filter(school=school, class_ref_id=class_id, name__iexact=name).exists():
             return Response({"error": "Duplicate subject in same class"}, status=status.HTTP_400_BAD_REQUEST)
 
         subject = Subject.objects.create(
+            school=school,
             class_ref_id=class_id,
             name=name,
             code=code,
@@ -92,10 +97,9 @@ class SubjectCreateView(APIView):
         )
 
         if teacher_ids:
-            teachers = TeacherProfile.objects.filter(id__in=teacher_ids)
+            teachers = TeacherProfile.objects.filter(user__school=school, id__in=teacher_ids)
             subject.teachers.set(teachers)
 
-        # Re-serialize for a consistent response shape.
         subject.refresh_from_db()
         serializer = SubjectListSerializer(subject)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
@@ -105,7 +109,8 @@ class SubjectUpdateDeleteView(APIView):
     permission_classes = [IsAdmin]
 
     def patch(self, request, subject_id: int):
-        subject = Subject.objects.filter(id=subject_id).prefetch_related('teachers').first()
+        school = request.user.school
+        subject = Subject.objects.filter(school=school, id=subject_id).prefetch_related('teachers').first()
         if not subject:
             return Response({"error": "Subject not found"}, status=status.HTTP_404_NOT_FOUND)
 
@@ -116,12 +121,11 @@ class SubjectUpdateDeleteView(APIView):
         class_id = request.data.get('class_id')
         teacher_ids = request.data.get('teacher_ids')
 
-        # Track changes for duplicate validation.
         new_name = (name.strip() if isinstance(name, str) else subject.name)
         new_class_id = (class_id if class_id is not None else subject.class_ref_id)
 
         if new_name and new_class_id:
-            if Subject.objects.filter(class_ref_id=new_class_id, name__iexact=new_name).exclude(id=subject.id).exists():
+            if Subject.objects.filter(school=school, class_ref_id=new_class_id, name__iexact=new_name).exclude(id=subject.id).exists():
                 return Response({"error": "Duplicate subject in same class"}, status=status.HTTP_400_BAD_REQUEST)
 
         if name is not None:
@@ -136,7 +140,7 @@ class SubjectUpdateDeleteView(APIView):
             subject.class_ref_id = class_id
 
         if teacher_ids is not None:
-            teachers = TeacherProfile.objects.filter(id__in=teacher_ids)
+            teachers = TeacherProfile.objects.filter(user__school=school, id__in=teacher_ids)
             subject.teachers.set(teachers)
 
         subject.save()
@@ -144,7 +148,8 @@ class SubjectUpdateDeleteView(APIView):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     def delete(self, request, subject_id: int):
-        subject = Subject.objects.filter(id=subject_id).first()
+        school = request.user.school
+        subject = Subject.objects.filter(school=school, id=subject_id).first()
         if not subject:
             return Response({"error": "Subject not found"}, status=status.HTTP_404_NOT_FOUND)
         subject.delete()
@@ -155,10 +160,11 @@ class SubjectDetailsView(APIView):
     permission_classes = [IsAdmin]
 
     def get(self, request, subject_id: int):
+        school = request.user.school
         subject = (
             Subject.objects.select_related('class_ref')
             .prefetch_related('teachers', 'notes', 'assignments')
-            .filter(id=subject_id)
+            .filter(school=school, id=subject_id)
             .first()
         )
         if not subject:
@@ -193,11 +199,17 @@ class SubjectNoteListCreateView(APIView):
     permission_classes = [IsAdmin]
 
     def get(self, request, subject_id: int):
-        notes_qs = SubjectNote.objects.filter(subject_id=subject_id).order_by('-created_at')
+        school = request.user.school
+        subject = Subject.objects.filter(school=school, id=subject_id).first()
+        if not subject:
+            return Response({"error": "Subject not found"}, status=status.HTTP_404_NOT_FOUND)
+            
+        notes_qs = SubjectNote.objects.filter(subject=subject).order_by('-created_at')
         return Response(SubjectNoteSerializer(notes_qs, many=True).data)
 
     def post(self, request, subject_id: int):
-        subject = Subject.objects.filter(id=subject_id).first()
+        school = request.user.school
+        subject = Subject.objects.filter(school=school, id=subject_id).first()
         if not subject:
             return Response({"error": "Subject not found"}, status=status.HTTP_404_NOT_FOUND)
 
@@ -220,7 +232,6 @@ class SubjectNoteListCreateView(APIView):
 
         if file_base64:
             safe_name = file_name or f"{slugify(title)}"
-            # Backend expects something like 'file.pdf' for FileField name.
             if '.' not in safe_name:
                 safe_name = f"{safe_name}.pdf"
             content = decode_base64_to_content_file(file_base64, safe_name)
@@ -233,7 +244,8 @@ class SubjectNoteDeleteView(APIView):
     permission_classes = [IsAdmin]
 
     def delete(self, request, note_id: int):
-        note = SubjectNote.objects.filter(id=note_id).first()
+        school = request.user.school
+        note = SubjectNote.objects.filter(subject__school=school, id=note_id).first()
         if not note:
             return Response({"error": "Note not found"}, status=status.HTTP_404_NOT_FOUND)
         note.delete()
@@ -244,11 +256,17 @@ class SubjectAssignmentListCreateView(APIView):
     permission_classes = [IsAdmin]
 
     def get(self, request, subject_id: int):
-        qs = SubjectAssignment.objects.filter(subject_id=subject_id).order_by('-created_at')
+        school = request.user.school
+        subject = Subject.objects.filter(school=school, id=subject_id).first()
+        if not subject:
+            return Response({"error": "Subject not found"}, status=status.HTTP_404_NOT_FOUND)
+            
+        qs = SubjectAssignment.objects.filter(subject=subject).order_by('-created_at')
         return Response(SubjectAssignmentSerializer(qs, many=True).data)
 
     def post(self, request, subject_id: int):
-        subject = Subject.objects.filter(id=subject_id).first()
+        school = request.user.school
+        subject = Subject.objects.filter(school=school, id=subject_id).first()
         if not subject:
             return Response({"error": "Subject not found"}, status=status.HTTP_404_NOT_FOUND)
 
@@ -280,7 +298,8 @@ class SubjectAssignmentDeleteView(APIView):
     permission_classes = [IsAdmin]
 
     def delete(self, request, assignment_id: int):
-        assignment = SubjectAssignment.objects.filter(id=assignment_id).first()
+        school = request.user.school
+        assignment = SubjectAssignment.objects.filter(subject__school=school, id=assignment_id).first()
         if not assignment:
             return Response({"error": "Assignment not found"}, status=status.HTTP_404_NOT_FOUND)
         assignment.delete()
@@ -291,11 +310,12 @@ class SubjectMarksView(APIView):
     permission_classes = [IsAdmin]
 
     def get(self, request, subject_id: int):
-        subject = Subject.objects.select_related('class_ref').filter(id=subject_id).first()
+        school = request.user.school
+        subject = Subject.objects.select_related('class_ref').filter(school=school, id=subject_id).first()
         if not subject:
             return Response({"error": "Subject not found"}, status=status.HTTP_404_NOT_FOUND)
 
-        class_sections = ClassSection.objects.filter(class_ref_id=subject.class_ref_id).values_list('id', flat=True)
+        class_sections = ClassSection.objects.filter(school=school, class_ref_id=subject.class_ref_id).values_list('id', flat=True)
         exams = Exam.objects.filter(class_section_id__in=class_sections).values_list('id', flat=True)
 
         results = (
@@ -322,6 +342,7 @@ class TeacherAssignmentListCreateView(APIView):
     permission_classes = [IsAdmin]
 
     def get(self, request):
+        school = request.user.school
         class_id = request.query_params.get('class_id')
         teacher_search = (request.query_params.get('teacher_search') or '').strip()
 
@@ -329,7 +350,7 @@ class TeacherAssignmentListCreateView(APIView):
             'teacher__user',
             'class_ref',
             'subject',
-        ).all()
+        ).filter(subject__school=school)
 
         if class_id:
             qs = qs.filter(class_ref_id=class_id)
@@ -345,6 +366,7 @@ class TeacherAssignmentListCreateView(APIView):
         return Response(serializer.data)
 
     def post(self, request):
+        school = request.user.school
         teacher_id = request.data.get('teacher_id')
         class_id = request.data.get('class_id')
         subject_id = request.data.get('subject_id')
@@ -355,9 +377,13 @@ class TeacherAssignmentListCreateView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        subject = Subject.objects.filter(id=subject_id).first()
+        subject = Subject.objects.filter(school=school, id=subject_id).first()
         if not subject:
             return Response({"error": "Subject not found"}, status=status.HTTP_404_NOT_FOUND)
+            
+        teacher = TeacherProfile.objects.filter(user__school=school, id=teacher_id).first()
+        if not teacher:
+            return Response({"error": "Teacher not found or belongs to another school"}, status=status.HTTP_404_NOT_FOUND)
 
         if int(subject.class_ref_id) != int(class_id):
             return Response(
@@ -377,9 +403,9 @@ class TeacherAssignmentListCreateView(APIView):
             )
 
         assignment = TeacherAssignment.objects.create(
-            teacher_id=teacher_id,
+            teacher=teacher,
             class_ref_id=class_id,
-            subject_id=subject_id,
+            subject=subject,
         )
         assignment = TeacherAssignment.objects.select_related('teacher__user', 'class_ref', 'subject').get(id=assignment.id)
         return Response(TeacherAssignmentSerializer(assignment).data, status=status.HTTP_201_CREATED)
@@ -389,7 +415,8 @@ class TeacherAssignmentDetailView(APIView):
     permission_classes = [IsAdmin]
 
     def patch(self, request, assignment_id: int):
-        assignment = TeacherAssignment.objects.select_related('teacher__user', 'class_ref', 'subject').filter(id=assignment_id).first()
+        school = request.user.school
+        assignment = TeacherAssignment.objects.select_related('teacher__user', 'class_ref', 'subject').filter(subject__school=school, id=assignment_id).first()
         if not assignment:
             return Response({"error": "Assignment not found"}, status=status.HTTP_404_NOT_FOUND)
 
@@ -397,9 +424,13 @@ class TeacherAssignmentDetailView(APIView):
         class_id = request.data.get('class_id', assignment.class_ref_id)
         subject_id = request.data.get('subject_id', assignment.subject_id)
 
-        subject = Subject.objects.filter(id=subject_id).first()
+        subject = Subject.objects.filter(school=school, id=subject_id).first()
         if not subject:
             return Response({"error": "Subject not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        teacher = TeacherProfile.objects.filter(user__school=school, id=teacher_id).first()
+        if not teacher:
+            return Response({"error": "Teacher not found or belongs to another school"}, status=status.HTTP_404_NOT_FOUND)
 
         if int(subject.class_ref_id) != int(class_id):
             return Response(
@@ -426,9 +457,9 @@ class TeacherAssignmentDetailView(APIView):
         return Response(TeacherAssignmentSerializer(assignment).data)
 
     def delete(self, request, assignment_id: int):
-        assignment = TeacherAssignment.objects.filter(id=assignment_id).first()
+        school = request.user.school
+        assignment = TeacherAssignment.objects.filter(subject__school=school, id=assignment_id).first()
         if not assignment:
             return Response({"error": "Assignment not found"}, status=status.HTTP_404_NOT_FOUND)
         assignment.delete()
         return Response({"message": "Assignment deleted successfully"}, status=status.HTTP_200_OK)
-

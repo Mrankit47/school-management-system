@@ -42,11 +42,25 @@ import AdminReports from '../pages/admin/Reports';
 import SubjectDetails from '../pages/admin/SubjectDetails';
 import TimeTable from '../pages/common/TimeTable';
 
+import SaaSLanding from '../pages/SaaSLanding';
+import SuperAdminLogin from '../pages/superadmin/Login';
+import SuperAdminDashboard from '../pages/superadmin/Dashboard';
+
 const AppRoutes = () => {
     return (
         <Routes>
-            <Route path="/" element={<LandingPage />} />
-            <Route path="/login" element={<Login />} />
+            <Route path="/" element={<SaaSLanding />} />
+            <Route path="/school/:schoolId" element={<LandingPage />} />
+            <Route path="/school/:schoolId/login" element={<Login />} />
+            <Route path="/login" element={<Navigate to="/" replace />} />
+            
+            {/* Superadmin */}
+            <Route path="/superadmin/login" element={<SuperAdminLogin />} />
+            <Route path="/superadmin/*" element={<ProtectedRoute allowedRoles={['superadmin']}>
+              <Routes>
+                <Route path="dashboard" element={<SuperAdminDashboard />} />
+              </Routes>
+            </ProtectedRoute>} />
             
             {/* Student */}
             <Route path="/student/*" element={<ProtectedRoute allowedRoles={['student']}>

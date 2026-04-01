@@ -59,11 +59,10 @@ class TeacherClassAttendanceSummaryView(views.APIView):
             except Exception:
                 return Response({'error': 'Invalid date format'}, status=status.HTTP_400_BAD_REQUEST)
 
-        class_section = (
-            ClassSection.objects.select_related('class_ref', 'section_ref', 'class_teacher__user')
-            .filter(id=class_section_id)
-            .first()
-        )
+        qs = ClassSection.objects.select_related('class_ref', 'section_ref', 'class_teacher__user').filter(id=class_section_id)
+        if not request.user.is_superuser:
+            qs = qs.filter(school=request.user.school)
+        class_section = qs.first()
         if not class_section:
             return Response({'error': 'Class section not found'}, status=status.HTTP_404_NOT_FOUND)
 

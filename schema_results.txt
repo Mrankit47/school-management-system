@@ -1,0 +1,6 @@
+classes_classsection has school_id: True
+classes_mainclass has school_id: True
+classes_mainsection has school_id: False
+subjects_subject has school_id: False
+holidays_holiday has school_id: False
+timetable_timetableentry has school_id: False

@@ -13,15 +13,15 @@ class StudentListView(views.APIView):
     permission_classes = [IsAdmin]
 
     def get(self, request):
-        records = (
-            StudentProfile.objects.select_related(
+        school = request.user.school
+        qs = StudentProfile.objects.select_related(
                 'user',
                 'class_section__class_ref',
                 'class_section__section_ref',
             )
-            .all()
-            .order_by('id')
-        )
+        if not request.user.is_superuser:
+            qs = qs.filter(user__school=school)
+        records = qs.order_by('id')
 
         return Response([
             {
@@ -62,11 +62,11 @@ class StudentsByClassSectionView(views.APIView):
         if request.user.role not in ('teacher', 'admin'):
             return Response({"error": "Not allowed"}, status=status.HTTP_403_FORBIDDEN)
 
-        records = (
-            StudentProfile.objects.select_related('user')
-            .filter(class_section_id=class_section_id)
-            .order_by('id')
-        )
+        school = request.user.school
+        qs = StudentProfile.objects.select_related('user').filter(class_section_id=class_section_id)
+        if not request.user.is_superuser:
+            qs = qs.filter(user__school=school)
+        records = qs.order_by('id')
 
         return Response([
             {
@@ -82,15 +82,16 @@ class StudentDetailView(views.APIView):
     permission_classes = [IsAdmin]
 
     def get(self, request, student_id: int):
-        s = (
-            StudentProfile.objects.select_related(
+        school = request.user.school
+        qs = StudentProfile.objects.select_related(
                 'user',
                 'class_section__class_ref',
                 'class_section__section_ref',
-            )
-            .filter(id=student_id)
-            .first()
-        )
+            ).filter(id=student_id)
+        if not request.user.is_superuser:
+            qs = qs.filter(user__school=school)
+            
+        s = qs.first()
         if not s:
             return Response({"error": "Student not found"}, status=status.HTTP_404_NOT_FOUND)
 
@@ -124,7 +125,12 @@ class StudentDeleteView(views.APIView):
     permission_classes = [IsAdmin]
 
     def delete(self, request, student_id: int):
-        s = StudentProfile.objects.select_related('user').filter(id=student_id).first()
+        school = request.user.school
+        qs = StudentProfile.objects.select_related('user').filter(id=student_id)
+        if not request.user.is_superuser:
+            qs = qs.filter(user__school=school)
+            
+        s = qs.first()
         if not s:
             return Response({"error": "Student not found"}, status=status.HTTP_404_NOT_FOUND)
         # Delete user first; StudentProfile is OneToOne so deletion should cascade/clean up.
@@ -137,7 +143,12 @@ class StudentUpdateView(views.APIView):
 
     def patch(self, request, student_id: int):
         data = request.data
-        s = StudentProfile.objects.select_related('user').filter(id=student_id).first()
+        school = request.user.school
+        qs = StudentProfile.objects.select_related('user').filter(id=student_id)
+        if not request.user.is_superuser:
+            qs = qs.filter(user__school=school)
+            
+        s = qs.first()
         if not s:
             return Response({"error": "Student not found"}, status=status.HTTP_404_NOT_FOUND)
 
@@ -177,7 +188,8 @@ class AdminStudentCreateView(views.APIView):
                 first_name=data.get('first_name', ''),
                 last_name=data.get('last_name', ''),
                 name=data.get('name') or f"{data.get('first_name', '')} {data.get('last_name', '')}".strip(),
-                role='student'
+                role='student',
+                school=request.user.school
             )
 
             class_section_id = data.get('class_section_id')

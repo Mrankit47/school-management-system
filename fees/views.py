@@ -35,12 +35,24 @@ class FeeStructureListCreateView(views.APIView):
     permission_classes = [IsAdmin]
 
     def get(self, request):
-        qs = FeeStructure.objects.select_related('class_ref').all().order_by('class_ref__name')
+        school = request.user.school
+        qs = FeeStructure.objects.select_related('class_ref')
+        if not request.user.is_superuser:
+            qs = qs.filter(class_ref__school=school)
+        qs = qs.order_by('class_ref__name')
         return Response(FeeStructureSerializer(qs, many=True).data)
 
     def post(self, request):
+        # We assume serializer is valid, but we must enforce tenant boundary:
+        # We can just let serializer save, then ensure class_ref__school is strict.
+        # Actually it's safer to just check before save.
+        school = request.user.school
         ser = FeeStructureSerializer(data=request.data)
         if ser.is_valid():
+            # Check class_ref tenant
+            class_ref = ser.validated_data.get('class_ref')
+            if not request.user.is_superuser and class_ref and class_ref.school != school:
+                return Response({'error': 'Not authorized for this class'}, status=status.HTTP_403_FORBIDDEN)
             ser.save()
             return Response(ser.data, status=status.HTTP_201_CREATED)
         return Response(ser.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -50,17 +62,30 @@ class FeeStructureDetailView(views.APIView):
     permission_classes = [IsAdmin]
 
     def get(self, request, pk: int):
-        obj = FeeStructure.objects.select_related('class_ref').filter(pk=pk).first()
+        school = request.user.school
+        qs = FeeStructure.objects.select_related('class_ref').filter(pk=pk)
+        if not request.user.is_superuser:
+            qs = qs.filter(class_ref__school=school)
+        obj = qs.first()
         if not obj:
             return Response({"error": "Not found"}, status=status.HTTP_404_NOT_FOUND)
         return Response(FeeStructureSerializer(obj).data)
 
     def patch(self, request, pk: int):
-        obj = FeeStructure.objects.filter(pk=pk).first()
+        school = request.user.school
+        qs = FeeStructure.objects.filter(pk=pk)
+        if not request.user.is_superuser:
+            qs = qs.filter(class_ref__school=school)
+        obj = qs.first()
         if not obj:
             return Response({"error": "Not found"}, status=status.HTTP_404_NOT_FOUND)
+        
         ser = FeeStructureSerializer(obj, data=request.data, partial=True)
         if ser.is_valid():
+            class_ref = ser.validated_data.get('class_ref')
+            if class_ref and not request.user.is_superuser and class_ref.school != school:
+                 return Response({'error': 'Not authorized for this class'}, status=status.HTTP_403_FORBIDDEN)
+                 
             ser.save()
             for sf in obj.student_fees.all():
                 sf.due_date = obj.due_date
@@ -69,9 +94,14 @@ class FeeStructureDetailView(views.APIView):
         return Response(ser.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def delete(self, request, pk: int):
-        obj = FeeStructure.objects.filter(pk=pk).first()
+        school = request.user.school
+        qs = FeeStructure.objects.filter(pk=pk)
+        if not request.user.is_superuser:
+            qs = qs.filter(class_ref__school=school)
+        obj = qs.first()
         if not obj:
             return Response({"error": "Not found"}, status=status.HTTP_404_NOT_FOUND)
+            
         if obj.student_fees.exists():
             return Response(
                 {"error": "Cannot delete fee structure with existing student fee records"},
@@ -85,12 +115,16 @@ class AdminStudentFeeListView(views.APIView):
     permission_classes = [IsAdmin]
 
     def get(self, request):
+        school = request.user.school
         qs = StudentFee.objects.select_related(
             'student__user',
             'student__class_section__class_ref',
             'student__class_section__section_ref',
             'fee_structure',
         ).prefetch_related('payments')
+
+        if not request.user.is_superuser:
+            qs = qs.filter(student__user__school=school)
 
         class_id = request.query_params.get('class_id')
         section_id = request.query_params.get('class_section_id')
@@ -118,7 +152,8 @@ class AdminStudentFeeDetailView(views.APIView):
     permission_classes = [IsAdmin]
 
     def get(self, request, pk: int):
-        sf = (
+        school = request.user.school
+        qs = (
             StudentFee.objects.select_related(
                 'student__user',
                 'student__class_section__class_ref',
@@ -127,8 +162,11 @@ class AdminStudentFeeDetailView(views.APIView):
             )
             .prefetch_related('payments')
             .filter(pk=pk)
-            .first()
         )
+        if not request.user.is_superuser:
+            qs = qs.filter(student__user__school=school)
+            
+        sf = qs.first()
         if not sf:
             return Response({"error": "Not found"}, status=status.HTTP_404_NOT_FOUND)
         return Response(StudentFeeSerializer(sf).data)
@@ -138,12 +176,19 @@ class AdminStudentFeeCreateView(views.APIView):
     permission_classes = [IsAdmin]
 
     def post(self, request):
+        school = request.user.school
         student_id = request.data.get('student_id')
         if not student_id:
             return Response({"error": "student_id is required"}, status=status.HTTP_400_BAD_REQUEST)
-        student = StudentProfile.objects.select_related('class_section__class_ref').filter(id=student_id).first()
+            
+        qs = StudentProfile.objects.select_related('class_section__class_ref').filter(id=student_id)
+        if not request.user.is_superuser:
+            qs = qs.filter(user__school=school)
+            
+        student = qs.first()
         if not student or not student.class_section:
             return Response({"error": "Student or class not found"}, status=status.HTTP_400_BAD_REQUEST)
+            
         structure = FeeStructure.objects.filter(class_ref_id=student.class_section.class_ref_id).first()
         if not structure:
             return Response(
@@ -167,13 +212,24 @@ class AdminSyncClassFeesView(views.APIView):
     permission_classes = [IsAdmin]
 
     def post(self, request):
+        school = request.user.school
         class_id = request.data.get('class_id')
         if not class_id:
             return Response({"error": "class_id is required"}, status=status.HTTP_400_BAD_REQUEST)
-        structure = FeeStructure.objects.filter(class_ref_id=class_id).first()
+            
+        qs_structure = FeeStructure.objects.filter(class_ref_id=class_id)
+        if not request.user.is_superuser:
+            qs_structure = qs_structure.filter(class_ref__school=school)
+            
+        structure = qs_structure.first()
         if not structure:
-            return Response({"error": "Fee structure not found for class"}, status=status.HTTP_400_BAD_REQUEST)
-        students = StudentProfile.objects.filter(class_section__class_ref_id=class_id)
+            return Response({"error": "Fee structure not found for class or not authorized"}, status=status.HTTP_400_BAD_REQUEST)
+            
+        qs_students = StudentProfile.objects.filter(class_section__class_ref_id=class_id)
+        if not request.user.is_superuser:
+            qs_students = qs_students.filter(user__school=school)
+            
+        students = qs_students.all()
         created = 0
         for s in students:
             _, was_created = StudentFee.objects.get_or_create(
@@ -190,6 +246,7 @@ class AdminPaymentCreateView(views.APIView):
     permission_classes = [IsAdmin]
 
     def post(self, request):
+        school = request.user.school
         student_fee_id = request.data.get('student_fee_id')
         amount = request.data.get('amount')
         payment_date = request.data.get('payment_date')
@@ -201,7 +258,12 @@ class AdminPaymentCreateView(views.APIView):
                 {"error": "student_fee_id, amount, and payment_date are required"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-        sf = StudentFee.objects.select_related('fee_structure').filter(id=student_fee_id).first()
+            
+        qs = StudentFee.objects.select_related('fee_structure').filter(id=student_fee_id)
+        if not request.user.is_superuser:
+            qs = qs.filter(student__user__school=school)
+            
+        sf = qs.first()
         if not sf:
             return Response({"error": "Student fee record not found"}, status=status.HTTP_404_NOT_FOUND)
 
@@ -241,15 +303,19 @@ class AdminReceiptPDFView(views.APIView):
     permission_classes = [IsAdmin]
 
     def get(self, request, payment_id: int):
-        pay = (
+        school = request.user.school
+        qs = (
             Payment.objects.select_related(
                 'student_fee__student__user',
                 'student_fee__student__class_section__class_ref',
                 'student_fee__student__class_section__section_ref',
             )
             .filter(id=payment_id)
-            .first()
         )
+        if not request.user.is_superuser:
+            qs = qs.filter(student_fee__student__user__school=school)
+            
+        pay = qs.first()
         if not pay:
             return Response({"error": "Payment not found"}, status=status.HTTP_404_NOT_FOUND)
         pdf_bytes = build_payment_receipt_pdf(pay)
@@ -283,10 +349,13 @@ class AdminFeesDashboardView(views.APIView):
     permission_classes = [IsAdmin]
 
     def get(self, request):
+        school = request.user.school
         today = timezone.now().date()
-        records = list(
-            StudentFee.objects.select_related('fee_structure').all()
-        )
+        qs = StudentFee.objects.select_related('fee_structure')
+        if not request.user.is_superuser:
+            qs = qs.filter(student__user__school=school)
+            
+        records = list(qs.all())
         total_scheduled = sum((r.fee_structure.total_fees for r in records), Decimal('0'))
         total_paid = sum((r.amount_paid for r in records), Decimal('0'))
         total_outstanding = sum((r.due_amount for r in records), Decimal('0'))
@@ -308,12 +377,17 @@ class AdminFeesExportCSVView(views.APIView):
     permission_classes = [IsAdmin]
 
     def get(self, request):
+        school = request.user.school
         qs = StudentFee.objects.select_related(
             'student__user',
             'student__class_section__class_ref',
             'student__class_section__section_ref',
             'fee_structure',
-        ).order_by('id')
+        )
+        if not request.user.is_superuser:
+            qs = qs.filter(student__user__school=school)
+            
+        qs = qs.order_by('id')
 
         class_id = request.query_params.get('class_id')
         if class_id:
@@ -367,10 +441,16 @@ class AdminPaymentReminderView(views.APIView):
     permission_classes = [IsAdmin]
 
     def post(self, request):
+        school = request.user.school
         student_fee_id = request.data.get('student_fee_id')
         if not student_fee_id:
             return Response({"error": "student_fee_id is required"}, status=status.HTTP_400_BAD_REQUEST)
-        sf = StudentFee.objects.select_related('student__user').filter(id=student_fee_id).first()
+            
+        qs = StudentFee.objects.select_related('student__user').filter(id=student_fee_id)
+        if not request.user.is_superuser:
+            qs = qs.filter(student__user__school=school)
+            
+        sf = qs.first()
         if not sf:
             return Response({"error": "Not found"}, status=status.HTTP_404_NOT_FOUND)
         # Placeholder for SMS/email
