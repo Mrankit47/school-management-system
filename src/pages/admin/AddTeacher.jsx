@@ -203,7 +203,15 @@ const AddTeacher = () => {
             setPreviewUrl('');
             setErrors({});
         } catch (err) {
-            setMessage('Error creating teacher.');
+            console.error('Teacher creation error:', err.response?.data);
+            const data = err.response?.data;
+            let errorMsg = 'Error creating teacher.';
+            if (data) {
+                if (typeof data === 'string') errorMsg = data;
+                else if (data.error) errorMsg = data.error;
+                else if (data.detail) errorMsg = data.detail;
+            }
+            setMessage(errorMsg);
         } finally {
             setBusy(false);
         }

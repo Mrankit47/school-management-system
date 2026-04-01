@@ -40,6 +40,7 @@ import AdminFees from '../pages/admin/Fees';
 import AdminHolidays from '../pages/admin/Holidays';
 import AdminReports from '../pages/admin/Reports';
 import SubjectDetails from '../pages/admin/SubjectDetails';
+import TimeTable from '../pages/common/TimeTable';
 
 const AppRoutes = () => {
     return (
@@ -57,7 +58,7 @@ const AppRoutes = () => {
                 <Route path="results/exam" element={<StudentResults />} />
                 <Route path="results/mst" element={<StudentResults />} />
                 <Route path="assignments" element={<StudentAssignments />} />
-                <Route path="timetable" element={<StudentTimetable />} />
+                <Route path="timetable" element={<TimeTable />} />
                 <Route path="attendance" element={<StudentAttendance />} />
                 <Route path="fees" element={<StudentFees />} />
                 <Route path="ledger" element={<StudentFees />} />
@@ -77,6 +78,7 @@ const AppRoutes = () => {
                 <Route path="assignment" element={<TeacherAssignment />} />
                 <Route path="messaging" element={<TeacherMessaging />} />
                 <Route path="holidays" element={<TeacherHolidays />} />
+                <Route path="timetable" element={<TimeTable />} />
               </Routes>
             </ProtectedRoute>} />
 
@@ -97,6 +99,7 @@ const AppRoutes = () => {
                 <Route path="fees" element={<AdminFees />} />
                 <Route path="holidays" element={<AdminHolidays />} />
                 <Route path="reports" element={<AdminReports />} />
+                <Route path="timetable" element={<TimeTable />} />
               </Routes>
             </ProtectedRoute>} />
 
