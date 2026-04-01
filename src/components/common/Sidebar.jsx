@@ -56,7 +56,9 @@ const Sidebar = () => {
                 { path: '/student/contact', label: 'Contact' },
                 { path: '/student/notifications', label: 'Notice' },
                 { path: '/student/syllabus', label: 'Syllabus' },
-                { path: '/student/profile', label: 'Your Profile' }
+                { path: '/student/profile', label: 'Your Profile' },
+                { path: '/student/Holidays', label: 'Holidays' },
+                { path: '/student/Message', label: 'Message' }
             ]
         }
     ];
@@ -67,6 +69,9 @@ const Sidebar = () => {
         { path: '/teacher/upload-result', label: 'Upload Results', icon: '📤' },
         { path: '/teacher/assignment', label: 'Create Assignment', icon: '➕' },
         { path: '/teacher/students', label: 'My Students', icon: '👥' },
+        { path: '/teacher/Messaging', label: 'Messages', icon: '💬' },
+        { path: '/teacher/Holidays', label: 'Holidays', icon: '🏝️' },
+        { path: '/teacher/Profile', label: 'Profile', icon: '🧑🏻‍💻' },
     ];
 
     const adminLinks = [

@@ -41,47 +41,51 @@ const stepBadgeStyle = (active, done) => ({
 
 const Exams = () => {
     const [exams, setExams] = useState([]);
-    const [hierarchy, setHierarchy] = useState([]);
-    const [loading, setLoading] = useState(true);
+    const [sections, setSections] = useState([]);
+    const [subjects, setSubjects] = useState([]);
+    const [schedules, setSchedules] = useState([]);
 
-    // Form states
-    const [formData, setFormData] = useState({
+    const [loading, setLoading] = useState(false);
+    const [message, setMessage] = useState('');
+    const [error, setError] = useState('');
+
+    const [step, setStep] = useState(1); // 1 create, 2 schedule, 3 publish
+    const [selectedExamId, setSelectedExamId] = useState('');
+    const [scheduleForm, setScheduleForm] = useState({
+        subject: '',
+        exam_date: '',
+        start_time: '',
+        end_time: '',
+    });
+    const [editingScheduleId, setEditingScheduleId] = useState(null);
+    const [editScheduleForm, setEditScheduleForm] = useState({
+        subject: '',
+        exam_date: '',
+        start_time: '',
+        end_time: '',
+    });
+
+    const [examForm, setExamForm] = useState({
         name: '',
-        class_section_id: '',
+        class_section: '',
         exam_type: 'Midterm',
         start_date: '',
         end_date: '',
-        total_marks: 100,
-        passing_marks: 33,
+        total_marks: '',
+        passing_marks: '',
         status: 'Draft',
-        description: ''
+        description: '',
     });
 
-    const [message, setMessage] = useState('');
+    const [publishing, setPublishing] = useState(false);
+    const [overviewClassFilter, setOverviewClassFilter] = useState('all');
+    const [overviewStatusFilter, setOverviewStatusFilter] = useState('all');
 
-    useEffect(() => {
-        fetchData();
-    }, []);
+    const selectedExam = useMemo(() => exams.find((e) => String(e.id) === String(selectedExamId)) || null, [exams, selectedExamId]);
 
-    const fetchData = async () => {
-        setLoading(true);
-        try {
-            const [hierRes, examRes] = await Promise.all([
-                api.get('admin/classes-hierarchy'),
-                api.get('admin/exams')
-            ]);
-            setHierarchy(hierRes.data.data);
-            setExams(examRes.data.data);
-        } catch (err) {
-            console.error(err);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const handleCreateExam = async (e) => {
-        e.preventDefault();
-        alert('Exam scheduled successfully!');
+    const refreshExams = async () => {
+        const res = await api.get('academics/exams/');
+        setExams(res.data || []);
     };
 
     const loadMeta = async () => {
@@ -255,151 +259,334 @@ const Exams = () => {
     const done2 = done1 && schedules.length > 0;
 
     return (
-        <div className="space-y-6 animate-in fade-in duration-500 max-w-7xl">
-            <div className="flex justify-between items-end border-b border-slate-200 pb-4">
+        <div style={{ padding: '18px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px', flexWrap: 'wrap' }}>
                 <div>
-                    <h1 className="text-[1.35rem] font-semibold text-slate-800">Exam Management</h1>
-                    <p className="text-[13px] text-slate-500 mt-1">Create exams, add schedule, and publish/unpublish results.</p>
+                    <h1 style={{ margin: 0 }}>Exam Management</h1>
+                    <div style={{ marginTop: '6px', color: '#6b7280', fontWeight: 700, fontSize: '13px' }}>
+                        Create exams, add schedule, and publish/unpublish results.
+                    </div>
                 </div>
-                <div className="flex bg-slate-100 p-1 rounded-xl">
-                    <button className="px-4 py-1.5 bg-white shadow-sm text-school-navy text-xs font-semibold rounded-lg">Step 1: Create Exam</button>
-                    <button className="px-4 py-1.5 text-slate-500 text-xs font-medium hover:text-slate-700">Step 2: Add Schedule</button>
-                    <button className="px-4 py-1.5 text-slate-500 text-xs font-medium hover:text-slate-700">Step 3: Publish Result</button>
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                    <span style={stepBadgeStyle(step === 1, done1)}>Step 1: Create Exam</span>
+                    <span style={stepBadgeStyle(step === 2, done2)}>Step 2: Add Schedule</span>
+                    <span style={stepBadgeStyle(step === 3, done2)}>Step 3: Publish Result</span>
                 </div>
             </div>
 
-            {message && (
-                <div className={`p-4 rounded-xl text-sm font-medium ${message.type === 'success' ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'}`}>
-                    {message.text}
+            {(message || error) && (
+                <div
+                    style={{
+                        marginTop: '12px',
+                        padding: '10px 12px',
+                        borderRadius: '10px',
+                        border: `1px solid ${error ? '#fecaca' : '#bfdbfe'}`,
+                        backgroundColor: error ? '#fef2f2' : '#eff6ff',
+                        color: error ? '#991b1b' : '#1d4ed8',
+                        fontWeight: 800,
+                        fontSize: '13px',
+                    }}
+                >
+                    {error || message}
                 </div>
             )}
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                
-                {/* Step 1 & 2 Combined Left Side */}
-                <div className="lg:col-span-2 space-y-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        
-                        {/* Step 1 */}
-                        <div className="bg-slate-50/50 rounded-2xl border border-slate-200 p-6 shadow-sm">
-                            <h3 className="text-sm font-semibold text-slate-700 border-b border-slate-200 pb-3 mb-5">Step 1: Create Exam</h3>
-                            <form onSubmit={handleCreateExam} className="space-y-4">
-                                <div>
-                                    <label className={labelClasses}>EXAM NAME</label>
-                                    <input type="text" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} className={inputClasses} required />
-                                </div>
-                                
-                                <div>
-                                    <label className={labelClasses}>CLASS / SECTION</label>
-                                    <select value={formData.class_section_id} onChange={e => setFormData({...formData, class_section_id: e.target.value})} className={inputClasses} required>
-                                        <option value="">-- Select --</option>
-                                        {allSections.map(s => <option key={s.id} value={s.id}>{s.class_name} - {s.name}</option>)}
-                                    </select>
-                                </div>
-
-                                <div>
-                                    <label className={labelClasses}>EXAM TYPE</label>
-                                    <select value={formData.exam_type} onChange={e => setFormData({...formData, exam_type: e.target.value})} className={inputClasses}>
-                                        <option>Midterm</option>
-                                        <option>Final</option>
-                                        <option>Quiz</option>
-                                        <option>Assignment</option>
-                                    </select>
-                                </div>
-
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <label className={labelClasses}>START DATE</label>
-                                        <input type="date" value={formData.start_date} onChange={e => setFormData({...formData, start_date: e.target.value})} className={inputClasses} required />
-                                    </div>
-                                    <div>
-                                        <label className={labelClasses}>END DATE</label>
-                                        <input type="date" value={formData.end_date} onChange={e => setFormData({...formData, end_date: e.target.value})} className={inputClasses} required />
-                                    </div>
-                                </div>
-
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <label className={labelClasses}>TOTAL MARKS</label>
-                                        <input type="number" value={formData.total_marks} onChange={e => setFormData({...formData, total_marks: e.target.value})} className={inputClasses} required />
-                                    </div>
-                                    <div>
-                                        <label className={labelClasses}>PASSING MARKS</label>
-                                        <input type="number" value={formData.passing_marks} onChange={e => setFormData({...formData, passing_marks: e.target.value})} className={inputClasses} required />
-                                    </div>
-                                </div>
-
-                                <div>
-                                    <label className={labelClasses}>STATUS</label>
-                                    <select value={formData.status} onChange={e => setFormData({...formData, status: e.target.value})} className={inputClasses}>
-                                        <option>Draft</option>
-                                        <option>Published</option>
-                                    </select>
-                                </div>
-                                
-                                <div>
-                                    <label className={labelClasses}>DESCRIPTION (OPTIONAL)</label>
-                                    <textarea value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} className={`${inputClasses} h-20 resize-none`}></textarea>
-                                </div>
-
-                                <button type="submit" className="w-full py-2.5 bg-[#4B70F5] hover:bg-blue-600 text-white text-xs font-semibold rounded-lg transition-colors">
-                                    Create Exam
-                                </button>
-                            </form>
+            <div style={{ display: 'grid', gridTemplateColumns: '1.05fr 1.25fr 0.9fr', gap: '16px', marginTop: '14px' }}>
+                {/* Step 1 */}
+                <div style={card}>
+                    <div style={{ fontWeight: 900, marginBottom: '10px' }}>Step 1: Create Exam</div>
+                    <form onSubmit={onCreateExam} style={{ display: 'grid', gap: '10px' }}>
+                        <div>
+                            <div style={label}>Exam Name</div>
+                            <input value={examForm.name} onChange={(e) => setExamForm({ ...examForm, name: e.target.value })} style={input} required />
                         </div>
-
-                        {/* Step 2 & 3 Placeholder */}
-                        <div className="space-y-6">
-                            <div className="bg-slate-50/50 rounded-2xl border border-slate-200 p-6 shadow-sm h-[200px]">
-                                <h3 className="text-sm font-semibold text-slate-700 border-b border-slate-200 pb-3 mb-5">Step 2: Add Schedule</h3>
-                                <div className="space-y-4">
-                                    <select className={inputClasses}>
-                                        <option>-- Select Exam --</option>
-                                        {exams.map(e => <option key={e.id}>{e.name} ({e.class_name})</option>)}
-                                    </select>
-                                    <p className="text-xs text-slate-500 font-medium">Create exam first, then select it to add schedule.</p>
-                                </div>
+                        <div>
+                            <div style={label}>Class / Section</div>
+                            <select value={examForm.class_section} onChange={(e) => setExamForm({ ...examForm, class_section: e.target.value })} style={input} required>
+                                <option value="">-- Select --</option>
+                                {sections.map((s) => (
+                                    <option key={s.id} value={s.id}>
+                                        {s.class_name} - {s.section_name}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+                        <div>
+                            <div style={label}>Exam Type</div>
+                            <select value={examForm.exam_type} onChange={(e) => setExamForm({ ...examForm, exam_type: e.target.value })} style={input}>
+                                <option value="Midterm">Midterm</option>
+                                <option value="Final">Final</option>
+                                <option value="Unit Test">Unit Test</option>
+                                <option value="Practical">Practical</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                            <div>
+                                <div style={label}>Start Date</div>
+                                <input type="date" value={examForm.start_date} onChange={(e) => setExamForm({ ...examForm, start_date: e.target.value })} style={input} required />
                             </div>
-
-                            <div className="bg-slate-50/50 rounded-2xl border border-slate-200 p-6 shadow-sm flex-1/2">
-                                <h3 className="text-sm font-semibold text-slate-700 border-b border-slate-200 pb-3 mb-5">Step 3: Publish Result</h3>
-                                <p className="text-xs text-slate-500 font-medium">Create/select an exam first.</p>
+                            <div>
+                                <div style={label}>End Date</div>
+                                <input type="date" value={examForm.end_date} onChange={(e) => setExamForm({ ...examForm, end_date: e.target.value })} style={input} required />
                             </div>
                         </div>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                            <div>
+                                <div style={label}>Total Marks</div>
+                                <input type="number" value={examForm.total_marks} onChange={(e) => setExamForm({ ...examForm, total_marks: e.target.value })} style={input} required />
+                            </div>
+                            <div>
+                                <div style={label}>Passing Marks</div>
+                                <input type="number" value={examForm.passing_marks} onChange={(e) => setExamForm({ ...examForm, passing_marks: e.target.value })} style={input} required />
+                            </div>
+                        </div>
+                        <div>
+                            <div style={label}>Status</div>
+                            <select value={examForm.status} onChange={(e) => setExamForm({ ...examForm, status: e.target.value })} style={input}>
+                                <option value="Draft">Draft</option>
+                                <option value="Published">Published</option>
+                            </select>
+                        </div>
+                        <div>
+                            <div style={label}>Description (optional)</div>
+                            <textarea value={examForm.description} onChange={(e) => setExamForm({ ...examForm, description: e.target.value })} style={{ ...input, minHeight: '70px', resize: 'vertical' }} />
+                        </div>
+                        <button type="submit" style={{ padding: '12px 14px', borderRadius: '12px', border: 'none', backgroundColor: '#2563eb', color: '#fff', fontWeight: 900, cursor: 'pointer' }}>
+                            Create Exam
+                        </button>
+                    </form>
+                </div>
 
+                {/* Step 2 + 3 */}
+                <div style={{ display: 'grid', gap: '16px' }}>
+                    <div style={card}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px', gap: '8px', flexWrap: 'wrap' }}>
+                            <div style={{ fontWeight: 900 }}>Step 2: Add Schedule</div>
+                            <select value={selectedExamId} onChange={(e) => { setSelectedExamId(e.target.value); setStep(e.target.value ? 2 : 1); }} style={{ ...input, width: '280px' }}>
+                                <option value="">-- Select Exam --</option>
+                                {exams.map((e) => (
+                                    <option key={e.id} value={e.id}>
+                                        {e.name} ({e.class_section_display || `${e.class_name}-${e.section_name}`})
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+
+                        {!selectedExamId ? (
+                            <div style={{ color: '#6b7280', fontWeight: 800, fontSize: '13px' }}>
+                                Create exam first, then select it to add schedule.
+                            </div>
+                        ) : (
+                            <>
+                                <form onSubmit={addSchedule} style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr 0.9fr 0.9fr auto', gap: '8px', alignItems: 'end', marginBottom: '12px' }}>
+                                    <div>
+                                        <div style={label}>Subject</div>
+                                        <select value={scheduleForm.subject} onChange={(e) => setScheduleForm({ ...scheduleForm, subject: e.target.value })} style={input} required>
+                                            <option value="">-- Subject --</option>
+                                            {subjects.map((s) => (
+                                                <option key={s.id} value={s.name}>
+                                                    {s.name}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <div style={label}>Exam Date</div>
+                                        <input type="date" value={scheduleForm.exam_date} onChange={(e) => setScheduleForm({ ...scheduleForm, exam_date: e.target.value })} style={input} required />
+                                    </div>
+                                    <div>
+                                        <div style={label}>Start</div>
+                                        <input type="time" value={scheduleForm.start_time} onChange={(e) => setScheduleForm({ ...scheduleForm, start_time: e.target.value })} style={input} required />
+                                    </div>
+                                    <div>
+                                        <div style={label}>End</div>
+                                        <input type="time" value={scheduleForm.end_time} onChange={(e) => setScheduleForm({ ...scheduleForm, end_time: e.target.value })} style={input} required />
+                                    </div>
+                                    <button type="submit" style={{ padding: '10px 14px', borderRadius: '10px', border: 'none', backgroundColor: '#16a34a', color: '#fff', fontWeight: 900, cursor: 'pointer', height: '40px' }}>
+                                        Add Schedule
+                                    </button>
+                                </form>
+
+                                <div style={{ overflowX: 'auto' }}>
+                                    <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                                        <thead>
+                                            <tr style={{ backgroundColor: '#f2f4f7' }}>
+                                                <th style={{ padding: '10px', textAlign: 'left' }}>Subject</th>
+                                                <th style={{ padding: '10px', textAlign: 'left' }}>Date</th>
+                                                <th style={{ padding: '10px', textAlign: 'left' }}>Start</th>
+                                                <th style={{ padding: '10px', textAlign: 'left' }}>End</th>
+                                                <th style={{ padding: '10px', textAlign: 'left' }}>Action</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {schedules.map((r) => (
+                                                <tr key={r.id} style={{ borderTop: '1px solid #eef2f7' }}>
+                                                    <td style={{ padding: '10px', fontWeight: 800 }}>
+                                                        {editingScheduleId === r.id ? (
+                                                            <input
+                                                                value={editScheduleForm.subject}
+                                                                onChange={(e) => setEditScheduleForm({ ...editScheduleForm, subject: e.target.value })}
+                                                                style={input}
+                                                            />
+                                                        ) : (
+                                                            r.subject
+                                                        )}
+                                                    </td>
+                                                    <td style={{ padding: '10px' }}>
+                                                        {editingScheduleId === r.id ? (
+                                                            <input
+                                                                type="date"
+                                                                value={editScheduleForm.exam_date}
+                                                                onChange={(e) => setEditScheduleForm({ ...editScheduleForm, exam_date: e.target.value })}
+                                                                style={input}
+                                                            />
+                                                        ) : (
+                                                            r.exam_date
+                                                        )}
+                                                    </td>
+                                                    <td style={{ padding: '10px' }}>
+                                                        {editingScheduleId === r.id ? (
+                                                            <input
+                                                                type="time"
+                                                                value={editScheduleForm.start_time}
+                                                                onChange={(e) => setEditScheduleForm({ ...editScheduleForm, start_time: e.target.value })}
+                                                                style={input}
+                                                            />
+                                                        ) : (
+                                                            r.start_time
+                                                        )}
+                                                    </td>
+                                                    <td style={{ padding: '10px' }}>
+                                                        {editingScheduleId === r.id ? (
+                                                            <input
+                                                                type="time"
+                                                                value={editScheduleForm.end_time}
+                                                                onChange={(e) => setEditScheduleForm({ ...editScheduleForm, end_time: e.target.value })}
+                                                                style={input}
+                                                            />
+                                                        ) : (
+                                                            r.end_time
+                                                        )}
+                                                    </td>
+                                                    <td style={{ padding: '10px' }}>
+                                                        <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                                                            {editingScheduleId === r.id ? (
+                                                                <>
+                                                                    <button type="button" onClick={saveScheduleEdit} style={{ padding: '7px 10px', borderRadius: '8px', border: 'none', backgroundColor: '#16a34a', color: '#fff', fontWeight: 800, cursor: 'pointer' }}>
+                                                                        Save
+                                                                    </button>
+                                                                    <button type="button" onClick={cancelEditSchedule} style={{ padding: '7px 10px', borderRadius: '8px', border: '1px solid #e5e7eb', backgroundColor: '#fff', color: '#111827', fontWeight: 800, cursor: 'pointer' }}>
+                                                                        Cancel
+                                                                    </button>
+                                                                </>
+                                                            ) : (
+                                                                <>
+                                                                    <button type="button" onClick={() => startEditSchedule(r)} style={{ padding: '7px 10px', borderRadius: '8px', border: 'none', backgroundColor: '#2563eb', color: '#fff', fontWeight: 800, cursor: 'pointer' }}>
+                                                                        Edit
+                                                                    </button>
+                                                                    <button type="button" onClick={() => deleteSchedule(r.id)} style={{ padding: '7px 10px', borderRadius: '8px', border: 'none', backgroundColor: '#ef4444', color: '#fff', fontWeight: 800, cursor: 'pointer' }}>
+                                                                        Delete
+                                                                    </button>
+                                                                </>
+                                                            )}
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                            {schedules.length === 0 && (
+                                                <tr>
+                                                    <td colSpan={5} style={{ padding: '12px', color: '#6b7280', fontWeight: 800 }}>
+                                                        No schedule rows yet. Add subjects to continue.
+                                                    </td>
+                                                </tr>
+                                            )}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </>
+                        )}
+                    </div>
+
+                    <div style={card}>
+                        <div style={{ fontWeight: 900, marginBottom: '10px' }}>Step 3: Publish Result</div>
+                        {!selectedExamId ? (
+                            <div style={{ color: '#6b7280', fontWeight: 800 }}>Create/select an exam first.</div>
+                        ) : !done2 ? (
+                            <div style={{ color: '#6b7280', fontWeight: 800 }}>Add schedule first to enable publishing.</div>
+                        ) : (
+                            <>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr auto auto', gap: '10px', alignItems: 'end', marginBottom: '10px' }}>
+                                    <div>
+                                        <div style={label}>Exam + Result Status</div>
+                                        <div style={{ ...input, backgroundColor: '#f9fafb', color: '#374151', fontWeight: 700 }}>
+                                            {selectedExam?.name} - {selectedExam?.result_published ? 'Published' : 'Unpublished'}
+                                        </div>
+                                    </div>
+                                    <button type="button" onClick={() => togglePublishResults(true)} disabled={publishing || !selectedExamId || !done2} style={{ padding: '10px 14px', borderRadius: '10px', border: 'none', backgroundColor: '#2563eb', color: '#fff', fontWeight: 900, cursor: 'pointer' }}>
+                                        Publish Result
+                                    </button>
+                                    <button type="button" onClick={() => togglePublishResults(false)} disabled={publishing || !selectedExamId || !done2} style={{ padding: '10px 14px', borderRadius: '10px', border: '1px solid #e5e7eb', backgroundColor: '#fff', color: '#111827', fontWeight: 900, cursor: 'pointer' }}>
+                                        Unpublish Result
+                                    </button>
+                                </div>
+                                <div style={{ border: '1px dashed #cbd5e1', borderRadius: '10px', padding: '12px', backgroundColor: '#f8fafc' }}>
+                                    <div style={{ fontWeight: 800, color: '#334155', marginBottom: '4px' }}>Role-based control</div>
+                                    <div style={{ fontSize: '13px', color: '#64748b' }}>
+                                        Admin can only control result visibility. Marks upload is managed by teachers.
+                                    </div>
+                                </div>
+                            </>
+                        )}
                     </div>
                 </div>
 
-                {/* Exam Overview Sidebar */}
-                <div className="bg-slate-50/50 rounded-2xl border border-slate-200 p-6 shadow-sm">
-                    <h3 className="text-sm font-semibold text-slate-700 border-b border-slate-200 pb-3 mb-5">Exam Overview</h3>
-                    <div className="space-y-3 mb-6">
-                        <select className={inputClasses}><option>All Classes/Sections</option></select>
-                        <select className={inputClasses}><option>All Status</option></select>
+                {/* Overview widget */}
+                <div style={card}>
+                    <div style={{ fontWeight: 900, marginBottom: '10px' }}>Exam Overview</div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '8px', marginBottom: '10px' }}>
+                        <select value={overviewClassFilter} onChange={(e) => setOverviewClassFilter(e.target.value)} style={input}>
+                            <option value="all">All Classes/Sections</option>
+                            {sections.map((s) => (
+                                <option key={s.id} value={s.id}>
+                                    {s.class_name} - {s.section_name}
+                                </option>
+                            ))}
+                        </select>
+                        <select value={overviewStatusFilter} onChange={(e) => setOverviewStatusFilter(e.target.value)} style={input}>
+                            <option value="all">All Status</option>
+                            <option value="Draft">Draft</option>
+                            <option value="Published">Published</option>
+                        </select>
                     </div>
-                    
-                    <div className="text-xs font-bold text-slate-600 mb-4">Total Exams: {exams.length}</div>
-                    
+                    <div style={{ marginBottom: '10px', fontSize: '12px', fontWeight: 800, color: '#4b5563' }}>
+                        Total Exams: {overviewExams.length}
+                    </div>
                     {loading ? (
-                        <div className="text-center text-xs text-slate-500">Loading...</div>
-                    ) : exams.length === 0 ? (
-                        <div className="text-sm font-semibold text-slate-500">No exams found for selected filters.</div>
+                        <div style={{ color: '#6b7280' }}>Loading...</div>
+                    ) : overviewExams.length === 0 ? (
+                        <div style={{ color: '#6b7280', fontWeight: 800 }}>
+                            No exams found for selected filters.
+                        </div>
                     ) : (
-                        <div className="space-y-3">
-                            {exams.map(e => (
-                                <div key={e.id} className="p-3 bg-white border border-slate-200 rounded-lg shadow-sm">
-                                    <div className="font-semibold text-sm text-slate-800">{e.name}</div>
-                                    <div className="text-[11px] text-slate-500 mt-1 flex justify-between">
-                                        <span>{e.class_name}</span>
-                                        <span className={e.status === 'Published' ? 'text-emerald-500 font-bold' : 'text-orange-500 font-bold'}>{e.status}</span>
+                        <div style={{ display: 'grid', gap: '10px' }}>
+                            {overviewExams.slice(0, 8).map((e) => (
+                                <div key={e.id} style={{ border: '1px solid #eef2f7', borderRadius: '10px', padding: '10px', backgroundColor: '#fafafa' }}>
+                                    <div style={{ fontWeight: 900 }}>{e.name}</div>
+                                    <div style={{ marginTop: '4px', fontSize: '12px', color: '#6b7280' }}>
+                                        {e.class_section_display || `${e.class_name}-${e.section_name}`}
                                     </div>
-                                    <div className="text-[10px] text-slate-400 mt-2">{e.start_date} to {e.end_date}</div>
+                                    <div style={{ marginTop: '4px', fontSize: '13px', color: '#374151' }}>
+                                        {e.start_date} to {e.end_date}
+                                    </div>
+                                    <div style={{ marginTop: '4px', fontSize: '12px', fontWeight: 800 }}>
+                                        Status: {e.status} • Results: {e.result_published ? 'Published' : 'Unpublished'}
+                                    </div>
                                 </div>
                             ))}
                         </div>
                     )}
                 </div>
-
             </div>
         </div>
     );

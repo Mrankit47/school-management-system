@@ -1,6 +1,17 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import api from '../../services/api';
 
+const inputStyle = {
+    width: '100%',
+    padding: '10px 12px',
+    border: '1px solid #e5e7eb',
+    borderRadius: '12px',
+    fontSize: '13px',
+    outline: 'none',
+    boxSizing: 'border-box',
+    backgroundColor: '#fff',
+};
+
 const labelStyle = {
     fontSize: '12px',
     color: '#6b7280',
@@ -227,54 +238,581 @@ const AdminHolidays = () => {
 
     const submitHoliday = async (e) => {
         e.preventDefault();
-        setBusy(true);
-        setTimeout(() => {
-            alert('Holiday added successfully!');
-            setBusy(false);
-        }, 600);
+        setFormError('');
+
+        if (!form.title.trim()) return setFormError('Title is required');
+        if (!form.start_date) return setFormError('start_date is required');
+
+        const payload = {
+            title: form.title.trim(),
+            start_date: form.start_date,
+            end_date: form.end_date ? form.end_date : null,
+            description: form.description || null,
+            type: form.type,
+            applicable_class_ids: form.allClasses ? [] : form.applicable_class_ids,
+        };
+
+        try {
+            if (editingId) {
+                await api.patch(`holidays/${editingId}/`, payload);
+            } else {
+                await api.post('holidays/', payload);
+            }
+            setModalOpen(false);
+            setEditingId(null);
+            // Refresh both views
+            setCalMonth(new Date().getMonth() + 1);
+            setCalYear(new Date().getFullYear());
+            loadHolidays({}).catch(() => {});
+            // eslint-disable-next-line no-alert
+            alert('Holiday saved successfully');
+        } catch (err) {
+            setFormError(err?.response?.data?.error || 'Failed to save holiday');
+        }
     };
 
-    const inputClasses = "w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-school-navy/5 outline-none focus:bg-white focus:border-school-navy/20 transition-all font-medium";
-    const labelClasses = "text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1 mb-1 block";
+    const deleteHoliday = async (id) => {
+        const ok = window.confirm('Delete this holiday?');
+        if (!ok) return;
+        try {
+            await api.delete(`holidays/${id}/`);
+            loadHolidays({}).catch(() => {});
+        } catch (e) {
+            // eslint-disable-next-line no-alert
+            alert('Error deleting holiday');
+        }
+    };
+
+    const exportCsv = async () => {
+        try {
+            const params = {};
+            if (search.trim()) params.search = search.trim();
+            if (filterType !== 'all') params.type = filterType;
+            if (filterMonth) params.month = filterMonth;
+            if (filterYear) params.year = filterYear;
+
+            const res = await api.get('holidays/export/csv/', { params, responseType: 'blob' });
+            const url = window.URL.createObjectURL(new Blob([res.data]));
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'holidays.csv';
+            a.click();
+            window.URL.revokeObjectURL(url);
+        } catch (err) {
+            // eslint-disable-next-line no-alert
+            alert('Export failed');
+        }
+    };
 
     return (
-        <div className="max-w-4xl space-y-8 animate-in fade-in duration-500">
-            <div>
-                <h1 className="text-2xl font-bold text-school-text">Holidays & Events</h1>
-                <p className="text-sm text-school-body">Manage the school calendar and official scheduled breaks.</p>
+        <div style={{ padding: '20px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '16px', flexWrap: 'wrap' }}>
+                <div>
+                    <h1 style={{ margin: 0 }}>Holidays & Events</h1>
+                    <p style={{ margin: '8px 0 0', color: '#6b7280', fontWeight: 800, fontSize: '13px' }}>Manage holidays and see them on a calendar.</p>
+                </div>
+
+                <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                    <div style={{ display: 'flex', gap: '10px' }}>
+                        <button
+                            type="button"
+                            onClick={() => setTab('list')}
+                            style={{
+                                padding: '10px 14px',
+                                borderRadius: '12px',
+                                border: '1px solid #e5e7eb',
+                                cursor: 'pointer',
+                                backgroundColor: tab === 'list' ? '#2563eb' : '#fff',
+                                color: tab === 'list' ? '#fff' : '#111827',
+                                fontWeight: 900,
+                            }}
+                        >
+                            Holiday List
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setTab('calendar')}
+                            style={{
+                                padding: '10px 14px',
+                                borderRadius: '12px',
+                                border: '1px solid #e5e7eb',
+                                cursor: 'pointer',
+                                backgroundColor: tab === 'calendar' ? '#2563eb' : '#fff',
+                                color: tab === 'calendar' ? '#fff' : '#111827',
+                                fontWeight: 900,
+                            }}
+                        >
+                            Calendar View
+                        </button>
+                    </div>
+
+                    <button
+                        type="button"
+                        onClick={openCreate}
+                        style={{
+                            padding: '10px 16px',
+                            borderRadius: '12px',
+                            border: 'none',
+                            cursor: 'pointer',
+                            backgroundColor: '#16a34a',
+                            color: '#fff',
+                            fontWeight: 1000,
+                            height: '40px',
+                            whiteSpace: 'nowrap',
+                        }}
+                    >
+                        + Add Holiday
+                    </button>
+                </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                <div className="lg:col-span-1">
-                    <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-8 sticky top-24">
-                        <h3 className="text-lg font-bold text-school-text mb-6 flex items-center gap-2">
-                            <span className="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center text-emerald-500 text-sm">🎈</span>
-                            Add Event
-                        </h3>
-                        <form onSubmit={handleAdd} className="space-y-4">
-                            <div className="space-y-1">
-                                <label className={labelClasses}>Holiday Title</label>
-                                <input type="text" placeholder="e.g., Summer Break" className={inputClasses} required />
+            <div style={{ marginTop: '16px' }}>
+                {tab === 'list' && (
+                    <div style={cardStyle}>
+                        <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'flex-end', justifyContent: 'space-between' }}>
+                            <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'flex-end' }}>
+                                <div style={{ minWidth: '240px' }}>
+                                    <div style={labelStyle}>Search</div>
+                                    <input
+                                        value={search}
+                                        onChange={(e) => setSearch(e.target.value)}
+                                        placeholder="Diwali, Christmas..."
+                                        style={inputStyle}
+                                    />
+                                </div>
+                                <div>
+                                    <div style={labelStyle}>Type</div>
+                                    <select value={filterType} onChange={(e) => setFilterType(e.target.value)} style={inputStyle}>
+                                        <option value="all">All</option>
+                                        <option value="Public">Public</option>
+                                        <option value="School">School</option>
+                                        <option value="Optional">Optional</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <div style={labelStyle}>Month</div>
+                                    <select value={filterMonth} onChange={(e) => setFilterMonth(e.target.value)} style={inputStyle}>
+                                        <option value="">All</option>
+                                        {Array.from({ length: 12 }).map((_, idx) => {
+                                            const m = idx + 1;
+                                            return (
+                                                <option key={m} value={String(m)}>
+                                                    {m}
+                                                </option>
+                                            );
+                                        })}
+                                    </select>
+                                </div>
+                                <div>
+                                    <div style={labelStyle}>Year</div>
+                                    <input value={filterYear} onChange={(e) => setFilterYear(e.target.value)} type="number" style={inputStyle} />
+                                </div>
                             </div>
-                            <div className="space-y-1">
-                                <label className={labelClasses}>Date</label>
-                                <input type="date" className={inputClasses} required />
+
+                            <div>
+                                <div style={labelStyle}>Sort</div>
+                                <select value={sortDir} onChange={(e) => setSortDir(e.target.value)} style={inputStyle}>
+                                    <option value="asc">Oldest first</option>
+                                    <option value="desc">Newest first</option>
+                                </select>
                             </div>
-                            <button type="submit" disabled={busy} className="w-full py-3.5 bg-emerald-500 text-white text-xs font-bold rounded-xl shadow-lg shadow-emerald-500/10 hover:bg-emerald-600 transition-all">
-                                {busy ? 'Processing...' : 'Schedule Holiday'}
+                            <div>
+                                <div style={labelStyle}>&nbsp;</div>
+                                <button
+                                    type="button"
+                                    onClick={exportCsv}
+                                    style={{
+                                        padding: '10px 14px',
+                                        borderRadius: '12px',
+                                        border: '1px solid #e5e7eb',
+                                        cursor: 'pointer',
+                                        backgroundColor: '#fff',
+                                        color: '#111827',
+                                        fontWeight: 900,
+                                        height: '40px',
+                                    }}
+                                >
+                                    Export CSV
+                                </button>
+                            </div>
+                        </div>
+
+                        <div style={{ marginTop: '16px', overflowX: 'auto' }}>
+                            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                                <thead>
+                                    <tr style={{ backgroundColor: '#f2f4f7' }}>
+                                        <th style={{ padding: '12px 10px', textAlign: 'left' }}>Title</th>
+                                        <th style={{ padding: '12px 10px', textAlign: 'left' }}>Date / Range</th>
+                                        <th style={{ padding: '12px 10px', textAlign: 'left' }}>Type</th>
+                                        <th style={{ padding: '12px 10px', textAlign: 'left' }}>Applicable Classes</th>
+                                        <th style={{ padding: '12px 10px', textAlign: 'left' }}>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {loading ? (
+                                        <tr>
+                                            <td colSpan={5} style={{ padding: '14px', color: '#6b7280', fontWeight: 900 }}>
+                                                Loading...
+                                            </td>
+                                        </tr>
+                                    ) : sortedHolidays.length === 0 ? (
+                                        <tr>
+                                            <td colSpan={5} style={{ padding: '14px', color: '#6b7280', fontWeight: 900 }}>
+                                                No holidays found.
+                                            </td>
+                                        </tr>
+                                    ) : (
+                                        sortedHolidays.map((h) => (
+                                            <tr key={h.id} style={{ borderTop: '1px solid #eef2f7' }}>
+                                                <td style={{ padding: '12px 10px', fontWeight: 900 }}>{h.title}</td>
+                                                <td style={{ padding: '12px 10px', color: '#374151', fontWeight: 800 }}>{formatDateRange(h)}</td>
+                                                <td style={{ padding: '12px 10px' }}>
+                                                    <span
+                                                        style={{
+                                                            display: 'inline-block',
+                                                            padding: '6px 10px',
+                                                            borderRadius: '999px',
+                                                            backgroundColor: h.type === 'Public' ? '#dbeafe' : h.type === 'School' ? '#dcfce7' : '#fef9c3',
+                                                            color: '#111827',
+                                                            fontWeight: 1000,
+                                                            fontSize: '12px',
+                                                        }}
+                                                    >
+                                                        {h.type}
+                                                    </span>
+                                                </td>
+                                                <td style={{ padding: '12px 10px', color: '#374151', fontSize: '13px', fontWeight: 800 }}>
+                                                    {h.applicable_classes && h.applicable_classes.length > 0 ? h.applicable_classes.map((c) => c.name).join(', ') : 'All Classes'}
+                                                </td>
+                                                <td style={{ padding: '12px 10px' }}>
+                                                    <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => openEdit(h)}
+                                                            style={{
+                                                                padding: '8px 12px',
+                                                                borderRadius: '999px',
+                                                                border: 'none',
+                                                                cursor: 'pointer',
+                                                                backgroundColor: '#16a34a',
+                                                                color: '#fff',
+                                                                fontWeight: 900,
+                                                            }}
+                                                        >
+                                                            Edit
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => deleteHoliday(h.id)}
+                                                            style={{
+                                                                padding: '8px 12px',
+                                                                borderRadius: '999px',
+                                                                border: 'none',
+                                                                cursor: 'pointer',
+                                                                backgroundColor: '#ef4444',
+                                                                color: '#fff',
+                                                                fontWeight: 900,
+                                                            }}
+                                                        >
+                                                            Delete
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        ))
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                )}
+
+                {tab === 'calendar' && (
+                    <div style={cardStyle}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+                            <div>
+                                <div style={labelStyle}>Calendar Month</div>
+                                <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
+                                    <select value={calMonth} onChange={(e) => setCalMonth(parseInt(e.target.value))} style={{ ...inputStyle, width: '160px' }}>
+                                        {Array.from({ length: 12 }).map((_, idx) => {
+                                            const m = idx + 1;
+                                            return (
+                                                <option key={m} value={m}>
+                                                    {m}
+                                                </option>
+                                            );
+                                        })}
+                                    </select>
+                                    <input type="number" value={calYear} onChange={(e) => setCalYear(parseInt(e.target.value))} style={{ ...inputStyle, width: '160px' }} />
+                                </div>
+                            </div>
+                            <div style={{ color: '#6b7280', fontSize: '13px', fontWeight: 900 }}>
+                                Click a date to view holiday details
+                            </div>
+                        </div>
+
+                        <div style={{ marginTop: '14px', overflowX: 'auto' }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))', gap: '10px' }}>
+                                {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((d) => (
+                                    <div key={d} style={{ color: '#6b7280', fontWeight: 1000, fontSize: '12px', textTransform: 'uppercase' }}>
+                                        {d}
+                                    </div>
+                                ))}
+                                {calendarCells.map((key, idx) => {
+                                    if (!key) return <div key={`empty-${idx}`} style={{ height: '70px' }} />;
+                                    const dayHolidays = holidayByDay.map.get(key) || [];
+                                    const isHoliday = dayHolidays.length > 0;
+                                    const isToday = key === toDateKey(new Date());
+
+                                    return (
+                                        <button
+                                            key={key}
+                                            type="button"
+                                            onClick={() => {
+                                                if (!isHoliday) return;
+                                                setSelectedDate(key);
+                                                setDetailsOpen(true);
+                                            }}
+                                            style={{
+                                                height: '70px',
+                                                borderRadius: '14px',
+                                                border: `1px solid ${isHoliday ? '#7c3aed' : '#e5e7eb'}`,
+                                                backgroundColor: isHoliday ? '#f5f3ff' : '#fff',
+                                                cursor: isHoliday ? 'pointer' : 'default',
+                                                color: '#111827',
+                                                padding: '10px',
+                                                textAlign: 'left',
+                                                display: 'flex',
+                                                flexDirection: 'column',
+                                                justifyContent: 'space-between',
+                                                alignItems: 'flex-start',
+                                                gap: '4px',
+                                            }}
+                                        >
+                                            <div style={{ fontWeight: 1000, fontSize: '13px', width: '100%', display: 'flex', justifyContent: 'space-between' }}>
+                                                <span>{parseInt(key.slice(-2), 10)}</span>
+                                                {isToday ? (
+                                                    <span style={{ fontSize: '11px', color: '#16a34a', fontWeight: 1000 }}>Today</span>
+                                                ) : null}
+                                            </div>
+                                            {isHoliday ? (
+                                                <div style={{ fontSize: '11px', fontWeight: 1000, color: '#4c1d95' }}>
+                                                    {dayHolidays[0].title}
+                                                </div>
+                                            ) : (
+                                                <div style={{ fontSize: '11px', fontWeight: 800, color: '#9ca3af' }}>&nbsp;</div>
+                                            )}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    </div>
+                )}
+            </div>
+
+            {/* Details popup */}
+            {detailsOpen && selectedDate && (
+                <div
+                    onClick={closeDetails}
+                    style={{
+                        position: 'fixed',
+                        inset: 0,
+                        backgroundColor: 'rgba(0,0,0,0.35)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        padding: '18px',
+                        zIndex: 9999,
+                    }}
+                >
+                    <div
+                        onClick={(e) => e.stopPropagation()}
+                        style={{
+                            width: 'min(780px, 100%)',
+                            backgroundColor: '#fff',
+                            borderRadius: '16px',
+                            padding: '18px',
+                            border: '1px solid #e5e7eb',
+                        }}
+                    >
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px' }}>
+                            <h3 style={{ margin: 0 }}>Holiday Details</h3>
+                            <button type="button" onClick={closeDetails} style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '18px' }}>
+                                ×
                             </button>
+                        </div>
+                        <div style={{ marginTop: '8px', color: '#6b7280', fontWeight: 900 }}>
+                            {selectedDate}
+                        </div>
+
+                        <div style={{ marginTop: '14px', display: 'grid', gap: '12px' }}>
+                            {(holidayByDay.map.get(selectedDate) || []).map((h) => (
+                                <div key={h.id} style={{ border: '1px solid #eef2f7', borderRadius: '14px', padding: '12px', backgroundColor: '#fafafa' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px', flexWrap: 'wrap' }}>
+                                        <div>
+                                            <div style={{ fontWeight: 1000, color: '#111827' }}>{h.title}</div>
+                                            <div style={{ marginTop: '6px', color: '#6b7280', fontSize: '13px', fontWeight: 900 }}>
+                                                {formatDateRange(h)} • {h.type}
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <span
+                                                style={{
+                                                    display: 'inline-block',
+                                                    padding: '6px 10px',
+                                                    borderRadius: '999px',
+                                                    backgroundColor: h.type === 'Public' ? '#dbeafe' : h.type === 'School' ? '#dcfce7' : '#fef9c3',
+                                                    color: '#111827',
+                                                    fontWeight: 1000,
+                                                    fontSize: '12px',
+                                                }}
+                                            >
+                                                {h.type}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    {h.description ? (
+                                        <div style={{ marginTop: '10px', color: '#374151', fontSize: '13px', fontWeight: 800 }}>
+                                            {h.description}
+                                        </div>
+                                    ) : null}
+                                    <div style={{ marginTop: '10px', color: '#6b7280', fontSize: '13px', fontWeight: 900 }}>
+                                        Applies: {h.applicable_classes && h.applicable_classes.length ? h.applicable_classes.map((c) => c.name).join(', ') : 'All Classes'}
+                                    </div>
+                                </div>
+                            ))}
+                            {(holidayByDay.map.get(selectedDate) || []).length === 0 ? (
+                                <p style={{ color: '#6b7280', fontWeight: 900 }}>No holiday details found.</p>
+                            ) : null}
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Add/Edit modal */}
+            {modalOpen && (
+                <div
+                    onClick={closeModal}
+                    style={{
+                        position: 'fixed',
+                        inset: 0,
+                        backgroundColor: 'rgba(0,0,0,0.35)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        padding: '18px',
+                        zIndex: 9999,
+                    }}
+                >
+                    <div
+                        onClick={(e) => e.stopPropagation()}
+                        style={{
+                            width: 'min(880px, 100%)',
+                            backgroundColor: '#fff',
+                            borderRadius: '16px',
+                            padding: '18px',
+                            border: '1px solid #e5e7eb',
+                        }}
+                    >
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px' }}>
+                            <h3 style={{ margin: 0 }}>{editingId ? 'Edit Holiday' : 'Add Holiday'}</h3>
+                            <button type="button" onClick={closeModal} style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '18px' }}>
+                                ×
+                            </button>
+                        </div>
+
+                        {formError ? <div style={{ marginTop: '10px', color: '#b91c1c', fontWeight: 1000, fontSize: '13px' }}>{formError}</div> : null}
+
+                        <form onSubmit={submitHoliday} style={{ marginTop: '14px', display: 'grid', gap: '14px' }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                                <div>
+                                    <div style={labelStyle}>Holiday Title *</div>
+                                    <input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} style={inputStyle} required />
+                                </div>
+                                <div>
+                                    <div style={labelStyle}>Holiday Type</div>
+                                    <select value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value })} style={inputStyle}>
+                                        <option value="Public">Public</option>
+                                        <option value="School">School</option>
+                                        <option value="Optional">Optional</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                                <div>
+                                    <div style={labelStyle}>Start Date *</div>
+                                    <input type="date" value={form.start_date} onChange={(e) => setForm({ ...form, start_date: e.target.value })} style={inputStyle} required />
+                                </div>
+                                <div>
+                                    <div style={labelStyle}>End Date (optional)</div>
+                                    <input type="date" value={form.end_date} onChange={(e) => setForm({ ...form, end_date: e.target.value })} style={inputStyle} />
+                                </div>
+                            </div>
+
+                            <div>
+                                <div style={labelStyle}>Description (optional)</div>
+                                <textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} style={{ ...inputStyle, minHeight: '90px', resize: 'vertical' }} placeholder="Why is this holiday?" />
+                            </div>
+
+                            <div style={{ borderTop: '1px solid #eef2f7', paddingTop: '12px' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+                                    <div style={{ fontWeight: 1000, color: '#111827' }}>Applicable For</div>
+                                    <label style={{ display: 'flex', gap: '10px', alignItems: 'center', fontWeight: 900, color: '#374151', cursor: 'pointer' }}>
+                                        <input
+                                            type="checkbox"
+                                            checked={form.allClasses}
+                                            onChange={(e) => {
+                                                const checked = e.target.checked;
+                                                setForm({ ...form, allClasses: checked, applicable_class_ids: checked ? [] : form.applicable_class_ids });
+                                            }}
+                                        />
+                                        All Classes
+                                    </label>
+                                </div>
+
+                                {!form.allClasses ? (
+                                    <div style={{ marginTop: '12px' }}>
+                                        <div style={labelStyle}>Select Classes</div>
+                                        <select
+                                            multiple
+                                            value={form.applicable_class_ids.map(String)}
+                                            onChange={(e) => {
+                                                const values = Array.from(e.target.selectedOptions).map((o) => Number(o.value));
+                                                setForm({ ...form, applicable_class_ids: values });
+                                            }}
+                                            style={{ ...inputStyle, minHeight: '140px' }}
+                                        >
+                                            {classes.map((c) => (
+                                                <option key={c.id} value={c.id}>
+                                                    {c.name}
+                                                </option>
+                                            ))}
+                                        </select>
+                                        <div style={{ marginTop: '6px', color: '#6b7280', fontSize: '12px', fontWeight: 900 }}>
+                                            Tip: hold Ctrl (or Cmd) to select multiple classes
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div style={{ marginTop: '12px', color: '#6b7280', fontSize: '13px', fontWeight: 900 }}>
+                                        This holiday applies to all classes.
+                                    </div>
+                                )}
+                            </div>
+
+                            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', flexWrap: 'wrap' }}>
+                                <button type="button" onClick={closeModal} style={{ padding: '10px 14px', borderRadius: '12px', border: '1px solid #e5e7eb', backgroundColor: '#fff', cursor: 'pointer', fontWeight: 1000 }}>
+                                    Cancel
+                                </button>
+                                <button type="submit" style={{ padding: '10px 14px', borderRadius: '12px', border: 'none', backgroundColor: '#16a34a', cursor: 'pointer', color: '#fff', fontWeight: 1000 }}>
+                                    {editingId ? 'Save Changes' : 'Add Holiday'}
+                                </button>
+                            </div>
                         </form>
                     </div>
                 </div>
-
-                <div className="lg:col-span-2">
-                    <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden min-h-[300px] flex flex-col items-center justify-center text-center p-12">
-                        <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center text-3xl mb-4 grayscale opacity-50">🗓️</div>
-                        <h3 className="text-lg font-bold text-school-text">No Scheduled Holidays</h3>
-                        <p className="text-sm text-slate-400 mt-2 max-w-xs mx-auto">Use the form on the left to populate the school calendar with upcoming events and breaks.</p>
-                    </div>
-                </div>
-            </div>
+            )}
         </div>
     );
 };

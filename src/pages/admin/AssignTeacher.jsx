@@ -2,17 +2,79 @@ import React, { useEffect, useMemo, useState } from 'react';
 import api from '../../services/api';
 
 const AssignTeacher = () => {
-    const [hierarchy, setHierarchy] = useState([]);
+    const [classes, setClasses] = useState([]);
     const [subjects, setSubjects] = useState([]);
+    const [teachers, setTeachers] = useState([]);
     const [assignments, setAssignments] = useState([]);
-    const [loading, setLoading] = useState(true);
 
-    const [formClass, setFormClass] = useState('');
-    const [formSubject, setFormSubject] = useState('');
-    const [formTeacherId, setFormTeacherId] = useState('');
-    const [busy, setBusy] = useState(false);
-    
-    const [filterClass, setFilterClass] = useState('All Classes');
+    const [classFilter, setClassFilter] = useState('all');
+    const [teacherSearch, setTeacherSearch] = useState('');
+
+    const [formData, setFormData] = useState({
+        class_id: '',
+        subject_id: '',
+        teacher_id: '',
+    });
+    const [editingId, setEditingId] = useState(null);
+    const [message, setMessage] = useState('');
+    const [loading, setLoading] = useState(false);
+    const [saving, setSaving] = useState(false);
+
+    const inputStyle = {
+        width: '100%',
+        padding: '10px 12px',
+        border: '1px solid #e5e7eb',
+        borderRadius: '10px',
+        fontSize: '14px',
+        outline: 'none',
+        boxSizing: 'border-box',
+        backgroundColor: '#fff',
+    };
+
+    const labelStyle = {
+        fontSize: '12px',
+        color: '#6b7280',
+        fontWeight: 700,
+        marginBottom: '6px',
+        textTransform: 'uppercase',
+        letterSpacing: '0.03em',
+    };
+
+    const fetchMeta = async () => {
+        const [classRes, teacherRes] = await Promise.all([
+            api.get('classes/main-classes/'),
+            api.get('teachers/'),
+        ]);
+        setClasses(classRes.data || []);
+        setTeachers(teacherRes.data || []);
+    };
+
+    const fetchAssignments = async () => {
+        setLoading(true);
+        try {
+            const params = {};
+            if (classFilter !== 'all') params.class_id = classFilter;
+            const res = await api.get('subjects/teacher-assignments/', { params });
+            setAssignments(res.data || []);
+        } catch (err) {
+            setAssignments([]);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const fetchSubjectsForClass = async (classId) => {
+        if (!classId) {
+            setSubjects([]);
+            return;
+        }
+        try {
+            const res = await api.get('subjects/', { params: { class_id: classId, status: 'Active' } });
+            setSubjects(res.data || []);
+        } catch (err) {
+            setSubjects([]);
+        }
+    };
 
     useEffect(() => {
         fetchMeta();
@@ -46,151 +108,269 @@ const AssignTeacher = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        setBusy(true);
+        setMessage('');
+
+        if (!formData.class_id || !formData.subject_id || !formData.teacher_id) {
+            setMessage('Error: Class, Subject and Teacher are required.');
+            return;
+        }
+
+        setSaving(true);
         try {
-            await api.post('admin/subject-teachers/assign', {
-                class_section_id: parseInt(formClass),
-                subject_id: parseInt(formSubject),
-                teacher_employee_id: formTeacherId
-            });
-            alert('Teacher assignment updated successfully!');
-            fetchData();
-            setFormClass('');
-            setFormSubject('');
-            setFormTeacherId('');
+            const payload = {
+                class_id: Number(formData.class_id),
+                subject_id: Number(formData.subject_id),
+                teacher_id: Number(formData.teacher_id),
+            };
+
+            if (editingId) {
+                await api.patch(`subjects/teacher-assignments/${editingId}/`, payload);
+                setMessage('Assignment updated successfully.');
+            } else {
+                await api.post('subjects/teacher-assignments/', payload);
+                setMessage('Teacher assigned successfully.');
+            }
+            await fetchAssignments();
+            resetForm();
         } catch (err) {
-            alert('Failed to assign teacher. Ensure Employee ID is correct.');
+            setMessage(`Error: ${err?.response?.data?.error || 'Unable to save assignment.'}`);
         } finally {
-            setBusy(false);
+            setSaving(false);
         }
     };
 
-    const inputClasses = "w-full text-xs border border-slate-200 rounded-lg px-3 py-2.5 bg-white text-slate-600 focus:ring-1 focus:ring-indigo-500 outline-none";
-    const labelClasses = "block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5";
+    const startEdit = async (row) => {
+        setEditingId(row.id);
+        setFormData({
+            class_id: String(row.class_ref),
+            subject_id: String(row.subject),
+            teacher_id: String(row.teacher),
+        });
+        setTeacherSearch(`${row.teacher_name || ''} ${row.employee_id || ''}`.trim());
+        await fetchSubjectsForClass(row.class_ref);
+    };
 
-    // Flatten sections for dropdown
-    const allSections = [];
-    hierarchy.forEach(c => c.sections.forEach(s => allSections.push({ ...s, class_name: c.name })));
-
-    // Filter available subjects based on selected class (Wait, we can't easily extract MainClass ID from ClassSection ID without looking up, but we can filter logic)
-    // We simplify: show all active subjects or common subjects
-    // The filter logic for Subjects says `class_ref` is optional (Common).
-
-    // Filter assignments table
-    const displayAssignments = assignments.filter(a => {
-        if (filterClass !== 'All Classes' && !a.class_name.startsWith(filterClass)) return false;
-        return true;
-    });
+    const deleteAssignment = async (id) => {
+        const ok = window.confirm('Delete this assignment?');
+        if (!ok) return;
+        try {
+            await api.delete(`subjects/teacher-assignments/${id}/`);
+            setMessage('Assignment deleted successfully.');
+            await fetchAssignments();
+        } catch (err) {
+            setMessage(`Error: ${err?.response?.data?.error || 'Unable to delete assignment.'}`);
+        }
+    };
 
     return (
-        <div className="max-w-4xl space-y-8 animate-in fade-in duration-500">
-            <div>
-                <h1 className="text-[1.35rem] font-semibold text-slate-800">Assign Teacher to Class</h1>
-                <p className="text-[13px] text-slate-500 mt-1">Link teacher with class and subject in one place.</p>
+        <div style={{ padding: '20px' }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px' }}>
+                <div>
+                    <h1 style={{ margin: 0 }}>Assign Teacher to Class</h1>
+                    <div style={{ color: '#6b7280', marginTop: '6px', fontSize: '13px' }}>
+                        Link teacher with class and subject in one place.
+                    </div>
+                </div>
             </div>
 
-            <div className="bg-slate-50/50 rounded-2xl border border-slate-200 shadow-sm p-8">
-                <form onSubmit={handleSubmit} className="space-y-6 max-w-2xl">
+            <div
+                style={{
+                    marginTop: '18px',
+                    border: '1px solid #e5e7eb',
+                    borderRadius: '14px',
+                    backgroundColor: '#fff',
+                    padding: '16px',
+                    maxWidth: '760px',
+                }}
+            >
+                <form onSubmit={handleSubmit} style={{ display: 'grid', gap: '14px' }}>
                     <div>
-                        <label className={labelClasses}>CLASS</label>
-                        <select 
-                            value={formClass}
-                            onChange={e => setFormClass(e.target.value)} 
-                            required 
-                            className={inputClasses}
+                        <div style={labelStyle}>Class</div>
+                        <select
+                            value={formData.class_id}
+                            onChange={(e) => setFormData({ ...formData, class_id: e.target.value })}
+                            style={inputStyle}
+                            required
                         >
                             <option value="">-- Select Class --</option>
-                            {allSections.map(s => (
-                                <option key={s.id} value={s.id}>{s.class_name} - {s.name}</option>
+                            {classes.map((c) => (
+                                <option key={c.id} value={c.id}>
+                                    {c.name}
+                                </option>
                             ))}
                         </select>
                     </div>
 
                     <div>
-                        <label className={labelClasses}>SUBJECT</label>
-                        <select 
-                            value={formSubject}
-                            onChange={e => setFormSubject(e.target.value)} 
-                            required 
-                            className={inputClasses}
-                            disabled={!formClass}
-                        >
-                            <option value="">{formClass ? "-- Select Subject --" : "Select class first"}</option>
-                            {subjects.filter(s => s.status === 'Active').map(s => (
-                                <option key={s.id} value={s.id}>{s.name} ({s.class_name})</option>
-                            ))}
-                        </select>
-                    </div>
-
-                    <div>
-                        <label className={labelClasses}>TEACHER (SEARCH BY NAME OR EMPLOYEE ID)</label>
-                        <input 
-                            type="text" 
-                            placeholder="Search teacher employee ID (e.g., T-100)..." 
-                            value={formTeacherId}
-                            onChange={e => setFormTeacherId(e.target.value)} 
-                            className={inputClasses}
+                        <div style={labelStyle}>Subject</div>
+                        <select
+                            value={formData.subject_id}
+                            onChange={(e) => setFormData({ ...formData, subject_id: e.target.value })}
+                            style={inputStyle}
                             required
-                        />
+                            disabled={!formData.class_id}
+                        >
+                            <option value="">{formData.class_id ? '-- Select Subject --' : 'Select class first'}</option>
+                            {subjects.map((s) => (
+                                <option key={s.id} value={s.id}>
+                                    {s.name} {s.code ? `(${s.code})` : ''}
+                                </option>
+                            ))}
+                        </select>
                     </div>
 
-                    <div className="pt-2">
-                        <button 
-                            type="submit" 
-                            disabled={busy}
-                            className="px-6 py-2.5 bg-[#4B70F5] hover:bg-blue-600 text-white text-xs font-semibold rounded-lg transition-colors disabled:opacity-50"
+                    <div>
+                        <div style={labelStyle}>Teacher (search by name or employee ID)</div>
+                        <input
+                            type="text"
+                            placeholder="Search teacher..."
+                            value={teacherSearch}
+                            onChange={(e) => setTeacherSearch(e.target.value)}
+                            style={{ ...inputStyle, marginBottom: '8px' }}
+                        />
+                        <select
+                            value={formData.teacher_id}
+                            onChange={(e) => setFormData({ ...formData, teacher_id: e.target.value })}
+                            style={inputStyle}
+                            required
                         >
-                            {busy ? "Assigning..." : "Assign"}
+                            <option value="">-- Select Teacher --</option>
+                            {filteredTeachers.map((t) => (
+                                <option key={t.id} value={t.id}>
+                                    {(t.name || 'Teacher')} ({t.employee_id})
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+
+                    <div style={{ display: 'flex', gap: '10px' }}>
+                        <button
+                            type="submit"
+                            disabled={saving}
+                            style={{
+                                padding: '10px 16px',
+                                borderRadius: '10px',
+                                border: 'none',
+                                backgroundColor: '#1677e6',
+                                color: '#fff',
+                                fontWeight: 800,
+                                cursor: 'pointer',
+                                opacity: saving ? 0.7 : 1,
+                            }}
+                        >
+                            {saving ? 'Saving...' : editingId ? 'Update Assignment' : 'Assign'}
                         </button>
+                        {editingId && (
+                            <button
+                                type="button"
+                                onClick={resetForm}
+                                style={{
+                                    padding: '10px 16px',
+                                    borderRadius: '10px',
+                                    border: '1px solid #d1d5db',
+                                    backgroundColor: '#fff',
+                                    color: '#111827',
+                                    fontWeight: 700,
+                                    cursor: 'pointer',
+                                }}
+                            >
+                                Cancel Edit
+                            </button>
+                        )}
                     </div>
                 </form>
+                {message && (
+                    <p style={{ marginTop: '10px', color: message.startsWith('Error:') ? '#dc2626' : '#15803d', fontWeight: 600 }}>
+                        {message}
+                    </p>
+                )}
             </div>
 
-            {/* Assignments Table section */}
-            <div className="space-y-4">
-                <div className="flex items-center gap-4">
-                    <label className={labelClasses}>FILTER BY CLASS</label>
-                    <select 
-                        value={filterClass}
-                        onChange={e => setFilterClass(e.target.value)}
-                        className="w-48 text-xs border border-slate-200 rounded-lg px-3 py-2 bg-white outline-none"
-                    >
-                        <option>All Classes</option>
-                        {hierarchy.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
-                    </select>
+            <div style={{ marginTop: '20px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '260px 1fr', gap: '10px', marginBottom: '10px', maxWidth: '620px' }}>
+                    <div>
+                        <div style={labelStyle}>Filter by Class</div>
+                        <select value={classFilter} onChange={(e) => setClassFilter(e.target.value)} style={inputStyle}>
+                            <option value="all">All Classes</option>
+                            {classes.map((c) => (
+                                <option key={c.id} value={c.id}>
+                                    {c.name}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
                 </div>
 
-                <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-x-auto">
-                    {loading ? (
-                        <div className="p-6 text-center text-xs text-slate-500">Loading assignments...</div>
-                    ) : displayAssignments.length === 0 ? (
-                        <div className="p-6 text-center text-xs text-slate-400">No assignments found.</div>
-                    ) : (
-                        <table className="w-full text-left text-xs text-slate-600">
-                            <thead className="bg-slate-50 text-slate-500 font-medium border-b border-slate-100">
+                <div style={{ overflowX: 'auto' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', backgroundColor: '#fff', border: '1px solid #e5e7eb' }}>
+                        <thead>
+                            <tr style={{ backgroundColor: '#f8fafc' }}>
+                                <th style={{ padding: '12px 10px', textAlign: 'left' }}>Class</th>
+                                <th style={{ padding: '12px 10px', textAlign: 'left' }}>Subject</th>
+                                <th style={{ padding: '12px 10px', textAlign: 'left' }}>Teacher</th>
+                                <th style={{ padding: '12px 10px', textAlign: 'left' }}>Employee ID</th>
+                                <th style={{ padding: '12px 10px', textAlign: 'left' }}>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {loading ? (
                                 <tr>
-                                    <th className="py-2.5 px-4 font-semibold uppercase tracking-wider text-[10px]">Class</th>
-                                    <th className="py-2.5 px-4 font-semibold uppercase tracking-wider text-[10px]">Subject</th>
-                                    <th className="py-2.5 px-4 font-semibold uppercase tracking-wider text-[10px]">Teacher</th>
-                                    <th className="py-2.5 px-4 font-semibold uppercase tracking-wider text-[10px]">Employee ID</th>
-                                    <th className="py-2.5 px-4 text-right font-semibold uppercase tracking-wider text-[10px]">Actions</th>
+                                    <td colSpan={5} style={{ padding: '14px 10px', color: '#6b7280' }}>
+                                        Loading assignments...
+                                    </td>
                                 </tr>
-                            </thead>
-                            <tbody className="divide-y divide-slate-100">
-                                {displayAssignments.map(a => (
-                                    <tr key={a.id} className="hover:bg-slate-50/50">
-                                        <td className="py-3 px-4 font-medium text-slate-700">{a.class_name}</td>
-                                        <td className="py-3 px-4">{a.subject_name}</td>
-                                        <td className="py-3 px-4">{a.teacher_name}</td>
-                                        <td className="py-3 px-4">{a.employee_id}</td>
-                                        <td className="py-3 px-4 text-right">
-                                            <button className="text-red-500 hover:text-red-600">Unassign</button>
+                            ) : assignments.length === 0 ? (
+                                <tr>
+                                    <td colSpan={5} style={{ padding: '14px 10px', color: '#6b7280' }}>
+                                        No assignments found.
+                                    </td>
+                                </tr>
+                            ) : (
+                                assignments.map((row) => (
+                                    <tr key={row.id} style={{ borderTop: '1px solid #eef2f7' }}>
+                                        <td style={{ padding: '12px 10px' }}>{row.class_name}</td>
+                                        <td style={{ padding: '12px 10px' }}>{row.subject_name}</td>
+                                        <td style={{ padding: '12px 10px' }}>{row.teacher_name}</td>
+                                        <td style={{ padding: '12px 10px' }}>{row.employee_id}</td>
+                                        <td style={{ padding: '12px 10px' }}>
+                                            <div style={{ display: 'flex', gap: '8px' }}>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => startEdit(row)}
+                                                    style={{
+                                                        border: 'none',
+                                                        borderRadius: '999px',
+                                                        padding: '7px 12px',
+                                                        backgroundColor: '#16a34a',
+                                                        color: '#fff',
+                                                        fontWeight: 700,
+                                                        cursor: 'pointer',
+                                                    }}
+                                                >
+                                                    Edit
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => deleteAssignment(row.id)}
+                                                    style={{
+                                                        border: 'none',
+                                                        borderRadius: '999px',
+                                                        padding: '7px 12px',
+                                                        backgroundColor: '#ef4444',
+                                                        color: '#fff',
+                                                        fontWeight: 700,
+                                                        cursor: 'pointer',
+                                                    }}
+                                                >
+                                                    Delete
+                                                </button>
+                                            </div>
                                         </td>
                                     </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    )}
+                                ))
+                            )}
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>

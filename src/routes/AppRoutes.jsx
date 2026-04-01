@@ -39,7 +39,6 @@ import AdminExams from '../pages/admin/Exams';
 import AdminFees from '../pages/admin/Fees';
 import AdminHolidays from '../pages/admin/Holidays';
 import AdminReports from '../pages/admin/Reports';
-import AdminSubjects from '../pages/admin/Subjects';
 import SubjectDetails from '../pages/admin/SubjectDetails';
 
 const AppRoutes = () => {
@@ -91,7 +90,6 @@ const AppRoutes = () => {
                 <Route path="manage-students" element={<ManageStudents />} />
                 <Route path="manage-teachers" element={<ManageTeachers />} />
                 <Route path="classes" element={<AdminClasses />} />
-                <Route path="subjects" element={<AdminSubjects />} />
                 <Route path="assign-teacher" element={<AssignTeacher />} />
                 <Route path="subjects" element={<AdminSubjects />} />
                 <Route path="subjects/:subjectId" element={<SubjectDetails />} />

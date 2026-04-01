@@ -375,4 +375,3 @@ const TeacherHolidays = () => {
 };
 
 export default TeacherHolidays;
-

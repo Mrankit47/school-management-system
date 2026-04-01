@@ -64,6 +64,50 @@ function statusColor(statusValue) {
     return '#111827';
 }
 
+function formatAttendanceStatus(rec) {
+    const v = (rec?.verification_status || '').toLowerCase();
+    if (v === 'pending') return 'Pending';
+    if (v === 'approved') {
+        const st = (rec?.status || '').toLowerCase();
+        if (st === 'late') return 'Late';
+        return 'Present';
+    }
+    if (v === 'rejected') return 'Rejected';
+    // Fallback for legacy records (no verification_status).
+    return formatStatus(rec?.status);
+}
+
+function statusColorForAttendance(rec) {
+    const v = (rec?.verification_status || '').toLowerCase();
+    if (v === 'pending') return colors.late; // yellow
+    if (v === 'approved') {
+        const st = (rec?.status || '').toLowerCase();
+        return st === 'late' ? colors.late : colors.present;
+    }
+    if (v === 'rejected') return colors.absent;
+    // Fallback for legacy records (no verification_status).
+    return statusColor(rec?.status);
+}
+
+function isPending(rec) {
+    return (rec?.verification_status || '').toLowerCase() === 'pending';
+}
+
+function isApproved(rec) {
+    const v = (rec?.verification_status || '').toLowerCase();
+    if (v) return v === 'approved';
+    // legacy fallback
+    const st = (rec?.status || '').toLowerCase();
+    return st === 'present' || st === 'late';
+}
+
+function isRejected(rec) {
+    const v = (rec?.verification_status || '').toLowerCase();
+    if (v) return v === 'rejected';
+    // legacy fallback
+    return (rec?.status || '').toLowerCase() === 'absent';
+}
+
 function CircularProgress({ percentage }) {
     const pct = Math.max(0, Math.min(100, Number(percentage) || 0));
     const size = 64;
@@ -209,8 +253,8 @@ const StudentAttendance = () => {
     }, [attendance, calMonth, calYear, totalDays]);
 
     const overview = useMemo(() => {
-        const presentDays = monthRecords.filter((r) => ['present', 'late'].includes((r.status || '').toLowerCase())).length;
-        const absentDays = monthRecords.filter((r) => (r.status || '').toLowerCase() === 'absent').length;
+        const presentDays = monthRecords.filter((r) => isApproved(r)).length;
+        const absentDays = monthRecords.filter((r) => isRejected(r)).length;
         const totalMarkedDays = presentDays + absentDays;
         const attendancePercentage = totalMarkedDays ? (presentDays / totalMarkedDays) * 100 : 0;
         return { presentDays, absentDays, totalMarkedDays, attendancePercentage };
@@ -253,12 +297,13 @@ const StudentAttendance = () => {
             const entries = timetableByDay.get(dayName) || [];
             if (!entries.length) continue;
 
+            if (isPending(rec)) continue;
+
             entries.forEach((t) => {
                 const s = t.subject;
                 const current = totals.get(s) || { present: 0, total: 0 };
                 current.total += 1;
-                const st = (rec.status || '').toLowerCase();
-                if (st === 'present' || st === 'late') current.present += 1;
+                if (isApproved(rec)) current.present += 1;
                 totals.set(s, current);
             });
         }
@@ -290,8 +335,8 @@ const StudentAttendance = () => {
             const rec = attendanceMap.get(key);
             if (!rec) continue;
 
-            const st = (rec.status || '').toLowerCase();
-            const attended = st === 'present' || st === 'late' ? 1 : 0;
+            if (isPending(rec)) continue;
+            const attended = isApproved(rec) ? 1 : 0;
             const weekIdx = Math.floor((d - 1) / 7);
             const bucket = weekBuckets.get(weekIdx) || { marked: 0, attended: 0 };
             bucket.marked += 1;
@@ -507,15 +552,19 @@ const StudentAttendance = () => {
                                                         borderRadius: 999,
                                                         backgroundColor: '#f3f4f6',
                                                         border: `1px solid ${colors.border}`,
-                                                        color: statusColor(r.status),
+                                                        color: statusColorForAttendance(r),
                                                         fontWeight: 1000,
                                                         fontSize: 12,
                                                     }}
                                                 >
-                                                    {formatStatus(r.status)}
+                                                    {formatAttendanceStatus(r)}
                                                 </span>
                                             </td>
-                                            <td style={{ padding: '12px 10px', fontWeight: 900, color: colors.muted }}>{r.marked_via}</td>
+                                            <td style={{ padding: '12px 10px', fontWeight: 900, color: colors.muted }}>
+                                                {r.punch_time && r.marked_via === 'rfid'
+                                                    ? `RFID • ${new Date(r.punch_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
+                                                    : r.marked_via}
+                                            </td>
                                         </tr>
                                     ))
                                 ) : (
@@ -537,6 +586,7 @@ const StudentAttendance = () => {
                     </div>
 
                     <div style={{ marginTop: 10, display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
+                        <LegendItem label="Pending" color={colors.late} />
                         <LegendItem label="Present" color={colors.present} />
                         <LegendItem label="Late" color={colors.late} />
                         <LegendItem label="Absent" color={colors.absent} />
@@ -556,29 +606,42 @@ const StudentAttendance = () => {
 
                                 const rec = attendanceMap.get(key);
                                 const isHoliday = holidayByDay.has(key);
+                                const v = (rec?.verification_status || '').toLowerCase();
                                 const st = (rec?.status || '').toLowerCase();
 
                                 const borderColor = isHoliday
                                     ? colors.holiday
-                                    : st === 'present'
-                                      ? colors.present
-                                      : st === 'late'
-                                        ? colors.late
-                                        : st === 'absent'
-                                          ? colors.absent
-                                          : colors.border;
+                                    : v === 'pending'
+                                      ? colors.late
+                                      : v === 'rejected'
+                                        ? colors.absent
+                                        : st === 'present'
+                                          ? colors.present
+                                          : st === 'late'
+                                            ? colors.late
+                                            : st === 'absent'
+                                              ? colors.absent
+                                              : colors.border;
 
                                 const bg = isHoliday
                                     ? '#f3f4f6'
-                                    : st === 'present'
-                                      ? '#ecfdf5'
-                                      : st === 'late'
-                                        ? '#fffbeb'
-                                        : st === 'absent'
-                                          ? '#fef2f2'
-                                          : '#fff';
+                                    : v === 'pending'
+                                      ? '#fffbeb'
+                                      : v === 'rejected'
+                                        ? '#fef2f2'
+                                        : st === 'present'
+                                          ? '#ecfdf5'
+                                          : st === 'late'
+                                            ? '#fffbeb'
+                                            : st === 'absent'
+                                              ? '#fef2f2'
+                                              : '#fff';
 
-                                const text = isHoliday ? 'H' : rec ? formatStatus(rec.status).split(' ')[0] : '';
+                                const text = isHoliday
+                                    ? 'H'
+                                    : rec
+                                      ? (v === 'pending' ? 'Pending' : formatAttendanceStatus(rec)).split(' ')[0]
+                                      : '';
                                 const dayNum = parseInt(key.slice(-2), 10);
 
                                 return (
