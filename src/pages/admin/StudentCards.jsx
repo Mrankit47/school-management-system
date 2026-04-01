@@ -4,10 +4,9 @@ import api from '../../services/api';
 const getInitials = (name) => {
     const parts = (name || '').trim().split(/\s+/).filter(Boolean);
     if (!parts.length) return 'ST';
-    const a = parts[0]?.[0] || '';
-    const b = parts.length > 1 ? parts[parts.length - 1]?.[0] : '';
-    const initials = `${a}${b}`.toUpperCase();
-    return initials || 'ST';
+    return parts.length > 1 
+        ? `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase() 
+        : parts[0][0].toUpperCase();
 };
 
 const StudentCards = ({ students, refreshStudents }) => {
@@ -16,37 +15,6 @@ const StudentCards = ({ students, refreshStudents }) => {
     const [editForm, setEditForm] = useState(null);
     const [busy, setBusy] = useState(false);
 
-    const inputStyle = {
-        width: '100%',
-        padding: '10px 12px',
-        border: '1px solid #e5e7eb',
-        borderRadius: '10px',
-        fontSize: '13px',
-        outline: 'none',
-        boxSizing: 'border-box',
-    };
-
-    const labelStyle = {
-        fontSize: '12px',
-        color: '#6b7280',
-        fontWeight: 600,
-        marginBottom: '6px',
-        textTransform: 'uppercase',
-        letterSpacing: '0.03em',
-    };
-
-    const cardStyle = useMemo(
-        () => ({
-            backgroundColor: '#fff',
-            borderRadius: '14px',
-            border: '1px solid #eef2ff',
-            boxShadow: '0 1px 6px rgba(16,24,40,0.06)',
-            padding: '18px',
-            minWidth: '250px',
-        }),
-        []
-    );
-
     const closeModal = () => {
         setViewStudent(null);
         setEditStudent(null);
@@ -54,14 +22,12 @@ const StudentCards = ({ students, refreshStudents }) => {
     };
 
     const handleDelete = async (id) => {
-        const ok = window.confirm('Delete this student?');
-        if (!ok) return;
+        if (!window.confirm('Are you sure you want to delete this student record?')) return;
         setBusy(true);
         try {
             await api.delete(`students/delete/${id}/`);
             await refreshStudents();
         } catch (e) {
-            // Keep message minimal; UI already shows reload
             alert('Error deleting student');
         } finally {
             setBusy(false);
@@ -70,30 +36,11 @@ const StudentCards = ({ students, refreshStudents }) => {
 
     const openEdit = (s) => {
         setEditStudent(s);
-        setEditForm({
-            first_name: s.first_name || '',
-            last_name: s.last_name || '',
-            email: s.email || '',
-            admission_number: s.admission_number || '',
-            dob: s.dob || '',
-            gender: s.gender || '',
-            blood_group: s.blood_group || '',
-            parent_guardian_name: s.parent_guardian_name || '',
-            parent_contact_number: s.parent_contact_number || '',
-            address: s.address || '',
-            date_of_admission: s.date_of_admission || '',
-            category: s.category || '',
-        });
+        setEditForm({ ...s });
     };
 
     const saveEdit = async (e) => {
         e.preventDefault();
-        if (!editStudent || !editForm) return;
-        const parentDigits = (editForm.parent_contact_number || '').replace(/\D/g, '').slice(0, 10);
-        if (parentDigits.length !== 10) {
-            alert('Parent contact number must be exactly 10 digits');
-            return;
-        }
         setBusy(true);
         try {
             await api.patch(`students/update/${editStudent.id}/`, {
@@ -109,84 +56,79 @@ const StudentCards = ({ students, refreshStudents }) => {
         }
     };
 
+    const inputClasses = "w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-school-navy/5 outline-none focus:bg-white focus:border-school-navy/20 transition-all font-medium";
+    const labelClasses = "text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1 mb-1 block";
+
     return (
-        <div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(270px, 1fr))', gap: '18px' }}>
+        <div className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                 {students.map((s) => {
                     const initials = getInitials(s.name);
                     return (
-                        <div key={s.id} style={cardStyle}>
-                            <div style={{ display: 'flex', gap: '14px', alignItems: 'center' }}>
-                                <div
-                                    style={{
-                                        width: '62px',
-                                        height: '62px',
-                                        borderRadius: '50%',
-                                        backgroundColor: '#6366f1',
-                                        color: '#fff',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        fontWeight: 800,
-                                        fontSize: '18px',
-                                        flexShrink: 0,
-                                    }}
-                                >
-                                    {initials}
+                        <div 
+                            key={s.id} 
+                            className="group relative bg-white rounded-[2rem] border border-slate-100 shadow-sm hover:shadow-2xl hover:shadow-school-blue/10 transition-all duration-500 overflow-hidden hover:-translate-y-1"
+                        >
+                            {/* Decorative Background Gradient */}
+                            <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-school-blue/5 to-transparent rounded-full -mr-16 -mt-16 transition-transform group-hover:scale-150 duration-700"></div>
+                            
+                            <div className="p-7 relative z-10">
+                                <div className="flex items-start justify-between mb-6">
+                                    <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-school-navy via-school-blue to-school-sky flex items-center justify-center text-white font-poppins font-bold text-xl shadow-xl shadow-school-blue/20 group-hover:rotate-3 transition-transform duration-500">
+                                        {initials}
+                                    </div>
+                                    <div className="flex flex-col items-end gap-2">
+                                        <span className="px-3 py-1 bg-slate-50 border border-slate-100 text-[10px] font-bold text-slate-400 rounded-lg uppercase tracking-widest shadow-sm">
+                                            {s.admission_number}
+                                        </span>
+                                        {s.category && (
+                                            <span className="px-2 py-0.5 bg-emerald-50 text-emerald-600 text-[9px] font-black rounded-md uppercase tracking-tighter border border-emerald-100/50">
+                                                {s.category}
+                                            </span>
+                                        )}
+                                    </div>
                                 </div>
-                                <div style={{ flex: 1 }}>
-                                    <div style={{ fontWeight: 800, color: '#111827', marginBottom: '3px' }}>{s.name}</div>
-                                    <div style={{ color: '#6b7280', fontSize: '13px' }}>{s.class_name || 'N/A'}</div>
+                                
+                                <div className="space-y-1">
+                                    <h3 className="font-poppins font-bold text-school-text text-lg group-hover:text-school-blue transition-colors truncate">
+                                        {s.name}
+                                    </h3>
+                                    <div className="flex items-center gap-2">
+                                        <div className="flex items-center gap-1.5 px-2.5 py-1 bg-school-blue/5 rounded-full border border-school-blue/10">
+                                            <span className="w-1.5 h-1.5 rounded-full bg-school-blue animate-pulse"></span>
+                                            <span className="text-[10px] font-bold text-school-blue uppercase tracking-wider">
+                                                {s.class_name || 'Unassigned'}
+                                            </span>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
-
-                            <div style={{ marginTop: '14px', display: 'flex', gap: '10px' }}>
+                            
+                            {/* Action Bar */}
+                            <div className="px-7 py-5 bg-slate-50/50 backdrop-blur-md border-t border-slate-100/50 flex items-center justify-between gap-3">
+                                <div className="flex gap-2">
+                                    <button
+                                        onClick={() => setViewStudent(s)}
+                                        className="w-10 h-10 rounded-xl bg-white border border-slate-200 text-slate-400 hover:text-school-navy hover:border-school-navy/30 hover:shadow-lg hover:shadow-school-navy/10 transition-all flex items-center justify-center group/btn"
+                                        title="View Profile"
+                                    >
+                                        <span className="group-hover/btn:scale-125 transition-transform">👤</span>
+                                    </button>
+                                    <button
+                                        onClick={() => openEdit(s)}
+                                        className="w-10 h-10 rounded-xl bg-white border border-slate-200 text-slate-400 hover:text-emerald-500 hover:border-emerald-500/30 hover:shadow-lg hover:shadow-emerald-500/10 transition-all flex items-center justify-center group/btn"
+                                        title="Edit Student"
+                                    >
+                                        <span className="group-hover/btn:scale-125 transition-transform">✏️</span>
+                                    </button>
+                                </div>
                                 <button
-                                    type="button"
-                                    onClick={() => setViewStudent(s)}
-                                    style={{
-                                        padding: '8px 12px',
-                                        borderRadius: '999px',
-                                        border: 'none',
-                                        cursor: 'pointer',
-                                        backgroundColor: '#6d28d9',
-                                        color: '#fff',
-                                        fontWeight: 700,
-                                    }}
-                                >
-                                    View
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => openEdit(s)}
-                                    style={{
-                                        padding: '8px 12px',
-                                        borderRadius: '999px',
-                                        border: 'none',
-                                        cursor: 'pointer',
-                                        backgroundColor: '#16a34a',
-                                        color: '#fff',
-                                        fontWeight: 700,
-                                    }}
-                                >
-                                    Edit
-                                </button>
-                                <button
-                                    type="button"
                                     onClick={() => handleDelete(s.id)}
                                     disabled={busy}
-                                    style={{
-                                        padding: '8px 12px',
-                                        borderRadius: '999px',
-                                        border: 'none',
-                                        cursor: 'pointer',
-                                        backgroundColor: '#ef4444',
-                                        color: '#fff',
-                                        fontWeight: 700,
-                                        opacity: busy ? 0.7 : 1,
-                                    }}
+                                    className="w-10 h-10 rounded-xl bg-white border border-slate-200 text-slate-400 hover:text-red-500 hover:border-red-500/30 hover:shadow-lg hover:shadow-red-500/10 transition-all flex items-center justify-center group/btn disabled:opacity-50"
+                                    title="Delete Record"
                                 >
-                                    Delete
+                                    <span className="group-hover/btn:scale-125 transition-transform">🗑️</span>
                                 </button>
                             </div>
                         </div>
@@ -194,235 +136,70 @@ const StudentCards = ({ students, refreshStudents }) => {
                 })}
             </div>
 
+            {/* Modal Redesign */}
             {(viewStudent || editStudent) && (
-                <div
-                    onClick={closeModal}
-                    style={{
-                        position: 'fixed',
-                        inset: 0,
-                        backgroundColor: 'rgba(0,0,0,0.35)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        padding: '18px',
-                        zIndex: 9999,
-                    }}
-                >
-                    <div
-                        onClick={(e) => e.stopPropagation()}
-                        style={{
-                            width: 'min(760px, 100%)',
-                            backgroundColor: '#fff',
-                            borderRadius: '16px',
-                            padding: '18px',
-                            border: '1px solid #e5e7eb',
-                        }}
-                    >
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px' }}>
-                            <h3 style={{ margin: 0 }}>{viewStudent ? 'Student Details' : 'Edit Student'}</h3>
-                            <button type="button" onClick={closeModal} style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '18px' }}>
-                                ×
-                            </button>
-                        </div>
-
-                        {viewStudent && (
-                            <div style={{ marginTop: '14px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                                <div>
-                                    <div style={labelStyle}>Name</div>
-                                    <div style={{ fontWeight: 700 }}>{viewStudent.name}</div>
-                                </div>
-                                <div>
-                                    <div style={labelStyle}>Admission No</div>
-                                    <div style={{ fontWeight: 700 }}>{viewStudent.admission_number}</div>
-                                </div>
-                                <div>
-                                    <div style={labelStyle}>Email</div>
-                                    <div>{viewStudent.email}</div>
-                                </div>
-                                <div>
-                                    <div style={labelStyle}>Username</div>
-                                    <div>{viewStudent.username}</div>
-                                </div>
-                                <div>
-                                    <div style={labelStyle}>DOB</div>
-                                    <div>{viewStudent.dob || 'N/A'}</div>
-                                </div>
-                                <div>
-                                    <div style={labelStyle}>Gender</div>
-                                    <div>{viewStudent.gender || 'N/A'}</div>
-                                </div>
-                                <div>
-                                    <div style={labelStyle}>Blood Group</div>
-                                    <div>{viewStudent.blood_group || 'N/A'}</div>
-                                </div>
-                                <div>
-                                    <div style={labelStyle}>Category</div>
-                                    <div>{viewStudent.category || 'N/A'}</div>
-                                </div>
-                                <div>
-                                    <div style={labelStyle}>Guardian Name</div>
-                                    <div>{viewStudent.parent_guardian_name || 'N/A'}</div>
-                                </div>
-                                <div>
-                                    <div style={labelStyle}>Guardian Contact</div>
-                                    <div>{viewStudent.parent_contact_number || 'N/A'}</div>
-                                </div>
-                                <div style={{ gridColumn: '1 / -1' }}>
-                                    <div style={labelStyle}>Residential Address</div>
-                                    <div>{viewStudent.address || 'N/A'}</div>
-                                </div>
-                                <div style={{ gridColumn: '1 / -1' }}>
-                                    <div style={labelStyle}>Class - Section</div>
-                                    <div>{viewStudent.class_name || 'N/A'}</div>
-                                </div>
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 md:p-8 animate-in fade-in duration-200">
+                    <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={closeModal}></div>
+                    <div className="relative w-full max-w-2xl bg-white rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 max-h-[90vh] flex flex-col">
+                        <div className="p-6 bg-slate-900 text-white flex items-center justify-between">
+                            <div>
+                                <h3 className="text-xl font-bold">{viewStudent ? 'Student Profile' : 'Edit Information'}</h3>
+                                <p className="text-xs text-slate-400 mt-0.5">{viewStudent ? 'Comprehensive overview of student records' : 'Update the student profile details below'}</p>
                             </div>
-                        )}
-
-                        {editStudent && editForm && (
-                            <form onSubmit={saveEdit} style={{ marginTop: '14px', display: 'grid', gap: '12px' }}>
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                                    <div>
-                                        <div style={labelStyle}>First Name</div>
-                                        <input
-                                            type="text"
-                                            value={editForm.first_name}
-                                            onChange={(e) => setEditForm({ ...editForm, first_name: e.target.value })}
-                                            style={inputStyle}
-                                        />
+                            <button onClick={closeModal} className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center hover:bg-white/20 transition-colors">✕</button>
+                        </div>
+                        
+                        <div className="flex-1 overflow-y-auto p-8 custom-scrollbar">
+                            {viewStudent ? (
+                                <div className="space-y-8">
+                                    <div className="flex items-center gap-6 pb-8 border-b border-slate-100">
+                                        <div className="w-20 h-20 rounded-3xl bg-school-navy flex items-center justify-center text-white text-3xl font-bold shadow-xl shadow-school-navy/20">
+                                            {getInitials(viewStudent.name)}
+                                        </div>
+                                        <div>
+                                            <h4 className="text-2xl font-bold text-school-text">{viewStudent.name}</h4>
+                                            <p className="text-school-blue font-bold uppercase tracking-widest text-xs mt-1">{viewStudent.admission_number}</p>
+                                        </div>
                                     </div>
-                                    <div>
-                                        <div style={labelStyle}>Last Name</div>
-                                        <input
-                                            type="text"
-                                            value={editForm.last_name}
-                                            onChange={(e) => setEditForm({ ...editForm, last_name: e.target.value })}
-                                            style={inputStyle}
-                                        />
-                                    </div>
-                                </div>
 
-                                <div>
-                                    <div style={labelStyle}>Email</div>
-                                    <input
-                                        type="email"
-                                        value={editForm.email}
-                                        onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
-                                        style={inputStyle}
-                                    />
-                                </div>
-
-                                <div>
-                                    <div style={labelStyle}>Admission Number</div>
-                                    <input
-                                        type="text"
-                                        value={editForm.admission_number}
-                                        onChange={(e) => setEditForm({ ...editForm, admission_number: e.target.value })}
-                                        style={inputStyle}
-                                    />
-                                </div>
-
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                                    <div>
-                                        <div style={labelStyle}>DOB</div>
-                                        <input
-                                            type="date"
-                                            value={editForm.dob}
-                                            onChange={(e) => setEditForm({ ...editForm, dob: e.target.value })}
-                                            style={inputStyle}
-                                        />
-                                    </div>
-                                    <div>
-                                        <div style={labelStyle}>Gender</div>
-                                        <input
-                                            type="text"
-                                            value={editForm.gender}
-                                            onChange={(e) => setEditForm({ ...editForm, gender: e.target.value })}
-                                            style={inputStyle}
-                                        />
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
+                                        {[
+                                            { label: 'Email Address', val: viewStudent.email },
+                                            { label: 'Username', val: viewStudent.username },
+                                            { label: 'Class / Section', val: viewStudent.class_name },
+                                            { label: 'Date of Birth', val: viewStudent.dob },
+                                            { label: 'Gender', val: viewStudent.gender },
+                                            { label: 'Blood Group', val: viewStudent.blood_group },
+                                            { label: 'Category', val: viewStudent.category },
+                                            { label: 'Parent Name', val: viewStudent.parent_guardian_name },
+                                            { label: 'Parent Contact', val: viewStudent.parent_contact_number },
+                                        ].map((item, i) => (
+                                            <div key={i} className="space-y-1">
+                                                <p className={labelClasses}>{item.label}</p>
+                                                <p className="font-bold text-school-text">{item.val || '—'}</p>
+                                            </div>
+                                        ))}
+                                        <div className="md:col-span-2 space-y-1">
+                                            <p className={labelClasses}>Residential Address</p>
+                                            <p className="font-bold text-school-text leading-relaxed">{viewStudent.address || '—'}</p>
+                                        </div>
                                     </div>
                                 </div>
-
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                                    <div>
-                                        <div style={labelStyle}>Blood Group</div>
-                                        <input
-                                            type="text"
-                                            value={editForm.blood_group}
-                                            onChange={(e) => setEditForm({ ...editForm, blood_group: e.target.value })}
-                                            style={inputStyle}
-                                        />
+                            ) : (
+                                <form onSubmit={saveEdit} className="space-y-6">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        <div><label className={labelClasses}>First Name</label><input type="text" value={editForm.first_name} onChange={e => setEditForm({...editForm, first_name: e.target.value})} className={inputClasses} /></div>
+                                        <div><label className={labelClasses}>Last Name</label><input type="text" value={editForm.last_name} onChange={e => setEditForm({...editForm, last_name: e.target.value})} className={inputClasses} /></div>
+                                        <div><label className={labelClasses}>Admission No</label><input type="text" value={editForm.admission_number} onChange={e => setEditForm({...editForm, admission_number: e.target.value})} className={inputClasses} /></div>
+                                        <div><label className={labelClasses}>Email</label><input type="email" value={editForm.email} onChange={e => setEditForm({...editForm, email: e.target.value})} className={inputClasses} /></div>
                                     </div>
-                                    <div>
-                                        <div style={labelStyle}>Category</div>
-                                        <input
-                                            type="text"
-                                            value={editForm.category}
-                                            onChange={(e) => setEditForm({ ...editForm, category: e.target.value })}
-                                            style={inputStyle}
-                                        />
+                                    <div className="pt-6 border-t border-slate-50 flex justify-end gap-3">
+                                        <button type="button" onClick={closeModal} className="px-6 py-2.5 text-xs font-bold text-slate-500 hover:bg-slate-50 rounded-xl transition-colors">Cancel</button>
+                                        <button type="submit" disabled={busy} className="px-8 py-2.5 bg-school-navy text-white text-xs font-bold rounded-xl shadow-lg shadow-school-navy/10 hover:bg-school-blue transition-all disabled:opacity-50">Save Changes</button>
                                     </div>
-                                </div>
-
-                                <div>
-                                    <div style={labelStyle}>Parent/Guardian Name</div>
-                                    <input
-                                        type="text"
-                                        value={editForm.parent_guardian_name}
-                                        onChange={(e) => setEditForm({ ...editForm, parent_guardian_name: e.target.value })}
-                                        style={inputStyle}
-                                    />
-                                </div>
-
-                                <div>
-                                    <div style={labelStyle}>Parent Contact Number</div>
-                                    <div style={{ display: 'grid', gridTemplateColumns: '70px 1fr', gap: '8px' }}>
-                                        <input
-                                            type="text"
-                                            value="+91"
-                                            disabled
-                                            style={{ ...inputStyle, textAlign: 'center', backgroundColor: '#f9fafb', color: '#6b7280' }}
-                                        />
-                                        <input
-                                            type="tel"
-                                            inputMode="numeric"
-                                            pattern="[0-9]{10}"
-                                            value={(editForm.parent_contact_number || '').replace(/\D/g, '').slice(0, 10)}
-                                            onChange={(e) => {
-                                                const digits = (e.target.value || '').replace(/\D/g, '').slice(0, 10);
-                                                setEditForm({ ...editForm, parent_contact_number: digits });
-                                            }}
-                                            style={inputStyle}
-                                        />
-                                    </div>
-                                </div>
-
-                                <div>
-                                    <div style={labelStyle}>Residential Address</div>
-                                    <textarea
-                                        value={editForm.address}
-                                        onChange={(e) => setEditForm({ ...editForm, address: e.target.value })}
-                                        style={{ ...inputStyle, minHeight: '90px', resize: 'vertical' }}
-                                    />
-                                </div>
-
-                                <button
-                                    type="submit"
-                                    disabled={busy}
-                                    style={{
-                                        padding: '12px 16px',
-                                        borderRadius: '10px',
-                                        border: 'none',
-                                        cursor: 'pointer',
-                                        backgroundColor: '#28a745',
-                                        color: '#fff',
-                                        fontWeight: 800,
-                                        opacity: busy ? 0.7 : 1,
-                                    }}
-                                >
-                                    Save
-                                </button>
-                            </form>
-                        )}
+                                </form>
+                            )}
+                        </div>
                     </div>
                 </div>
             )}

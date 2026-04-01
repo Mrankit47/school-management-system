@@ -4,6 +4,9 @@ from .models import Assignment, Submission
 class AssignmentSerializer(serializers.ModelSerializer):
     attachment_url = serializers.SerializerMethodField(read_only=True)
     teacher_name = serializers.SerializerMethodField(read_only=True)
+    class_name = serializers.SerializerMethodField(read_only=True)
+    section_name = serializers.SerializerMethodField(read_only=True)
+    class_section_display = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = Assignment
@@ -14,6 +17,9 @@ class AssignmentSerializer(serializers.ModelSerializer):
             'subject',
             'teacher_name',
             'class_section',
+            'class_name',
+            'section_name',
+            'class_section_display',
             'start_date',
             'due_date',
             'total_marks',
@@ -39,6 +45,25 @@ class AssignmentSerializer(serializers.ModelSerializer):
         if not user:
             return None
         return user.name or user.username
+
+    def get_class_name(self, obj):
+        cs = getattr(obj, 'class_section', None)
+        if not cs or not getattr(cs, 'class_ref', None):
+            return None
+        return cs.class_ref.name
+
+    def get_section_name(self, obj):
+        cs = getattr(obj, 'class_section', None)
+        if not cs or not getattr(cs, 'section_ref', None):
+            return None
+        return cs.section_ref.name
+
+    def get_class_section_display(self, obj):
+        class_name = self.get_class_name(obj)
+        section_name = self.get_section_name(obj)
+        if class_name and section_name:
+            return f'{class_name} - {section_name}'
+        return class_name or section_name
 
     def validate(self, attrs):
         start_date = attrs.get('start_date')

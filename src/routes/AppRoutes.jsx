@@ -34,12 +34,12 @@ import AdminProfile from '../pages/admin/Profile';
 import ManageStudents from '../pages/admin/ManageStudents';
 import ManageTeachers from '../pages/admin/ManageTeachers';
 import AdminClasses from '../pages/admin/Classes';
+import AdminSubjects from '../pages/admin/Subjects';
 import AssignTeacher from '../pages/admin/AssignTeacher';
 import AdminExams from '../pages/admin/Exams';
 import AdminFees from '../pages/admin/Fees';
 import AdminHolidays from '../pages/admin/Holidays';
 import AdminReports from '../pages/admin/Reports';
-import AdminSubjects from '../pages/admin/Subjects';
 import SubjectDetails from '../pages/admin/SubjectDetails';
 
 const AppRoutes = () => {
@@ -55,6 +55,8 @@ const AppRoutes = () => {
                 <Route path="notifications" element={<Notifications />} />
                 <Route path="profile" element={<StudentProfile />} />
                 <Route path="results" element={<StudentResults />} />
+                <Route path="results/exam" element={<StudentResults />} />
+                <Route path="results/mst" element={<StudentResults />} />
                 <Route path="assignments" element={<StudentAssignments />} />
                 <Route path="timetable" element={<StudentTimetable />} />
                 <Route path="attendance" element={<StudentAttendance />} />

@@ -60,7 +60,7 @@ const Classes = () => {
     const clearMessage = () => {
         window.setTimeout(() => {
             setMessage('');
-            setError('');
+            // Keep backend error visible so admin can read and fix inputs.
         }, 4000);
     };
 

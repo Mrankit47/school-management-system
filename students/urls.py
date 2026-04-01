@@ -6,10 +6,12 @@ from .views import (
     StudentDeleteView,
     StudentUpdateView,
     StudentsByClassSectionView,
+    StudentProfileView,
 )
 
 urlpatterns = [
     path('', StudentListView.as_view(), name='students-list'),
+    path('profile/', StudentProfileView.as_view(), name='student-profile'),
     path('admin-create/', AdminStudentCreateView.as_view(), name='admin-student-create'),
     path('detail/<int:student_id>/', StudentDetailView.as_view(), name='student-detail'),
     path('delete/<int:student_id>/', StudentDeleteView.as_view(), name='student-delete'),

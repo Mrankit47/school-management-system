@@ -20,6 +20,7 @@ class Attendance(models.Model):
     )
 
     student = models.ForeignKey('students.StudentProfile', on_delete=models.CASCADE, related_name='attendance_records')
+    class_section = models.ForeignKey('classes.ClassSection', on_delete=models.CASCADE, related_name='attendance_records', null=True, blank=True)
     date = models.DateField()
     status = models.CharField(max_length=10, choices=STATUS_CHOICES)
 
@@ -37,6 +38,9 @@ class Attendance(models.Model):
 
     class Meta:
         unique_together = ('student', 'date')
+        indexes = [
+            models.Index(fields=['class_section', 'date']),
+        ]
 
     def __str__(self):
         return f"{self.student.user.username} - {self.date} ({self.status}/{self.verification_status})"

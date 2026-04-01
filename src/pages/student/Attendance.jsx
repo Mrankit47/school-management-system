@@ -175,13 +175,33 @@ const StudentAttendance = () => {
     const [reportYear, setReportYear] = useState(calYear);
 
     useEffect(() => {
+        let mounted = true;
         setLoading(true);
-        Promise.all([api.get('attendance/my-attendance/'), api.get('timetable/')])
-            .then(([attRes, timeRes]) => {
-                setAttendance(attRes.data || []);
-                setTimetable(timeRes.data || []);
+
+        Promise.allSettled([api.get('attendance/my-attendance/'), api.get('timetable/')])
+            .then((results) => {
+                if (!mounted) return;
+
+                const [attendanceResult, timetableResult] = results;
+                if (attendanceResult.status === 'fulfilled') {
+                    setAttendance(attendanceResult.value?.data || []);
+                } else {
+                    setAttendance([]);
+                }
+
+                if (timetableResult.status === 'fulfilled') {
+                    setTimetable(timetableResult.value?.data || []);
+                } else {
+                    setTimetable([]);
+                }
             })
-            .finally(() => setLoading(false));
+            .finally(() => {
+                if (mounted) setLoading(false);
+            });
+
+        return () => {
+            mounted = false;
+        };
     }, []);
 
     useEffect(() => {
@@ -450,21 +470,39 @@ const StudentAttendance = () => {
                         <ProgressBar percentage={overview.attendancePercentage} />
                     </div>
                     <div style={{ marginTop: 10, display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+                        <div style={{ color: colors.muted, fontWeight: 900, fontSize: '12px' }}>Total Days: {overview.totalMarkedDays}</div>
                         <div style={{ color: colors.muted, fontWeight: 900, fontSize: '12px' }}>Present: {overview.presentDays}</div>
                         <div style={{ color: colors.muted, fontWeight: 900, fontSize: '12px' }}>Absent: {overview.absentDays}</div>
                     </div>
+                    <div style={{ marginTop: 8, color: colors.muted, fontWeight: 900, fontSize: '12px' }}>
+                        Attendance % = (Present Days / Total Days) * 100
+                    </div>
                 </div>
 
-                <div style={{ gridColumn: 'span 3', ...cardStyle }}>
+                <div style={{ gridColumn: 'span 2', ...cardStyle }}>
+                    <div style={{ ...labelStyle }}>Total Days</div>
+                    <div style={{ marginTop: 8, fontWeight: 1000, fontSize: '26px', color: '#111827' }}>{overview.totalMarkedDays}</div>
+                    <div style={{ marginTop: 8, color: colors.muted, fontWeight: 900, fontSize: '12px' }}>Present + Absent</div>
+                </div>
+
+                <div style={{ gridColumn: 'span 2', ...cardStyle }}>
                     <div style={{ ...labelStyle }}>Total Present Days</div>
                     <div style={{ marginTop: 8, fontWeight: 1000, fontSize: '26px', color: colors.present }}>{overview.presentDays}</div>
                     <div style={{ marginTop: 8, color: colors.muted, fontWeight: 900, fontSize: '12px' }}>Includes Late</div>
                 </div>
 
-                <div style={{ gridColumn: 'span 3', ...cardStyle }}>
+                <div style={{ gridColumn: 'span 2', ...cardStyle }}>
                     <div style={{ ...labelStyle }}>Total Absent Days</div>
                     <div style={{ marginTop: 8, fontWeight: 1000, fontSize: '26px', color: colors.absent }}>{overview.absentDays}</div>
                     <div style={{ marginTop: 8, color: colors.muted, fontWeight: 900, fontSize: '12px' }}>Marked as Absent</div>
+                </div>
+
+                <div style={{ gridColumn: 'span 2', ...cardStyle }}>
+                    <div style={{ ...labelStyle }}>Attendance %</div>
+                    <div style={{ marginTop: 8, fontWeight: 1000, fontSize: '26px', color: overview.attendancePercentage < 75 ? colors.absent : colors.present }}>
+                        {overview.attendancePercentage.toFixed(1)}%
+                    </div>
+                    <div style={{ marginTop: 8, color: colors.muted, fontWeight: 900, fontSize: '12px' }}>Monthly</div>
                 </div>
 
                 <div style={{ gridColumn: 'span 12', ...cardStyle }}>
@@ -493,7 +531,7 @@ const StudentAttendance = () => {
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
                         <div>
                             <div style={labelStyle}>Daily Attendance</div>
-                            <div style={{ marginTop: 6, fontWeight: 1000, color: '#111827' }}>Date, Status, Marked Via</div>
+                            <div style={{ marginTop: 6, fontWeight: 1000, color: '#111827' }}>Date and Status</div>
                         </div>
                         <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-end', flexWrap: 'wrap' }}>
                             <div>
@@ -530,13 +568,12 @@ const StudentAttendance = () => {
                                 <tr style={{ backgroundColor: '#f2f4f7' }}>
                                     <th style={{ padding: '12px 10px', textAlign: 'left', color: colors.muted, fontWeight: 1000, fontSize: 12 }}>Date</th>
                                     <th style={{ padding: '12px 10px', textAlign: 'left', color: colors.muted, fontWeight: 1000, fontSize: 12 }}>Status</th>
-                                    <th style={{ padding: '12px 10px', textAlign: 'left', color: colors.muted, fontWeight: 1000, fontSize: 12 }}>Marked Via</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {loading ? (
                                     <tr>
-                                        <td colSpan={3} style={{ padding: 14, color: colors.muted, fontWeight: 900 }}>
+                                        <td colSpan={2} style={{ padding: 14, color: colors.muted, fontWeight: 900 }}>
                                             Loading...
                                         </td>
                                     </tr>
@@ -560,16 +597,11 @@ const StudentAttendance = () => {
                                                     {formatAttendanceStatus(r)}
                                                 </span>
                                             </td>
-                                            <td style={{ padding: '12px 10px', fontWeight: 900, color: colors.muted }}>
-                                                {r.punch_time && r.marked_via === 'rfid'
-                                                    ? `RFID • ${new Date(r.punch_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
-                                                    : r.marked_via}
-                                            </td>
                                         </tr>
                                     ))
                                 ) : (
                                     <tr>
-                                        <td colSpan={3} style={{ padding: 14, color: colors.muted, fontWeight: 900 }}>
+                                        <td colSpan={2} style={{ padding: 14, color: colors.muted, fontWeight: 900 }}>
                                             No attendance records for this month.
                                         </td>
                                     </tr>

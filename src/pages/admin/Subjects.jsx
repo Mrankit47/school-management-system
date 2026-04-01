@@ -547,4 +547,3 @@ const AdminSubjects = () => {
 };
 
 export default AdminSubjects;
-

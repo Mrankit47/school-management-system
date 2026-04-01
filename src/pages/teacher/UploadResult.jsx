@@ -242,7 +242,7 @@ const UploadResult = () => {
                     <div>
                         <h1 style={{ margin: 0, fontSize: '22px' }}>Upload Student Results</h1>
                         <div style={{ marginTop: '6px', color: '#6b7280', fontSize: '13px', fontWeight: 700 }}>
-                            Exam -> Class -> Student, then enter marks for all subjects.
+                            Exam -&gt; Class -&gt; Student, then enter marks for all subjects.
                         </div>
                     </div>
                     {topError && (

@@ -1,6 +1,8 @@
 from django.urls import path
 from .views import (
     AttendanceMarkView,
+    TeacherAttendanceSheetView,
+    TeacherAttendanceBulkSaveView,
     MyAttendanceView,
     MyAttendanceReportPDFView,
     TeacherClassAttendanceSummaryView,
@@ -11,6 +13,8 @@ from .views import (
 
 urlpatterns = [
     path('mark/', AttendanceMarkView.as_view(), name='mark-attendance'),
+    path('teacher/sheet/', TeacherAttendanceSheetView.as_view(), name='teacher-attendance-sheet'),
+    path('teacher/save/', TeacherAttendanceBulkSaveView.as_view(), name='teacher-attendance-bulk-save'),
     path('punch/', StudentPunchAttendanceView.as_view(), name='attendance-punch'),
     path('class-summary/', TeacherClassAttendanceSummaryView.as_view(), name='teacher-class-attendance-summary'),
     path('verification/', TeacherAttendanceVerificationListView.as_view(), name='teacher-attendance-verification'),

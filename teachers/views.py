@@ -12,8 +12,28 @@ from django.db import transaction
 class TeacherProfileView(views.APIView):
     permission_classes = [IsTeacher]
 
+    def _ensure_teacher_profile(self, user):
+        profile = TeacherProfile.objects.filter(user=user).first()
+        if profile:
+            return profile
+
+        # Recover gracefully when a teacher user exists but profile row is missing.
+        base_employee_id = f"T{user.id:04d}"
+        employee_id = base_employee_id
+        suffix = 1
+        while TeacherProfile.objects.filter(employee_id=employee_id).exists():
+            employee_id = f"{base_employee_id}_{suffix}"
+            suffix += 1
+
+        return TeacherProfile.objects.create(
+            user=user,
+            employee_id=employee_id,
+            subject_specialization='',
+            status='Active',
+        )
+
     def get(self, request):
-        profile = TeacherProfile.objects.select_related('user').filter(user=request.user).first()
+        profile = self._ensure_teacher_profile(request.user)
         if profile:
             data = TeacherProfileSerializer(profile).data
 
@@ -78,7 +98,7 @@ class TeacherProfileView(views.APIView):
         return Response({"error": "Teacher profile not found"}, status=status.HTTP_404_NOT_FOUND)
 
     def patch(self, request):
-        profile = TeacherProfile.objects.filter(user=request.user).first()
+        profile = self._ensure_teacher_profile(request.user)
         if not profile:
             return Response({"error": "Teacher profile not found"}, status=status.HTTP_404_NOT_FOUND)
 
@@ -122,15 +142,34 @@ class TeacherProfileView(views.APIView):
 class TeacherDocumentsView(views.APIView):
     permission_classes = [IsTeacher]
 
+    def _ensure_teacher_profile(self, user):
+        profile = TeacherProfile.objects.filter(user=user).first()
+        if profile:
+            return profile
+
+        base_employee_id = f"T{user.id:04d}"
+        employee_id = base_employee_id
+        suffix = 1
+        while TeacherProfile.objects.filter(employee_id=employee_id).exists():
+            employee_id = f"{base_employee_id}_{suffix}"
+            suffix += 1
+
+        return TeacherProfile.objects.create(
+            user=user,
+            employee_id=employee_id,
+            subject_specialization='',
+            status='Active',
+        )
+
     def get(self, request):
-        profile = TeacherProfile.objects.filter(user=request.user).first()
+        profile = self._ensure_teacher_profile(request.user)
         if not profile:
             return Response({'error': 'Teacher profile not found'}, status=status.HTTP_404_NOT_FOUND)
         docs = TeacherDocument.objects.filter(teacher=profile).order_by('-uploaded_at')
         return Response(TeacherDocumentSerializer(docs, many=True).data)
 
     def post(self, request):
-        profile = TeacherProfile.objects.filter(user=request.user).first()
+        profile = self._ensure_teacher_profile(request.user)
         if not profile:
             return Response({'error': 'Teacher profile not found'}, status=status.HTTP_404_NOT_FOUND)
 
@@ -281,6 +320,18 @@ class AdminTeacherCreateView(views.APIView):
     def post(self, request):
         data = request.data
         try:
+            # Check if email already exists
+            if User.objects.filter(email=data.get('email')).exists():
+                return Response({"error": "A user with this email already exists."}, status=status.HTTP_400_BAD_REQUEST)
+
+            # Check if username already exists
+            if User.objects.filter(username=data.get('username')).exists():
+                return Response({"error": "A user with this username already exists."}, status=status.HTTP_400_BAD_REQUEST)
+
+            # Check if employee_id already exists
+            if TeacherProfile.objects.filter(employee_id=data.get('employee_id')).exists():
+                return Response({"error": "A teacher with this Employee ID already exists."}, status=status.HTTP_400_BAD_REQUEST)
+
             user = User.objects.create_user(
                 username=data['username'],
                 email=data['email'],

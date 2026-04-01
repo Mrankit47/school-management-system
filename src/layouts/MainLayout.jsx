@@ -4,12 +4,18 @@ import Sidebar from '../components/common/Sidebar';
 
 const MainLayout = ({ children }) => {
     return (
-        <div style={{ display: 'flex', flexDirection: 'column', height: '100vh' }}>
+        <div className="h-screen flex flex-col bg-[#f8fafc] overflow-hidden">
+            {/* Full-width Navbar at the very top */}
             <Navbar />
-            <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
+            
+            <div className="flex flex-1 min-h-0 overflow-hidden">
+                {/* Sidebar now sits below the Navbar */}
                 <Sidebar />
-                <main style={{ flex: 1, overflowY: 'auto', padding: '20px', backgroundColor: '#f8f9fa' }}>
-                    {children}
+                
+                <main className="flex-1 overflow-y-auto p-4 md:p-8 custom-scrollbar">
+                    <div className="max-w-7xl mx-auto">
+                        {children}
+                    </div>
                 </main>
             </div>
         </div>

@@ -5,6 +5,7 @@ from .models import Assignment, Submission
 from .serializers import AssignmentSerializer, SubmissionSerializer
 from core.permissions import IsTeacher, IsStudent
 from students.models import StudentProfile
+from teachers.models import TeacherProfile
 from communication.models import Notification
 
 class AssignmentListView(views.APIView):
@@ -32,10 +33,30 @@ class AssignmentCreateView(views.APIView):
     permission_classes = [IsTeacher]
     parser_classes = [MultiPartParser, FormParser, JSONParser]
 
+    def _ensure_teacher_profile(self, user):
+        profile = TeacherProfile.objects.filter(user=user).first()
+        if profile:
+            return profile
+
+        base_employee_id = f"T{user.id:04d}"
+        employee_id = base_employee_id
+        suffix = 1
+        while TeacherProfile.objects.filter(employee_id=employee_id).exists():
+            employee_id = f"{base_employee_id}_{suffix}"
+            suffix += 1
+
+        return TeacherProfile.objects.create(
+            user=user,
+            employee_id=employee_id,
+            subject_specialization='',
+            status='Active',
+        )
+
     def post(self, request):
+        teacher_profile = self._ensure_teacher_profile(request.user)
         serializer = AssignmentSerializer(data=request.data)
         if serializer.is_valid():
-            assignment = serializer.save(created_by=request.user.teacher_profile)
+            assignment = serializer.save(created_by=teacher_profile)
 
             # Auto notify students of that class section.
             student_users = StudentProfile.objects.select_related('user').filter(
@@ -57,7 +78,10 @@ class AssignmentCreateView(views.APIView):
                 Notification.objects.bulk_create(notifications)
 
             return Response(AssignmentSerializer(assignment).data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        return Response(
+            {'error': 'Invalid assignment data', 'details': serializer.errors},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
 
 
 class MyAssignmentSubmissionsView(views.APIView):

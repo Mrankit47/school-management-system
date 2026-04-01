@@ -2,9 +2,8 @@ import React, { useEffect, useMemo, useState } from 'react';
 import api from '../../services/api';
 
 const palette = {
-    pending: '#f59e0b',
-    approved: '#16a34a',
-    rejected: '#ef4444',
+    present: '#16a34a',
+    absent: '#ef4444',
     muted: '#6b7280',
     border: '#e5e7eb',
     primary: '#2563eb',
@@ -24,18 +23,15 @@ function StatusBadge({ status }) {
     const s = (status || '').toLowerCase();
     let bg = '#f3f4f6';
     let color = '#111827';
-    if (s === 'pending') {
-        bg = '#fef3c7';
-        color = palette.pending;
-    } else if (s === 'approved') {
+    if (s === 'present') {
         bg = '#dcfce7';
-        color = palette.approved;
-    } else if (s === 'rejected') {
+        color = palette.present;
+    } else if (s === 'absent') {
         bg = '#fee2e2';
-        color = palette.rejected;
+        color = palette.absent;
     }
 
-    const label = s ? s.charAt(0).toUpperCase() + s.slice(1) : 'Not Marked';
+    const label = s === 'present' ? 'P' : s === 'absent' ? 'A' : 'Unmarked';
     return (
         <span style={{ display: 'inline-block', padding: '6px 10px', borderRadius: 999, backgroundColor: bg, border: `1px solid ${palette.border}`, color, fontWeight: 1000, fontSize: 12 }}>
             {label}
@@ -48,15 +44,9 @@ const MarkAttendance = () => {
     const [classes, setClasses] = useState([]);
     const [selectedClassId, setSelectedClassId] = useState('');
     const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
-
-    const [verification, setVerification] = useState(null); // { summary, students: [] }
-    const [actionBusy, setActionBusy] = useState({});
-
-    const [notifications, setNotifications] = useState([]);
-    const pendingNotifications = useMemo(() => {
-        const all = notifications || [];
-        return all.filter((n) => (n.title || '').toLowerCase().includes('attendance verification pending') && !n.is_read);
-    }, [notifications]);
+    const [sheet, setSheet] = useState(null); // { summary, students: [] }
+    const [rows, setRows] = useState([]); // local editable rows
+    const [saving, setSaving] = useState(false);
 
     const loadTeacherClasses = async () => {
         const [profileRes, classRes] = await Promise.all([api.get('teachers/profile/'), api.get('classes/sections/')]);
@@ -69,52 +59,60 @@ const MarkAttendance = () => {
         }
     };
 
-    const loadVerification = async () => {
+    const loadSheet = async () => {
         if (!selectedClassId) return;
         setLoading(true);
         try {
-            const res = await api.get('attendance/verification/', {
+            const res = await api.get('attendance/teacher/sheet/', {
                 params: { class_section_id: selectedClassId, date },
             });
-            setVerification(res.data || null);
+            setSheet(res.data || null);
+            setRows((res.data?.students || []).map((s) => ({ ...s, status: s.status || '' })));
         } catch (e) {
-            setVerification(null);
+            setSheet(null);
+            setRows([]);
         } finally {
             setLoading(false);
         }
     };
 
-    const loadNotifications = async () => {
-        try {
-            const res = await api.get('communication/my/');
-            setNotifications(res.data || []);
-        } catch (e) {
-            setNotifications([]);
-        }
-    };
-
     useEffect(() => {
         loadTeacherClasses().catch(() => {});
-        loadNotifications().catch(() => {});
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     useEffect(() => {
-        loadVerification().catch(() => {});
+        loadSheet().catch(() => {});
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [selectedClassId, date]);
 
-    const decide = async (attendanceId, decision) => {
-        if (!attendanceId) return;
-        setActionBusy((prev) => ({ ...prev, [attendanceId]: true }));
+    const setStudentStatus = (studentId, status) => {
+        setRows((prev) => prev.map((r) => (r.student_id === studentId ? { ...r, status } : r)));
+    };
+
+    const markAllPresent = () => {
+        setRows((prev) => prev.map((r) => ({ ...r, status: 'present' })));
+    };
+
+    const saveAttendance = async () => {
+        if (!selectedClassId) return;
+        setSaving(true);
         try {
-            await api.patch(`attendance/verification/decision/${attendanceId}/`, { decision });
-            await loadVerification();
-            await loadNotifications();
+            const res = await api.post('attendance/teacher/save/', {
+                class_section_id: selectedClassId,
+                date,
+                rows: rows.map((r) => ({
+                    student_id: r.student_id,
+                    status: r.status,
+                })),
+            });
+            await loadSheet();
+            const savedCount = Number(res?.data?.saved || 0);
+            alert(`Attendance saved successfully. ${savedCount} student(s) updated.`);
         } catch (e) {
-            alert(e?.response?.data?.error || 'Could not verify attendance.');
+            alert(e?.response?.data?.error || 'Could not save attendance.');
         } finally {
-            setActionBusy((prev) => ({ ...prev, [attendanceId]: false }));
+            setSaving(false);
         }
     };
 
@@ -122,8 +120,8 @@ const MarkAttendance = () => {
         <div style={{ padding: 20, backgroundColor: palette.bg, minHeight: 'calc(100vh - 60px)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap', marginBottom: 12 }}>
                 <div>
-                    <h1 style={{ margin: 0, fontWeight: 1000 }}>Attendance Verification System</h1>
-                    <div style={{ marginTop: 4, color: palette.muted, fontWeight: 900, fontSize: 13 }}>Students punch attendance (Pending). Teacher verifies (Approve/Reject).</div>
+                    <h1 style={{ margin: 0, fontWeight: 1000 }}>Attendance Management</h1>
+                    <div style={{ marginTop: 4, color: palette.muted, fontWeight: 900, fontSize: 13 }}>Select class/section and date, mark P/A, then save.</div>
                 </div>
                 <div style={{ display: 'flex', gap: 10, alignItems: 'flex-end', flexWrap: 'wrap' }}>
                     <div>
@@ -148,19 +146,34 @@ const MarkAttendance = () => {
                 </div>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: 12, alignItems: 'start' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 12, alignItems: 'start' }}>
                 <div style={{ backgroundColor: palette.card, border: `1px solid ${palette.border}`, borderRadius: 16, padding: 16, boxShadow: palette.shadow }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
                         <div>
-                            <div style={{ fontWeight: 1000 }}>Student Attendance Requests</div>
+                            <div style={{ fontWeight: 1000 }}>Student Attendance Sheet</div>
                             <div style={{ marginTop: 3, color: palette.muted, fontWeight: 900, fontSize: 13 }}>
-                                {verification?.class_display || 'Select class to view requests'}
+                                {sheet?.class_display || 'Select class to view sheet'}
                             </div>
                         </div>
                         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-                            <div style={{ color: palette.muted, fontWeight: 900, fontSize: 12 }}>Pending: <span style={{ color: palette.pending, fontWeight: 1000 }}>{verification?.summary?.pending ?? 0}</span></div>
-                            <div style={{ color: palette.muted, fontWeight: 900, fontSize: 12 }}>Approved: <span style={{ color: palette.approved, fontWeight: 1000 }}>{verification?.summary?.approved ?? 0}</span></div>
-                            <div style={{ color: palette.muted, fontWeight: 900, fontSize: 12 }}>Rejected: <span style={{ color: palette.rejected, fontWeight: 1000 }}>{verification?.summary?.rejected ?? 0}</span></div>
+                            <div style={{ color: palette.muted, fontWeight: 900, fontSize: 12 }}>Present: <span style={{ color: palette.present, fontWeight: 1000 }}>{sheet?.summary?.present ?? 0}</span></div>
+                            <div style={{ color: palette.muted, fontWeight: 900, fontSize: 12 }}>Absent: <span style={{ color: palette.absent, fontWeight: 1000 }}>{sheet?.summary?.absent ?? 0}</span></div>
+                            <div style={{ color: palette.muted, fontWeight: 900, fontSize: 12 }}>Marked: <span style={{ color: '#111827', fontWeight: 1000 }}>{sheet?.summary?.marked ?? 0}</span></div>
+                            <button
+                                type="button"
+                                onClick={markAllPresent}
+                                style={{ padding: '8px 12px', borderRadius: 10, border: `1px solid ${palette.border}`, backgroundColor: '#fff', fontWeight: 1000, cursor: 'pointer' }}
+                            >
+                                Mark All Present
+                            </button>
+                            <button
+                                type="button"
+                                onClick={saveAttendance}
+                                disabled={saving}
+                                style={{ padding: '8px 12px', borderRadius: 10, border: 'none', backgroundColor: palette.primary, color: '#fff', fontWeight: 1000, cursor: saving ? 'not-allowed' : 'pointer', opacity: saving ? 0.75 : 1 }}
+                            >
+                                {saving ? 'Saving...' : 'Save Attendance'}
+                            </button>
                         </div>
                     </div>
 
@@ -168,8 +181,8 @@ const MarkAttendance = () => {
                         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                             <thead>
                                 <tr style={{ backgroundColor: '#f1f5f9' }}>
-                                    <th style={{ padding: 12, textAlign: 'left', color: palette.muted, fontWeight: 1000, fontSize: 12 }}>Name</th>
-                                    <th style={{ padding: 12, textAlign: 'left', color: palette.muted, fontWeight: 1000, fontSize: 12 }}>Punch Time</th>
+                                    <th style={{ padding: 12, textAlign: 'left', color: palette.muted, fontWeight: 1000, fontSize: 12 }}>Student Name</th>
+                                    <th style={{ padding: 12, textAlign: 'left', color: palette.muted, fontWeight: 1000, fontSize: 12 }}>Roll No</th>
                                     <th style={{ padding: 12, textAlign: 'left', color: palette.muted, fontWeight: 1000, fontSize: 12 }}>Status</th>
                                     <th style={{ padding: 12, textAlign: 'left', color: palette.muted, fontWeight: 1000, fontSize: 12 }}>Action</th>
                                 </tr>
@@ -181,39 +194,30 @@ const MarkAttendance = () => {
                                             Loading...
                                         </td>
                                     </tr>
-                                ) : verification?.students?.length ? (
-                                    verification.students.map((s) => {
-                                        const pending = (s.verification_status || '').toLowerCase() === 'pending';
+                                ) : rows?.length ? (
+                                    rows.map((s) => {
                                         return (
                                             <tr key={s.student_id} style={{ borderTop: `1px solid ${palette.border}` }}>
                                                 <td style={{ padding: 12, fontWeight: 1000 }}>{s.name}</td>
-                                                <td style={{ padding: 12, fontWeight: 900, color: palette.muted, fontSize: 13 }}>{formatTime(s.punch_time)}</td>
+                                                <td style={{ padding: 12, fontWeight: 900, color: palette.muted, fontSize: 13 }}>{s.roll_no || '—'}</td>
                                                 <td style={{ padding: 12 }}>
-                                                    <StatusBadge status={s.verification_status} />
+                                                    <StatusBadge status={s.status} />
                                                 </td>
                                                 <td style={{ padding: 12, whiteSpace: 'nowrap' }}>
-                                                    {pending ? (
-                                                        <>
-                                                            <button
-                                                                type="button"
-                                                                disabled={!!actionBusy[s.attendance_id]}
-                                                                onClick={() => decide(s.attendance_id, 'approve')}
-                                                                style={{ padding: '8px 12px', marginRight: 8, borderRadius: 10, border: 'none', backgroundColor: palette.approved, color: '#fff', fontWeight: 1000, cursor: actionBusy[s.attendance_id] ? 'not-allowed' : 'pointer' }}
-                                                            >
-                                                                {actionBusy[s.attendance_id] ? 'Approving...' : 'Approve'}
-                                                            </button>
-                                                            <button
-                                                                type="button"
-                                                                disabled={!!actionBusy[s.attendance_id]}
-                                                                onClick={() => decide(s.attendance_id, 'reject')}
-                                                                style={{ padding: '8px 12px', borderRadius: 10, border: 'none', backgroundColor: palette.rejected, color: '#fff', fontWeight: 1000, cursor: actionBusy[s.attendance_id] ? 'not-allowed' : 'pointer' }}
-                                                            >
-                                                                {actionBusy[s.attendance_id] ? 'Rejecting...' : 'Reject'}
-                                                            </button>
-                                                        </>
-                                                    ) : (
-                                                        <span style={{ color: palette.muted, fontWeight: 900 }}>—</span>
-                                                    )}
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setStudentStatus(s.student_id, 'present')}
+                                                        style={{ padding: '8px 12px', marginRight: 8, borderRadius: 10, border: 'none', backgroundColor: '#16a34a', color: '#fff', fontWeight: 1000, cursor: 'pointer' }}
+                                                    >
+                                                        P
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setStudentStatus(s.student_id, 'absent')}
+                                                        style={{ padding: '8px 12px', borderRadius: 10, border: 'none', backgroundColor: '#ef4444', color: '#fff', fontWeight: 1000, cursor: 'pointer' }}
+                                                    >
+                                                        A
+                                                    </button>
                                                 </td>
                                             </tr>
                                         );
@@ -221,36 +225,12 @@ const MarkAttendance = () => {
                                 ) : (
                                     <tr>
                                         <td colSpan={4} style={{ padding: 14, color: palette.muted, fontWeight: 900 }}>
-                                            No attendance requests for this class/date.
+                                            No students found for selected class/date.
                                         </td>
                                     </tr>
                                 )}
                             </tbody>
                         </table>
-                    </div>
-                </div>
-
-                <div style={{ backgroundColor: palette.card, border: `1px solid ${palette.border}`, borderRadius: 16, padding: 16, boxShadow: palette.shadow }}>
-                    <div style={{ fontWeight: 1000 }}>Notifications</div>
-                    <div style={{ marginTop: 4, color: palette.muted, fontWeight: 900, fontSize: 13 }}>Pending attendance verification requests.</div>
-
-                    <div style={{ marginTop: 12, display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
-                        <div style={{ color: palette.muted, fontWeight: 900, fontSize: 12 }}>Unread Pending:</div>
-                        <div style={{ color: palette.pending, fontWeight: 1000 }}>{pendingNotifications.length}</div>
-                    </div>
-
-                    <div style={{ marginTop: 12, display: 'grid', gap: 10, maxHeight: 520, overflowY: 'auto' }}>
-                        {pendingNotifications.length ? (
-                            pendingNotifications.slice(0, 10).map((n) => (
-                                <div key={n.id} style={{ border: `1px solid ${palette.border}`, borderRadius: 12, padding: 12, backgroundColor: '#fff7ed' }}>
-                                    <div style={{ fontWeight: 1000, fontSize: 13 }}>{n.title}</div>
-                                    <div style={{ marginTop: 6, color: palette.muted, fontWeight: 900, fontSize: 12 }}>{n.message}</div>
-                                    <div style={{ marginTop: 6, color: palette.muted, fontWeight: 900, fontSize: 11 }}>{n.created_at ? new Date(n.created_at).toLocaleString() : ''}</div>
-                                </div>
-                            ))
-                        ) : (
-                            <div style={{ color: palette.muted, fontWeight: 900, fontSize: 13 }}>No pending verification notifications.</div>
-                        )}
                     </div>
                 </div>
             </div>

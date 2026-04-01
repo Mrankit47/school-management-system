@@ -3,6 +3,7 @@ import calendar
 from datetime import date as date_type
 from datetime import timedelta, datetime as datetime_type
 
+from django.db import transaction
 from django.db.models import Q
 from rest_framework import status, views, permissions
 from rest_framework.response import Response
@@ -25,18 +26,196 @@ class AttendanceMarkView(views.APIView):
     permission_classes = [IsTeacher]
 
     def post(self, request):
-        serializer = AttendanceSerializer(data=request.data)
-        if serializer.is_valid():
-            status_value = (serializer.validated_data.get('status') or '').lower()
-            verification_status = 'approved' if status_value in ('present', 'late') else 'rejected'
-            attendance = serializer.save(
-                marked_by=request.user.teacher_profile,
-                verification_status=verification_status,
-                verified_by=request.user.teacher_profile,
-                verified_at=timezone.now(),
+        student_id = request.data.get('student')
+        date_raw = request.data.get('date')
+        status_value = (request.data.get('status') or '').lower()
+
+        if not student_id or not date_raw or status_value not in ('present', 'absent'):
+            return Response({'error': 'student, date and status(present/absent) are required'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            target_date = date_type.fromisoformat(date_raw)
+        except Exception:
+            return Response({'error': 'Invalid date format'}, status=status.HTTP_400_BAD_REQUEST)
+
+        student = StudentProfile.objects.select_related('class_section').filter(id=student_id).first()
+        if not student or not student.class_section:
+            return Response({'error': 'Student not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        if student.class_section.class_teacher_id != request.user.teacher_profile.id:
+            return Response({'error': 'Not allowed for this class'}, status=status.HTTP_403_FORBIDDEN)
+
+        verification_status = 'approved' if status_value == 'present' else 'rejected'
+        attendance, _ = Attendance.objects.update_or_create(
+            student=student,
+            date=target_date,
+            defaults={
+                'status': status_value,
+                'marked_by': request.user.teacher_profile,
+                'marked_via': 'manual',
+                'verification_status': verification_status,
+                'verified_by': request.user.teacher_profile,
+                'verified_at': timezone.now(),
+                'punch_time': None,
+            },
+        )
+        return Response(AttendanceSerializer(attendance).data, status=status.HTTP_200_OK)
+
+
+class TeacherAttendanceSheetView(views.APIView):
+    """
+    Teacher attendance sheet by class+date (manual P/A flow).
+    """
+
+    permission_classes = [IsTeacher]
+
+    def get(self, request):
+        class_section_id = request.query_params.get('class_section_id')
+        date_raw = request.query_params.get('date')
+        if not class_section_id:
+            return Response({'error': 'class_section_id is required'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            class_section_id = int(class_section_id)
+        except Exception:
+            return Response({'error': 'Invalid class_section_id'}, status=status.HTTP_400_BAD_REQUEST)
+
+        target_date = date_type.today()
+        if date_raw:
+            try:
+                target_date = date_type.fromisoformat(date_raw)
+            except Exception:
+                return Response({'error': 'Invalid date format'}, status=status.HTTP_400_BAD_REQUEST)
+
+        class_section = (
+            ClassSection.objects.select_related('class_ref', 'section_ref', 'class_teacher__user')
+            .filter(id=class_section_id)
+            .first()
+        )
+        if not class_section:
+            return Response({'error': 'Class section not found'}, status=status.HTTP_404_NOT_FOUND)
+        if class_section.class_teacher_id != request.user.teacher_profile.id:
+            return Response({'error': 'Not allowed for this class section'}, status=status.HTTP_403_FORBIDDEN)
+
+        students = list(
+            StudentProfile.objects.select_related('user')
+            .filter(class_section_id=class_section_id)
+            .order_by('id')
+        )
+        student_ids = [s.id for s in students]
+
+        records = Attendance.objects.filter(student_id__in=student_ids, date=target_date)
+        rec_by_student = {r.student_id: r for r in records}
+
+        rows = []
+        present = 0
+        absent = 0
+        marked = 0
+        for idx, s in enumerate(students, start=1):
+            rec = rec_by_student.get(s.id)
+            st = rec.status if rec else None
+            if st in ('present', 'absent'):
+                marked += 1
+                if st == 'present':
+                    present += 1
+                else:
+                    absent += 1
+            rows.append(
+                {
+                    'student_id': s.id,
+                    'name': s.user.name or s.user.username,
+                    'roll_no': s.roll_number or s.admission_number or str(idx),
+                    'status': st,
+                }
             )
-            return Response(AttendanceSerializer(attendance).data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        return Response(
+            {
+                'class_section_id': class_section.id,
+                'class_display': f'{class_section.class_ref.name} - {class_section.section_ref.name}',
+                'date': target_date.isoformat(),
+                'summary': {
+                    'present': present,
+                    'absent': absent,
+                    'marked': marked,
+                    'total_students': len(students),
+                },
+                'students': rows,
+            }
+        )
+
+
+class TeacherAttendanceBulkSaveView(views.APIView):
+    """
+    Save class attendance in bulk (P/A only), one record per student per day.
+    Upsert behavior enables same-day edit while preventing duplicates.
+    """
+
+    permission_classes = [IsTeacher]
+
+    def post(self, request):
+        class_section_id = request.data.get('class_section_id')
+        date_raw = request.data.get('date')
+        rows = request.data.get('rows') or []
+
+        if not class_section_id or not date_raw or not isinstance(rows, list):
+            return Response({'error': 'class_section_id, date and rows[] are required'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            class_section_id = int(class_section_id)
+            target_date = date_type.fromisoformat(str(date_raw))
+        except Exception:
+            return Response({'error': 'Invalid class_section_id/date'}, status=status.HTTP_400_BAD_REQUEST)
+
+        class_section = (
+            ClassSection.objects.select_related('class_ref', 'section_ref', 'class_teacher__user')
+            .filter(id=class_section_id)
+            .first()
+        )
+        if not class_section:
+            return Response({'error': 'Class section not found'}, status=status.HTTP_404_NOT_FOUND)
+        if class_section.class_teacher_id != request.user.teacher_profile.id:
+            return Response({'error': 'Not allowed for this class section'}, status=status.HTTP_403_FORBIDDEN)
+
+        student_ids = set(
+            StudentProfile.objects.filter(class_section_id=class_section_id).values_list('id', flat=True)
+        )
+
+        save_count = 0
+        with transaction.atomic():
+            for row in rows:
+                try:
+                    sid = int(row.get('student_id'))
+                except Exception:
+                    continue
+                status_value = (row.get('status') or '').lower()
+                if sid not in student_ids:
+                    continue
+                if status_value not in ('present', 'absent'):
+                    continue
+                verification_status = 'approved' if status_value == 'present' else 'rejected'
+                Attendance.objects.update_or_create(
+                    student_id=sid,
+                    date=target_date,
+                    defaults={
+                        'status': status_value,
+                        'marked_by': request.user.teacher_profile,
+                        'marked_via': 'manual',
+                        'verification_status': verification_status,
+                        'verified_by': request.user.teacher_profile,
+                        'verified_at': timezone.now(),
+                        'punch_time': None,
+                    },
+                )
+                save_count += 1
+
+        if save_count == 0:
+            return Response(
+                {'error': 'No attendance was saved. Please mark at least one student as Present or Absent.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        return Response({'message': 'Attendance saved', 'saved': save_count}, status=status.HTTP_200_OK)
 
 
 class StudentPunchAttendanceView(views.APIView):
