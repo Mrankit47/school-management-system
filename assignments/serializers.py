@@ -3,6 +3,7 @@ from .models import Assignment, Submission
 
 class AssignmentSerializer(serializers.ModelSerializer):
     attachment_url = serializers.SerializerMethodField(read_only=True)
+    teacher_name = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = Assignment
@@ -11,6 +12,7 @@ class AssignmentSerializer(serializers.ModelSerializer):
             'title',
             'description',
             'subject',
+            'teacher_name',
             'class_section',
             'start_date',
             'due_date',
@@ -29,6 +31,14 @@ class AssignmentSerializer(serializers.ModelSerializer):
         if obj.attachment:
             return obj.attachment.url
         return None
+
+    def get_teacher_name(self, obj):
+        if not obj.created_by:
+            return None
+        user = getattr(obj.created_by, 'user', None)
+        if not user:
+            return None
+        return user.name or user.username
 
     def validate(self, attrs):
         start_date = attrs.get('start_date')

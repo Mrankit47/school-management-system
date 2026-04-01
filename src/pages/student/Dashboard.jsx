@@ -257,6 +257,20 @@ export default function StudentDashboard() {
         let present = 0;
         let absent = 0;
         (attendance || []).forEach((r) => {
+            const v = (r.verification_status || '').toLowerCase();
+            if (v === 'pending') return; // ignore unverified punches
+            if (v === 'approved') {
+                // Approved counts as present (late still shows as late via r.status when needed).
+                const st = (r.status || '').toLowerCase();
+                if (st === 'present' || st === 'late') present += 1;
+                return;
+            }
+            if (v === 'rejected') {
+                absent += 1;
+                return;
+            }
+
+            // Legacy fallback for records created before verification workflow.
             const st = (r.status || '').toLowerCase();
             if (st === 'present' || st === 'late') present += 1;
             else if (st === 'absent') absent += 1;
@@ -270,12 +284,21 @@ export default function StudentDashboard() {
     const todayAttendance = useMemo(() => attendanceMap.get(todayKey) || null, [attendanceMap, todayKey]);
     const todayPresence = useMemo(() => {
         if (!todayAttendance) return null;
+        const v = (todayAttendance.verification_status || '').toLowerCase();
+        if (v === 'pending') return null;
+        if (v === 'rejected') return 'Absent';
+        if (v === 'approved') return 'Present';
+
+        // Legacy fallback
         const st = (todayAttendance.status || '').toLowerCase();
         if (st === 'absent') return 'Absent';
         if (st === 'present' || st === 'late') return 'Present';
         return null;
     }, [todayAttendance]);
     const todayIsLate = useMemo(() => {
+        const v = (todayAttendance?.verification_status || '').toLowerCase();
+        if (v === 'pending') return false;
+        if (v && v !== 'approved') return false;
         const st = (todayAttendance?.status || '').toLowerCase();
         return st === 'late';
     }, [todayAttendance]);
@@ -588,8 +611,21 @@ export default function StudentDashboard() {
                             subtitle="Today"
                         />
                         <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
-                            <div style={{ fontWeight: 1000, fontSize: 26, color: todayAttendance ? (todayPresence === 'Absent' ? colors.absent : colors.present) : themeStyles.muted }}>
-                                {todayPresence || '—'}
+                            <div
+                                style={{
+                                    fontWeight: 1000,
+                                    fontSize: 26,
+                                    color: todayAttendance
+                                        ? todayAttendance.verification_status?.toLowerCase() === 'rejected'
+                                            ? colors.absent
+                                            : todayAttendance.verification_status?.toLowerCase() === 'pending'
+                                              ? colors.late
+                                              : colors.present
+                                        : themeStyles.muted,
+                                }}
+                            >
+                                {todayPresence ||
+                                    (todayAttendance?.verification_status?.toLowerCase() === 'pending' ? 'Pending' : '—')}
                             </div>
                             <div style={{ width: 1, height: 36, backgroundColor: themeStyles.cardBorder, display: 'none' }} />
                             <div style={{ color: themeStyles.muted, fontWeight: 900, fontSize: 13 }}>

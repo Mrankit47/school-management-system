@@ -491,7 +491,7 @@ const TeacherDashboard = () => {
                                     <tr key={s.id} style={{ borderTop: `1px solid ${palette.border}`, backgroundColor: s.low_attendance ? '#fff7ed' : '#fff' }}>
                                         <td style={{ padding: '10px', fontWeight: 900 }}>{s.admission_number}</td>
                                         <td style={{ padding: '10px' }}>{s.name}</td>
-                                        <td style={{ padding: '10px', fontWeight: 900, color: s.status === 'absent' ? palette.danger : s.status === 'late' ? palette.warn : palette.success }}>
+                                        <td style={{ padding: '10px', fontWeight: 900, color: s.status === 'absent' ? palette.danger : s.status === 'late' || s.status === 'pending' ? palette.warn : palette.success }}>
                                             {s.status ? s.status.toUpperCase() : 'UNMARKED'}
                                         </td>
                                         <td style={{ padding: '10px', fontWeight: 900 }}>

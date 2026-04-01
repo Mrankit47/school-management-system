@@ -66,7 +66,7 @@ const TeacherCards = ({ teachers, refreshTeachers }) => {
             await api.delete(`teachers/delete/${id}/`);
             await refreshTeachers();
         } catch (e) {
-            alert('Error deleting teacher');
+            alert(e?.response?.data?.error || 'Error deleting teacher');
         } finally {
             setBusy(false);
         }

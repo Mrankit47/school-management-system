@@ -89,3 +89,62 @@ class MyAssignmentSubmissionsView(views.APIView):
                 }
             )
         return Response(data)
+
+
+class StudentAssignmentSubmissionCreateView(views.APIView):
+    """
+    Student can submit an assignment (optional feature).
+
+    Payload:
+      - assignment_id (required)
+      - file_url (required) : URL of the student's submitted work
+
+    Notes:
+      - Assignment access is restricted to the student's class_section.
+      - If a submission already exists, it will be updated (unique_together).
+    """
+
+    permission_classes = [IsStudent]
+
+    def post(self, request):
+        student_profile = request.user.student_profile
+        assignment_id = request.data.get('assignment_id')
+        file_url = request.data.get('file_url')
+
+        if not assignment_id:
+            return Response({'error': 'assignment_id is required'}, status=status.HTTP_400_BAD_REQUEST)
+        if not file_url:
+            return Response({'error': 'file_url is required'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            assignment_id = int(assignment_id)
+        except Exception:
+            return Response({'error': 'Invalid assignment_id'}, status=status.HTTP_400_BAD_REQUEST)
+
+        assignment = (
+            Assignment.objects.select_related('class_section', 'created_by')
+            .filter(id=assignment_id, class_section=student_profile.class_section)
+            .first()
+        )
+        if not assignment:
+            return Response({'error': 'Assignment not found or not allowed'}, status=status.HTTP_404_NOT_FOUND)
+
+        try:
+            submission, _created = Submission.objects.update_or_create(
+                assignment=assignment,
+                student=student_profile,
+                defaults={'file_url': file_url},
+            )
+        except Exception:
+            return Response({'error': 'Could not save submission. Please provide a valid file URL.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        return Response(
+            {
+                'assignment_id': submission.assignment_id,
+                'submitted': True,
+                'submission_date': submission.submission_date,
+                'file_url': submission.file_url,
+                'marks': submission.marks,
+            },
+            status=status.HTTP_201_CREATED,
+        )

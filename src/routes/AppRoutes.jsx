@@ -14,6 +14,7 @@ import StudentTimetable from '../pages/student/Timetable';
 import StudentFees from '../pages/student/Fees';
 import StudentAttendance from '../pages/student/Attendance';
 import StudentHolidays from '../pages/student/Holidays';
+import StudentMessaging from '../pages/student/Messaging';
 
 // Teacher
 import TeacherDashboard from '../pages/teacher/Dashboard';
@@ -26,6 +27,7 @@ import TeacherMessaging from '../pages/teacher/Messaging';
 import TeacherHolidays from '../pages/teacher/Holidays';
 
 // Admin
+import AddStudent from '../pages/admin/AddStudent';
 import AdminDashboard from '../pages/admin/Dashboard';
 import AddTeacher from '../pages/admin/AddTeacher';
 import AdminProfile from '../pages/admin/Profile';
@@ -58,6 +60,7 @@ const AppRoutes = () => {
                 <Route path="attendance" element={<StudentAttendance />} />
                 <Route path="fees" element={<StudentFees />} />
                 <Route path="holidays" element={<StudentHolidays />} />
+                <Route path="messaging" element={<StudentMessaging />} />
               </Routes>
             </ProtectedRoute>} />
 
@@ -78,6 +81,7 @@ const AppRoutes = () => {
             {/* Admin */}
             <Route path="/admin/*" element={<ProtectedRoute allowedRoles={['admin']}>
               <Routes>
+                <Route path="add-student" element={<AddStudent />} />
                 <Route path="dashboard" element={<AdminDashboard />} />
                 <Route path="add-teacher" element={<AddTeacher />} />
                 <Route path="profile" element={<AdminProfile />} />

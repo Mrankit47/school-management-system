@@ -51,13 +51,6 @@ const AdminFees = () => {
     const [editingStructureId, setEditingStructureId] = useState(null);
 
     const [selectedFeeId, setSelectedFeeId] = useState('');
-    const [paymentForm, setPaymentForm] = useState({
-        amount: '',
-        payment_date: new Date().toISOString().slice(0, 10),
-        payment_mode: 'Cash',
-        transaction_id: '',
-    });
-
     const [syncClassId, setSyncClassId] = useState('');
     const [assignStudentId, setAssignStudentId] = useState('');
 
@@ -234,29 +227,6 @@ const AdminFees = () => {
         }
     };
 
-    const submitPayment = async (e) => {
-        e.preventDefault();
-        if (!selectedFeeId) {
-            showMsg('Select a student fee row first', true);
-            return;
-        }
-        try {
-            await api.post('fees/admin/payments/', {
-                student_fee_id: selectedFeeId,
-                amount: paymentForm.amount,
-                payment_date: paymentForm.payment_date,
-                payment_mode: paymentForm.payment_mode,
-                transaction_id: paymentForm.transaction_id,
-            });
-            showMsg('Payment recorded');
-            setPaymentForm((p) => ({ ...p, amount: '', transaction_id: '' }));
-            await loadStudentFees();
-            await refreshSelectedWithPayments();
-        } catch (err) {
-            showMsg(err.response?.data?.error || 'Payment failed', true);
-        }
-    };
-
     const downloadReceipt = async (paymentId) => {
         try {
             const res = await api.get(`fees/admin/receipt/${paymentId}/`, { responseType: 'blob' });
@@ -283,16 +253,6 @@ const AdminFees = () => {
             window.URL.revokeObjectURL(url);
         } catch (_) {
             showMsg('Export failed', true);
-        }
-    };
-
-    const sendReminder = async () => {
-        if (!selectedFeeId) return;
-        try {
-            const res = await api.post('fees/admin/reminder/', { student_fee_id: selectedFeeId });
-            showMsg(res.data?.message || 'Reminder sent');
-        } catch (err) {
-            showMsg(err.response?.data?.error || 'Reminder failed', true);
         }
     };
 
@@ -553,47 +513,6 @@ const AdminFees = () => {
                 </div>
 
                 <div style={{ display: 'grid', gap: '16px' }}>
-                    <div style={card}>
-                        <h2 style={{ margin: '0 0 12px', fontSize: '18px' }}>Update / Verify Payment</h2>
-                        <p style={{ margin: '0 0 12px', color: '#6b7280', fontSize: '13px' }}>
-                            Admin records and verifies received payments from students/guardians.
-                        </p>
-                        <form onSubmit={submitPayment} style={{ display: 'grid', gap: '12px' }}>
-                            <div>
-                                <div style={labelStyle}>Select Student</div>
-                                <div style={{ fontWeight: 800 }}>{selectedRecord ? `#${selectedRecord.id} — ${selectedRecord.student_name}` : 'Select a row from the table'}</div>
-                            </div>
-                            <div>
-                                <div style={labelStyle}>Amount paid</div>
-                                <input type="number" step="0.01" value={paymentForm.amount} onChange={(e) => setPaymentForm({ ...paymentForm, amount: e.target.value })} style={inputStyle} required />
-                            </div>
-                            <div>
-                                <div style={labelStyle}>Payment date</div>
-                                <input type="date" value={paymentForm.payment_date} onChange={(e) => setPaymentForm({ ...paymentForm, payment_date: e.target.value })} style={inputStyle} required />
-                            </div>
-                            <div>
-                                <div style={labelStyle}>Payment mode</div>
-                                <select value={paymentForm.payment_mode} onChange={(e) => setPaymentForm({ ...paymentForm, payment_mode: e.target.value })} style={inputStyle}>
-                                    <option value="Cash">Cash</option>
-                                    <option value="Online">Online</option>
-                                </select>
-                            </div>
-                            <div>
-                                <div style={labelStyle}>Transaction ID (optional)</div>
-                                <input type="text" value={paymentForm.transaction_id} onChange={(e) => setPaymentForm({ ...paymentForm, transaction_id: e.target.value })} style={inputStyle} />
-                            </div>
-                            <button
-                                type="submit"
-                                style={{ padding: '14px 18px', borderRadius: '14px', border: 'none', backgroundColor: '#2563eb', color: '#fff', fontWeight: 900, fontSize: '15px', cursor: 'pointer' }}
-                            >
-                                Update Payment
-                            </button>
-                            <button type="button" onClick={sendReminder} style={{ padding: '12px 16px', borderRadius: '12px', border: '1px solid #e5e7eb', backgroundColor: '#fff', fontWeight: 800, cursor: 'pointer' }}>
-                                Send Reminder
-                            </button>
-                        </form>
-                    </div>
-
                     <div style={card}>
                         <h2 style={{ margin: '0 0 12px', fontSize: '18px' }}>Payment history</h2>
                         {!selectedFeeId ? (

@@ -5,10 +5,14 @@ from .views import (
     TeacherDetailView,
     TeacherDeleteView,
     TeacherUpdateView,
+    TeacherProfileView,
+    TeacherDocumentsView,
 )
 
 urlpatterns = [
     path('', TeacherListView.as_view(), name='teachers-list'),
+    path('profile/', TeacherProfileView.as_view(), name='teacher-profile'),
+    path('profile/documents/', TeacherDocumentsView.as_view(), name='teacher-profile-documents'),
     path('admin/create-teacher/', AdminTeacherCreateView.as_view(), name='admin-create-teacher'),
     path('detail/<int:teacher_id>/', TeacherDetailView.as_view(), name='teacher-detail'),
     path('delete/<int:teacher_id>/', TeacherDeleteView.as_view(), name='teacher-delete'),

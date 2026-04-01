@@ -62,8 +62,26 @@ class StudentsByClassSectionView(views.APIView):
         if request.user.role not in ('teacher', 'admin'):
             return Response({"error": "Not allowed"}, status=status.HTTP_403_FORBIDDEN)
 
+        class_section = (
+            ClassSection.objects.select_related('class_ref', 'section_ref', 'class_teacher__user')
+            .filter(id=class_section_id)
+            .first()
+        )
+        if not class_section:
+            return Response({"error": "Class section not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        # Teachers can only see students from their assigned classes.
+        if request.user.role == 'teacher':
+            teacher_profile = getattr(request.user, 'teacher_profile', None)
+            if not teacher_profile or class_section.class_teacher_id != teacher_profile.id:
+                return Response({"error": "Not allowed for this class"}, status=status.HTTP_403_FORBIDDEN)
+
         records = (
-            StudentProfile.objects.select_related('user')
+            StudentProfile.objects.select_related(
+                'user',
+                'class_section__class_ref',
+                'class_section__section_ref',
+            )
             .filter(class_section_id=class_section_id)
             .order_by('id')
         )
@@ -71,8 +89,12 @@ class StudentsByClassSectionView(views.APIView):
         return Response([
             {
                 "id": s.id,
+                "admission_number": s.admission_number,
                 "name": s.user.name or s.user.username,
                 "username": s.user.username,
+                "email": s.user.email,
+                "class_name": s.class_section.class_ref.name if s.class_section else None,
+                "section_name": s.class_section.section_ref.name if s.class_section else None,
             }
             for s in records
         ])

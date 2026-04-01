@@ -9,6 +9,7 @@ const Sidebar = () => {
 
     const links = {
         student: [
+        
             { path: '/student/dashboard', label: 'Dashboard' },
             { path: '/student/attendance', label: 'Attendance' },
             { path: '/student/results', label: 'My Results' },
@@ -16,6 +17,7 @@ const Sidebar = () => {
             { path: '/student/timetable', label: 'Timetable' },
             { path: '/student/notifications', label: 'Notifications' },
             { path: '/student/holidays', label: 'Holidays' },
+            { path: '/student/messaging', label: 'Messages' },
             { path: '/student/fees', label: 'Fees Status' },
             { path: '/student/profile', label: 'Profile' }
         ],
@@ -30,7 +32,8 @@ const Sidebar = () => {
             { path: '/teacher/profile', label: 'Profile' }
         ],
         admin: [
-            { path: '/admin/dashboard', label: 'Add Student' },
+            { path: '/admin/add-student', label: 'Add Student' },
+            { path: '/admin/Dashboard', label: 'Dashboard' },
             { path: '/admin/add-teacher', label: 'Add Teacher' },
             { path: '/admin/manage-students', label: 'Student List' },
             { path: '/admin/manage-teachers', label: 'Teacher List' },

@@ -6,17 +6,16 @@ from communication.models import Notification
 @receiver(post_save, sender=Attendance)
 def notify_student_on_attendance(sender, instance, created, **kwargs):
     """
-    Auto-create a notification for the student whenever attendance is marked or updated.
+    Auto-create a notification for the student whenever attendance is verified.
     """
+    # For pending punches, teacher verification is still required.
+    # Avoid spamming student with "marked" messages before verification.
+    if getattr(instance, 'verification_status', None) == 'pending':
+        return
+
     student_user = instance.student.user
-    status = instance.get_status_display()
-    
-    title = f"Attendance Marked: {status}"
-    message = f"Your attendance for {instance.date} has been marked as {status}."
-    
-    # We create a targeted notification for this specific student user
-    Notification.objects.create(
-        user=student_user,
-        title=title,
-        message=message
-    )
+    verification = (instance.verification_status or '').upper()
+    title = f"Attendance {verification}"
+    message = f"Your attendance for {instance.date} was {verification} by teacher verification."
+
+    Notification.objects.create(user=student_user, title=title, message=message)

@@ -1,19 +1,150 @@
 from rest_framework import views, status, permissions
 from rest_framework.response import Response
 from accounts.models import User
-from .models import TeacherProfile
-from .serializers import TeacherProfileSerializer
-from core.permissions import IsAdmin
+from .models import TeacherProfile, TeacherDocument
+from .serializers import TeacherProfileSerializer, TeacherDocumentSerializer
+from core.permissions import IsAdmin, IsTeacher
+from classes.models import ClassSection
+from assignments.models import Assignment as AssignmentModel
+from attendance.models import Attendance as AttendanceModel
+from django.db import transaction
 
 class TeacherProfileView(views.APIView):
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsTeacher]
+
+    def get(self, request):
+        profile = TeacherProfile.objects.select_related('user').filter(user=request.user).first()
+        if profile:
+            data = TeacherProfileSerializer(profile).data
+
+            classes_assigned_qs = (
+                ClassSection.objects.select_related('class_ref', 'section_ref')
+                .filter(class_teacher=profile)
+                .order_by('class_ref__name', 'section_ref__name')
+            )
+            classes_assigned = []
+            total_students = 0
+            for cs in classes_assigned_qs:
+                scount = cs.students.count()
+                total_students += scount
+                classes_assigned.append(
+                    {
+                        'id': cs.id,
+                        'class_name': cs.class_ref.name,
+                        'section_name': cs.section_ref.name,
+                        'room_number': cs.room_number,
+                        'student_count': scount,
+                    }
+                )
+
+            subjects_assigned_qs = profile.subjects.select_related('class_ref').all().order_by('name')
+            subjects_assigned = []
+            for s in subjects_assigned_qs:
+                subjects_assigned.append(
+                    {
+                        'id': s.id,
+                        'name': s.name,
+                        'code': s.code,
+                        'class_name': s.class_ref.name if s.class_ref else None,
+                    }
+                )
+
+            if classes_assigned and subjects_assigned:
+                role_label = 'Class Teacher & Subject Teacher'
+            elif classes_assigned:
+                role_label = 'Class Teacher'
+            elif subjects_assigned:
+                role_label = 'Subject Teacher'
+            else:
+                role_label = 'Teacher'
+
+            assignments_created = AssignmentModel.objects.filter(created_by=profile).count()
+            attendance_records = AttendanceModel.objects.filter(marked_by=profile).count()
+
+            data.update(
+                {
+                    'role_label': role_label,
+                    'classes_assigned': classes_assigned,
+                    'subjects_assigned': subjects_assigned,
+                    'stats': {
+                        'total_classes_handled': len(classes_assigned),
+                        'total_students': total_students,
+                        'assignments_created': assignments_created,
+                        'attendance_records': attendance_records,
+                    },
+                }
+            )
+            return Response(data)
+        return Response({"error": "Teacher profile not found"}, status=status.HTTP_404_NOT_FOUND)
+
+    def patch(self, request):
+        profile = TeacherProfile.objects.filter(user=request.user).first()
+        if not profile:
+            return Response({"error": "Teacher profile not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        data = request.data
+
+        # Update User fields
+        if data.get('email') is not None:
+            profile.user.email = data.get('email')
+        if data.get('name') is not None:
+            profile.user.name = data.get('name')
+        if data.get('phone') is not None:
+            profile.user.phone = data.get('phone')
+        profile.user.save()
+
+        # Update TeacherProfile fields
+        if data.get('employee_id') is not None:
+            profile.employee_id = data.get('employee_id')
+        if data.get('subject_specialization') is not None:
+            profile.subject_specialization = data.get('subject_specialization')
+        if data.get('phone_number') is not None:
+            profile.phone_number = data.get('phone_number')
+        if data.get('gender') is not None:
+            profile.gender = data.get('gender')
+        if data.get('dob') is not None:
+            profile.dob = data.get('dob')
+        if data.get('qualification') is not None:
+            profile.qualification = data.get('qualification')
+        if data.get('experience_years') is not None:
+            profile.experience_years = data.get('experience_years')
+        if data.get('joining_date') is not None:
+            profile.joining_date = data.get('joining_date')
+        if data.get('status') is not None:
+            profile.status = data.get('status')
+        if data.get('profile_image_base64') is not None:
+            profile.profile_image_base64 = data.get('profile_image_base64')
+        profile.save()
+
+        return self.get(request)
+
+
+class TeacherDocumentsView(views.APIView):
+    permission_classes = [IsTeacher]
 
     def get(self, request):
         profile = TeacherProfile.objects.filter(user=request.user).first()
-        if profile:
-            serializer = TeacherProfileSerializer(profile)
-            return Response(serializer.data)
-        return Response({"error": "Teacher profile not found"}, status=status.HTTP_404_NOT_FOUND)
+        if not profile:
+            return Response({'error': 'Teacher profile not found'}, status=status.HTTP_404_NOT_FOUND)
+        docs = TeacherDocument.objects.filter(teacher=profile).order_by('-uploaded_at')
+        return Response(TeacherDocumentSerializer(docs, many=True).data)
+
+    def post(self, request):
+        profile = TeacherProfile.objects.filter(user=request.user).first()
+        if not profile:
+            return Response({'error': 'Teacher profile not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        file_obj = request.data.get('file')
+        if not file_obj:
+            return Response({'error': 'file is required'}, status=status.HTTP_400_BAD_REQUEST)
+
+        name = (file_obj.name or '').lower()
+        allowed_ext = ('.pdf', '.doc', '.docx', '.png', '.jpg', '.jpeg', '.webp', '.gif')
+        if not name.endswith(allowed_ext):
+            return Response({'error': 'Unsupported file type'}, status=status.HTTP_400_BAD_REQUEST)
+
+        doc = TeacherDocument.objects.create(teacher=profile, file=file_obj)
+        return Response(TeacherDocumentSerializer(doc).data, status=status.HTTP_201_CREATED)
 
 
 class TeacherListView(views.APIView):
@@ -86,8 +217,22 @@ class TeacherDeleteView(views.APIView):
         p = TeacherProfile.objects.select_related('user').filter(id=teacher_id).first()
         if not p:
             return Response({"error": "Teacher not found"}, status=status.HTTP_404_NOT_FOUND)
-        p.user.delete()
-        return Response({"message": "Teacher deleted successfully"}, status=status.HTTP_200_OK)
+        try:
+            with transaction.atomic():
+                # Keep class sections and attendance records; only detach this teacher.
+                ClassSection.objects.filter(class_teacher=p).update(class_teacher=None)
+                AttendanceModel.objects.filter(marked_by=p).update(marked_by=None)
+                AttendanceModel.objects.filter(verified_by=p).update(verified_by=None)
+
+                # Clear M2M subject links explicitly before profile/user deletion.
+                p.subjects.clear()
+
+                # Delete auth user (TeacherProfile will cascade via OneToOne).
+                p.user.delete()
+
+            return Response({"message": "Teacher deleted successfully"}, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({"error": f"Error deleting teacher: {str(e)}"}, status=status.HTTP_400_BAD_REQUEST)
 
 
 class TeacherUpdateView(views.APIView):

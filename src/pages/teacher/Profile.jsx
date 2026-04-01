@@ -1,23 +1,683 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import api from '../../services/api';
 
+const colors = {
+    bg: '#f9fafb',
+    card: '#ffffff',
+    border: '#e5e7eb',
+    text: '#0f172a',
+    muted: '#6b7280',
+    primary: '#2563eb',
+    present: '#16a34a',
+    danger: '#ef4444',
+    warn: '#f59e0b',
+    shadow: '0 1px 6px rgba(16,24,40,0.06)',
+};
+
+const inputStyle = {
+    width: '100%',
+    padding: '10px 12px',
+    border: `1px solid ${colors.border}`,
+    borderRadius: 12,
+    fontSize: 13,
+    outline: 'none',
+    boxSizing: 'border-box',
+    backgroundColor: '#fff',
+};
+
+const labelStyle = {
+    fontSize: '12px',
+    color: colors.muted,
+    fontWeight: 900,
+    textTransform: 'uppercase',
+    letterSpacing: '0.03em',
+    marginBottom: 6,
+};
+
+function toImageSrc(base64) {
+    if (!base64) return null;
+    if (typeof base64 !== 'string') return null;
+    if (base64.startsWith('data:')) return base64;
+    return `data:image/png;base64,${base64}`;
+}
+
+function IconBox({ children, bg = '#eef2ff' }) {
+    return (
+        <div style={{ width: 34, height: 34, borderRadius: 12, backgroundColor: bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            {children}
+        </div>
+    );
+}
+
+function Field({ label, required, error, children }) {
+    return (
+        <div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'baseline' }}>
+                <div style={labelStyle}>
+                    {label} {required ? <span style={{ color: colors.danger }}> *</span> : null}
+                </div>
+                {error ? <div style={{ color: colors.danger, fontSize: 12, fontWeight: 900 }}>{error}</div> : null}
+            </div>
+            {children}
+        </div>
+    );
+}
+
+async function fileToBase64DataUrl(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+    });
+}
+
 const TeacherProfile = () => {
+    const [loading, setLoading] = useState(true);
     const [profile, setProfile] = useState(null);
+    const [documents, setDocuments] = useState([]);
+
+    const [saving, setSaving] = useState(false);
+    const [saveError, setSaveError] = useState('');
+    const [saveSuccess, setSaveSuccess] = useState('');
+
+    const [form, setForm] = useState({
+        name: '',
+        email: '',
+        phone: '',
+        gender: '',
+        dob: '',
+        employee_id: '',
+        qualification: '',
+        experience_years: '',
+        subject_specialization: '',
+        joining_date: '',
+        status: 'Active',
+        profile_image_base64: '',
+        // teacher fields
+        phone_number: '',
+    });
+
+    const [formErrors, setFormErrors] = useState({});
+
+    const [photoFile, setPhotoFile] = useState(null);
+
+    const [pwOld, setPwOld] = useState('');
+    const [pwNew, setPwNew] = useState('');
+    const [pwConfirm, setPwConfirm] = useState('');
+    const [pwBusy, setPwBusy] = useState(false);
+    const [pwError, setPwError] = useState('');
+    const [pwSuccess, setPwSuccess] = useState('');
+
+    const [docBusy, setDocBusy] = useState(false);
+    const [docFile, setDocFile] = useState(null);
+    const [docError, setDocError] = useState('');
 
     useEffect(() => {
-        api.get('teachers/profile/').then(res => setProfile(res.data));
+        setLoading(true);
+        Promise.all([api.get('teachers/profile/'), api.get('teachers/profile/documents/')])
+            .then(([pRes, dRes]) => {
+                const p = pRes.data || null;
+                setProfile(p);
+                setDocuments(dRes.data || []);
+
+                if (p) {
+                    setForm({
+                        name: p.user?.name || '',
+                        email: p.user?.email || '',
+                        phone: p.user?.phone || '',
+                        gender: p.gender || '',
+                        dob: p.dob || '',
+                        employee_id: p.employee_id || '',
+                        qualification: p.qualification || '',
+                        experience_years: p.experience_years ?? '',
+                        subject_specialization: p.subject_specialization || '',
+                        joining_date: p.joining_date || '',
+                        status: p.status || 'Active',
+                        profile_image_base64: p.profile_image_base64 || '',
+                        phone_number: p.phone_number || p.user?.phone || '',
+                    });
+                }
+            })
+            .catch(() => setSaveError('Could not load teacher profile.'))
+            .finally(() => setLoading(false));
     }, []);
 
-    if (!profile) return <p>Loading profile...</p>;
+    const previewImageSrc = useMemo(() => {
+        if (photoFile) {
+            const src = toImageSrc(form.profile_image_base64);
+            return src;
+        }
+        return toImageSrc(form.profile_image_base64);
+    }, [form.profile_image_base64, photoFile]);
+
+    const validate = () => {
+        const next = {};
+        if (!form.name.trim()) next.name = 'Name is required';
+        if (!form.email.trim()) next.email = 'Email is required';
+        if (!form.employee_id.trim()) next.employee_id = 'Employee ID is required';
+        if (!form.subject_specialization.trim()) next.subject_specialization = 'Specialization is required';
+        if (!form.qualification.trim()) next.qualification = 'Qualification is required';
+        if (!form.experience_years && form.experience_years !== 0) next.experience_years = 'Experience is required';
+        setFormErrors(next);
+        return Object.keys(next).length === 0;
+    };
+
+    const handleSave = async () => {
+        setSaveError('');
+        setSaveSuccess('');
+        if (!validate()) return;
+
+        setSaving(true);
+        try {
+            const payload = {
+                name: form.name.trim(),
+                email: form.email.trim(),
+                phone: form.phone || '',
+                gender: form.gender || '',
+                dob: form.dob || null,
+                employee_id: form.employee_id.trim(),
+                qualification: form.qualification.trim(),
+                experience_years: form.experience_years === '' ? null : form.experience_years,
+                subject_specialization: form.subject_specialization.trim(),
+                joining_date: form.joining_date || null,
+                status: form.status || 'Active',
+                phone_number: form.phone || null,
+                profile_image_base64: form.profile_image_base64 || '',
+            };
+
+            await api.patch('teachers/profile/', payload);
+            const res = await api.get('teachers/profile/');
+            setProfile(res.data || null);
+            setSaveSuccess('Profile saved successfully.');
+        } catch (e) {
+            setSaveError(e?.response?.data?.error || 'Failed to save profile.');
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    const handleChangePassword = async () => {
+        setPwError('');
+        setPwSuccess('');
+        if (!pwOld || !pwNew || !pwConfirm) {
+            setPwError('All password fields are required.');
+            return;
+        }
+        if (pwNew !== pwConfirm) {
+            setPwError('New password and confirm password do not match.');
+            return;
+        }
+        setPwBusy(true);
+        try {
+            await api.patch('accounts/change-password/', {
+                old_password: pwOld,
+                new_password: pwNew,
+                confirm_password: pwConfirm,
+            });
+            setPwSuccess('Password updated successfully.');
+            setPwOld('');
+            setPwNew('');
+            setPwConfirm('');
+        } catch (e) {
+            setPwError(e?.response?.data?.error || 'Could not update password.');
+        } finally {
+            setPwBusy(false);
+        }
+    };
+
+    const handlePhotoChange = async (file) => {
+        setPhotoFile(file || null);
+        if (!file) {
+            setForm((prev) => ({ ...prev, profile_image_base64: '' }));
+            return;
+        }
+        try {
+            const base64 = await fileToBase64DataUrl(file);
+            setForm((prev) => ({ ...prev, profile_image_base64: base64 }));
+        } catch (e) {
+            setSaveError('Failed to read selected photo.');
+        }
+    };
+
+    const handleUploadDoc = async () => {
+        setDocError('');
+        if (!docFile) {
+            setDocError('Please select a file first.');
+            return;
+        }
+        setDocBusy(true);
+        try {
+            const formData = new FormData();
+            formData.append('file', docFile);
+            const res = await api.post('teachers/profile/documents/', formData, {
+                headers: { 'Content-Type': 'multipart/form-data' },
+            });
+            setDocuments((prev) => [res.data, ...(prev || [])]);
+            setDocFile(null);
+        } catch (e) {
+            setDocError(e?.response?.data?.error || 'Failed to upload document.');
+        } finally {
+            setDocBusy(false);
+        }
+    };
+
+    if (loading) {
+        return <div style={{ padding: 20, color: colors.muted, fontWeight: 900 }}>Loading profile...</div>;
+    }
+
+    if (!profile) {
+        return <div style={{ padding: 20, color: colors.danger, fontWeight: 900 }}>Teacher profile not found.</div>;
+    }
 
     return (
-        <div style={{ padding: '20px' }}>
-            <h1>Teacher Profile</h1>
-            <div style={{ border: '1px solid #ddd', padding: '20px', backgroundColor: '#f9f9f9' }}>
-                <p><strong>Name:</strong> {profile.user.name}</p>
-                <p><strong>Employee ID:</strong> {profile.employee_id}</p>
-                <p><strong>Specialization:</strong> {profile.subject_specialization}</p>
-                <p><strong>Email:</strong> {profile.user.email}</p>
+        <div style={{ padding: 20, backgroundColor: colors.bg, minHeight: 'calc(100vh - 60px)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'flex-start', flexWrap: 'wrap', marginBottom: 12 }}>
+                <div>
+                    <div style={{ fontWeight: 1000, fontSize: 22, color: colors.text }}>Teacher Profile</div>
+                    <div style={{ marginTop: 4, color: colors.muted, fontWeight: 900, fontSize: 13 }}>
+                        Manage your personal and professional details.
+                    </div>
+                </div>
+                <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                    <button
+                        type="button"
+                        onClick={handleSave}
+                        disabled={saving}
+                        style={{
+                            padding: '10px 14px',
+                            borderRadius: 12,
+                            border: 'none',
+                            backgroundColor: colors.primary,
+                            color: '#fff',
+                            cursor: saving ? 'not-allowed' : 'pointer',
+                            fontWeight: 1000,
+                            minWidth: 160,
+                            opacity: saving ? 0.75 : 1,
+                        }}
+                    >
+                        {saving ? 'Saving...' : 'Save Changes'}
+                    </button>
+                </div>
+            </div>
+
+            {saveError ? <div style={{ padding: '10px 12px', borderRadius: 12, border: `1px solid ${colors.danger}`, color: colors.danger, fontWeight: 900, background: '#fff' }}>{saveError}</div> : null}
+            {saveSuccess ? <div style={{ padding: '10px 12px', borderRadius: 12, border: '1px solid #bbf7d0', color: '#166534', fontWeight: 900, background: '#ecfdf5', marginBottom: 12 }}>{saveSuccess}</div> : null}
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(12, minmax(0, 1fr))', gap: 12 }}>
+                {/* Header photo */}
+                <div style={{ gridColumn: 'span 12', backgroundColor: colors.card, border: `1px solid ${colors.border}`, borderRadius: 16, padding: 16, boxShadow: colors.shadow }}>
+                    <div style={{ display: 'flex', gap: 14, alignItems: 'center', flexWrap: 'wrap' }}>
+                        <div style={{ width: 90, height: 90, borderRadius: 22, border: `1px solid ${colors.border}`, backgroundColor: '#f3f4f6', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+                            {previewImageSrc ? (
+                                <img src={previewImageSrc} alt="Teacher profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                            ) : (
+                                <span style={{ fontWeight: 1000, color: colors.primary, fontSize: 24 }}>
+                                    {(form.name || 'T').slice(0, 1).toUpperCase()}
+                                </span>
+                            )}
+                        </div>
+                        <div style={{ flex: 1, minWidth: 260 }}>
+                            <div style={{ fontWeight: 1000, fontSize: 18, color: colors.text }}>{form.name || '—'}</div>
+                            <div style={{ marginTop: 4, color: colors.muted, fontWeight: 900, fontSize: 13 }}>
+                                {profile.role_label || 'Teacher'} • {form.employee_id || '—'}
+                            </div>
+                            <div style={{ marginTop: 10, maxWidth: 360 }}>
+                                <div style={labelStyle}>Profile Photo</div>
+                                <input
+                                    type="file"
+                                    accept="image/*"
+                                    onChange={(e) => handlePhotoChange(e.target.files?.[0] || null)}
+                                    style={{ ...inputStyle, padding: 10 }}
+                                />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Basic Info */}
+                <div style={{ gridColumn: 'span 6', backgroundColor: colors.card, border: `1px solid ${colors.border}`, borderRadius: 16, padding: 16, boxShadow: colors.shadow }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'center' }}>
+                        <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+                            <IconBox>
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                                    <circle cx="12" cy="7" r="4" />
+                                </svg>
+                            </IconBox>
+                            <div>
+                                <div style={labelStyle}>Basic Information</div>
+                                <div style={{ fontWeight: 1000, color: colors.text }}>Personal Details</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style={{ marginTop: 14, display: 'grid', gap: 12 }}>
+                        <Field label="Full Name" required error={formErrors.name}>
+                            <input value={form.name} onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))} style={{ ...inputStyle, borderColor: formErrors.name ? '#fca5a5' : colors.border }} />
+                        </Field>
+
+                        <Field label="Email" required error={formErrors.email}>
+                            <input value={form.email} onChange={(e) => setForm((p) => ({ ...p, email: e.target.value }))} style={{ ...inputStyle, borderColor: formErrors.email ? '#fca5a5' : colors.border }} />
+                        </Field>
+
+                        <Field label="Phone Number" error={null}>
+                            <input value={form.phone || ''} onChange={(e) => setForm((p) => ({ ...p, phone: e.target.value }))} style={inputStyle} />
+                        </Field>
+
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                            <Field label="Gender" error={null}>
+                                <input value={form.gender || ''} onChange={(e) => setForm((p) => ({ ...p, gender: e.target.value }))} style={inputStyle} placeholder="Male/Female/Other" />
+                            </Field>
+                            <Field label="Date of Birth" error={null}>
+                                <input type="date" value={form.dob || ''} onChange={(e) => setForm((p) => ({ ...p, dob: e.target.value }))} style={inputStyle} />
+                            </Field>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Professional */}
+                <div style={{ gridColumn: 'span 6', backgroundColor: colors.card, border: `1px solid ${colors.border}`, borderRadius: 16, padding: 16, boxShadow: colors.shadow }}>
+                    <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+                        <IconBox bg="#ecfdf5">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M4 19.5A2.5 2.5 0 0 0 6.5 22H20" />
+                                <path d="M8 22V4h12v18" />
+                                <path d="M8 4l-4 2v16l4-2" />
+                            </svg>
+                        </IconBox>
+                        <div>
+                            <div style={labelStyle}>Professional Details</div>
+                            <div style={{ fontWeight: 1000, color: colors.text }}>Teaching Profile</div>
+                        </div>
+                    </div>
+
+                    <div style={{ marginTop: 14, display: 'grid', gap: 12 }}>
+                        <Field label="Employee ID" required error={formErrors.employee_id}>
+                            <input value={form.employee_id} onChange={(e) => setForm((p) => ({ ...p, employee_id: e.target.value }))} style={{ ...inputStyle, borderColor: formErrors.employee_id ? '#fca5a5' : colors.border }} />
+                        </Field>
+
+                        <Field label="Qualification" required error={formErrors.qualification}>
+                            <input value={form.qualification} onChange={(e) => setForm((p) => ({ ...p, qualification: e.target.value }))} style={{ ...inputStyle, borderColor: formErrors.qualification ? '#fca5a5' : colors.border }} />
+                        </Field>
+
+                        <Field label="Experience (Years)" required error={formErrors.experience_years}>
+                            <input
+                                type="number"
+                                min="0"
+                                value={form.experience_years}
+                                onChange={(e) => setForm((p) => ({ ...p, experience_years: e.target.value }))}
+                                style={{ ...inputStyle, borderColor: formErrors.experience_years ? '#fca5a5' : colors.border }}
+                            />
+                        </Field>
+
+                        <Field label="Subjects assigned" error={null}>
+                            <div style={{ border: `1px solid ${colors.border}`, borderRadius: 12, padding: 12, background: '#fafafa' }}>
+                                {(profile.subjects_assigned || []).length ? (
+                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                                        {profile.subjects_assigned.map((s) => (
+                                            <span key={s.id} style={{ padding: '6px 10px', borderRadius: 999, background: '#eef2ff', color: colors.primary, fontWeight: 1000, fontSize: 12 }}>
+                                                {s.name}
+                                            </span>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <div style={{ color: colors.muted, fontWeight: 900 }}>No subjects assigned</div>
+                                )}
+                            </div>
+                        </Field>
+                    </div>
+                </div>
+
+                {/* Academic */}
+                <div style={{ gridColumn: 'span 6', backgroundColor: colors.card, border: `1px solid ${colors.border}`, borderRadius: 16, padding: 16, boxShadow: colors.shadow }}>
+                    <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+                        <IconBox bg="#eff6ff">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M3 7l9-4 9 4-9 4-9-4Z" />
+                                <path d="M21 10v6" />
+                                <path d="M3 10v6" />
+                                <path d="M12 14v6" />
+                            </svg>
+                        </IconBox>
+                        <div>
+                            <div style={labelStyle}>Academic Info</div>
+                            <div style={{ fontWeight: 1000, color: colors.text }}>Academic Metadata</div>
+                        </div>
+                    </div>
+
+                    <div style={{ marginTop: 14, display: 'grid', gap: 12 }}>
+                        <Field label="Specialization" required error={formErrors.subject_specialization}>
+                            <input
+                                value={form.subject_specialization}
+                                onChange={(e) => setForm((p) => ({ ...p, subject_specialization: e.target.value }))}
+                                style={{ ...inputStyle, borderColor: formErrors.subject_specialization ? '#fca5a5' : colors.border }}
+                            />
+                        </Field>
+
+                        <Field label="Joining Date" error={null}>
+                            <input type="date" value={form.joining_date || ''} onChange={(e) => setForm((p) => ({ ...p, joining_date: e.target.value }))} style={inputStyle} />
+                        </Field>
+
+                        <Field label="Role" error={null}>
+                            <div style={{ border: `1px solid ${colors.border}`, borderRadius: 12, padding: 12, background: '#fafafa', fontWeight: 1000, color: colors.text }}>
+                                {profile.role_label || 'Teacher'}
+                            </div>
+                        </Field>
+                    </div>
+                </div>
+
+                {/* Classes assigned */}
+                <div style={{ gridColumn: 'span 6', backgroundColor: colors.card, border: `1px solid ${colors.border}`, borderRadius: 16, padding: 16, boxShadow: colors.shadow }}>
+                    <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+                        <IconBox bg="#fefce8">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <rect x="3" y="4" width="18" height="16" rx="2" ry="2" />
+                                <path d="M7 8h10" />
+                                <path d="M7 12h6" />
+                            </svg>
+                        </IconBox>
+                        <div>
+                            <div style={labelStyle}>Classes Assigned</div>
+                            <div style={{ fontWeight: 1000, color: colors.text }}>Teaching Schedule</div>
+                        </div>
+                    </div>
+
+                    <div style={{ marginTop: 14, display: 'grid', gap: 10 }}>
+                        {(profile.classes_assigned || []).length ? (
+                            profile.classes_assigned.map((c) => (
+                                <div key={c.id} style={{ border: `1px solid ${colors.border}`, borderRadius: 14, padding: 12, background: '#fafafa' }}>
+                                    <div style={{ fontWeight: 1000, color: colors.text }}>{c.class_name} - {c.section_name}</div>
+                                    <div style={{ marginTop: 4, color: colors.muted, fontWeight: 900, fontSize: 12 }}>
+                                        Students: {c.student_count} {c.room_number ? `• Room: ${c.room_number}` : ''}
+                                    </div>
+                                </div>
+                            ))
+                        ) : (
+                            <div style={{ color: colors.muted, fontWeight: 900 }}>No classes assigned.</div>
+                        )}
+                    </div>
+                </div>
+
+                {/* Account settings */}
+                <div style={{ gridColumn: 'span 7', backgroundColor: colors.card, border: `1px solid ${colors.border}`, borderRadius: 16, padding: 16, boxShadow: colors.shadow }}>
+                    <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+                        <IconBox bg="#f5f3ff">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M12 1v4" />
+                                <path d="M12 19v4" />
+                                <path d="M4.22 4.22l2.83 2.83" />
+                                <path d="M16.95 16.95l2.83 2.83" />
+                                <path d="M1 12h4" />
+                                <path d="M19 12h4" />
+                                <path d="M4.22 19.78l2.83-2.83" />
+                                <path d="M16.95 7.05l2.83-2.83" />
+                            </svg>
+                        </IconBox>
+                        <div>
+                            <div style={labelStyle}>Account Settings</div>
+                            <div style={{ fontWeight: 1000, color: colors.text }}>Password & Contact</div>
+                        </div>
+                    </div>
+
+                    <div style={{ marginTop: 14, display: 'grid', gap: 12 }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                            <Field label="New Contact Email" required={false} error={null}>
+                                <input value={form.email} onChange={(e) => setForm((p) => ({ ...p, email: e.target.value }))} style={inputStyle} />
+                            </Field>
+                            <Field label="New Contact Phone" required={false} error={null}>
+                                <input value={form.phone || ''} onChange={(e) => setForm((p) => ({ ...p, phone: e.target.value }))} style={inputStyle} />
+                            </Field>
+                        </div>
+
+                        <div style={{ borderTop: `1px solid ${colors.border}`, paddingTop: 12 }}>
+                            <div style={{ fontWeight: 1000, color: colors.text, marginBottom: 8 }}>Change Password</div>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                                <Field label="Old Password" required={true} error={null}>
+                                    <input type="password" value={pwOld} onChange={(e) => setPwOld(e.target.value)} style={inputStyle} />
+                                </Field>
+                                <Field label="New Password" required={true} error={null}>
+                                    <input type="password" value={pwNew} onChange={(e) => setPwNew(e.target.value)} style={inputStyle} />
+                                </Field>
+                            </div>
+                            <div style={{ marginTop: 12 }}>
+                                <Field label="Confirm New Password" required={true} error={null}>
+                                    <input type="password" value={pwConfirm} onChange={(e) => setPwConfirm(e.target.value)} style={inputStyle} />
+                                </Field>
+                            </div>
+                            {pwError ? <div style={{ marginTop: 10, color: colors.danger, fontWeight: 900 }}>{pwError}</div> : null}
+                            {pwSuccess ? <div style={{ marginTop: 10, color: '#166534', fontWeight: 900, background: '#ecfdf5', border: '1px solid #bbf7d0', padding: '10px 12px', borderRadius: 12 }}>{pwSuccess}</div> : null}
+
+                            <div style={{ marginTop: 12, display: 'flex', justifyContent: 'flex-end' }}>
+                                <button
+                                    type="button"
+                                    onClick={handleChangePassword}
+                                    disabled={pwBusy}
+                                    style={{
+                                        padding: '10px 14px',
+                                        borderRadius: 12,
+                                        border: 'none',
+                                        backgroundColor: colors.primary,
+                                        color: '#fff',
+                                        cursor: pwBusy ? 'not-allowed' : 'pointer',
+                                        fontWeight: 1000,
+                                        opacity: pwBusy ? 0.75 : 1,
+                                    }}
+                                >
+                                    {pwBusy ? 'Updating...' : 'Update Password'}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Activity stats */}
+                <div style={{ gridColumn: 'span 5', backgroundColor: colors.card, border: `1px solid ${colors.border}`, borderRadius: 16, padding: 16, boxShadow: colors.shadow }}>
+                    <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+                        <IconBox bg="#ecfdf5">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M21 15V8a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v7" />
+                                <path d="M8 21h8" />
+                                <path d="M12 17v4" />
+                            </svg>
+                        </IconBox>
+                        <div>
+                            <div style={labelStyle}>Activity Stats</div>
+                            <div style={{ fontWeight: 1000, color: colors.text }}>Overview</div>
+                        </div>
+                    </div>
+
+                    <div style={{ marginTop: 14, display: 'grid', gap: 10 }}>
+                        <div style={{ border: `1px solid ${colors.border}`, borderRadius: 14, padding: 12, background: '#fafafa' }}>
+                            <div style={{ color: colors.muted, fontWeight: 900, fontSize: 12, textTransform: 'uppercase' }}>Total classes handled</div>
+                            <div style={{ marginTop: 6, fontWeight: 1000, fontSize: 22 }}>{profile.stats?.total_classes_handled ?? 0}</div>
+                        </div>
+                        <div style={{ border: `1px solid ${colors.border}`, borderRadius: 14, padding: 12, background: '#fafafa' }}>
+                            <div style={{ color: colors.muted, fontWeight: 900, fontSize: 12, textTransform: 'uppercase' }}>Total students</div>
+                            <div style={{ marginTop: 6, fontWeight: 1000, fontSize: 22 }}>{profile.stats?.total_students ?? 0}</div>
+                        </div>
+                        <div style={{ border: `1px solid ${colors.border}`, borderRadius: 14, padding: 12, background: '#fafafa' }}>
+                            <div style={{ color: colors.muted, fontWeight: 900, fontSize: 12, textTransform: 'uppercase' }}>Assignments created</div>
+                            <div style={{ marginTop: 6, fontWeight: 1000, fontSize: 22 }}>{profile.stats?.assignments_created ?? 0}</div>
+                        </div>
+                        <div style={{ border: `1px solid ${colors.border}`, borderRadius: 14, padding: 12, background: '#fafafa' }}>
+                            <div style={{ color: colors.muted, fontWeight: 900, fontSize: 12, textTransform: 'uppercase' }}>Attendance records</div>
+                            <div style={{ marginTop: 6, fontWeight: 1000, fontSize: 22 }}>{profile.stats?.attendance_records ?? 0}</div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Documents */}
+                <div style={{ gridColumn: 'span 12', backgroundColor: colors.card, border: `1px solid ${colors.border}`, borderRadius: 16, padding: 16, boxShadow: colors.shadow }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'flex-start', flexWrap: 'wrap' }}>
+                        <div>
+                            <div style={labelStyle}>Documents (Optional)</div>
+                            <div style={{ fontWeight: 1000, color: colors.text }}>Upload certificates / resume</div>
+                            <div style={{ marginTop: 6, color: colors.muted, fontWeight: 900, fontSize: 13 }}>
+                                Supported: PDF/DOC/DOCX/Images.
+                            </div>
+                        </div>
+                        <div style={{ minWidth: 300 }}>
+                            <div style={labelStyle}>Upload</div>
+                            <input
+                                type="file"
+                                accept=".pdf,.doc,.docx,.png,.jpg,.jpeg,.gif,.webp"
+                                onChange={(e) => {
+                                    setDocError('');
+                                    setDocFile(e.target.files?.[0] || null);
+                                }}
+                                style={inputStyle}
+                            />
+                            {docError ? <div style={{ marginTop: 6, color: colors.danger, fontWeight: 900, fontSize: 12 }}>{docError}</div> : null}
+                            <div style={{ marginTop: 10, display: 'flex', justifyContent: 'flex-end' }}>
+                                <button
+                                    type="button"
+                                    onClick={handleUploadDoc}
+                                    disabled={docBusy}
+                                    style={{
+                                        padding: '10px 14px',
+                                        borderRadius: 12,
+                                        border: 'none',
+                                        backgroundColor: colors.primary,
+                                        color: '#fff',
+                                        cursor: docBusy ? 'not-allowed' : 'pointer',
+                                        fontWeight: 1000,
+                                        opacity: docBusy ? 0.75 : 1,
+                                    }}
+                                >
+                                    {docBusy ? 'Uploading...' : 'Upload Document'}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style={{ marginTop: 14, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px,1fr))', gap: 12 }}>
+                        {(documents || []).length ? (
+                            documents.map((d) => (
+                                <div key={d.id} style={{ border: `1px solid ${colors.border}`, borderRadius: 14, padding: 12, background: '#fafafa' }}>
+                                    <div style={{ fontWeight: 1000, color: colors.text }}>Document #{d.id}</div>
+                                    <div style={{ marginTop: 6 }}>
+                                        {d.file_url ? (
+                                            <a
+                                                href={d.file_url}
+                                                target="_blank"
+                                                rel="noreferrer"
+                                                style={{ color: colors.primary, textDecoration: 'none', fontWeight: 1000 }}
+                                            >
+                                                Open / Download
+                                            </a>
+                                        ) : (
+                                            <div style={{ color: colors.muted, fontWeight: 900 }}>No file</div>
+                                        )}
+                                    </div>
+                                    <div style={{ marginTop: 8, color: colors.muted, fontWeight: 900, fontSize: 12 }}>{new Date(d.uploaded_at).toLocaleString()}</div>
+                                </div>
+                            ))
+                        ) : (
+                            <div style={{ color: colors.muted, fontWeight: 900 }}>No documents uploaded yet.</div>
+                        )}
+                    </div>
+                </div>
             </div>
         </div>
     );
