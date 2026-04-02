@@ -486,13 +486,24 @@ def get_student_dashboard(user = Depends(get_current_user)):
     pending_assignments = Assignment.objects.filter(class_section=student.class_section, due_date__gte=today).count()
     
     day_name = today.strftime("%A")
-    timetable_records = Timetable.objects.filter(class_section=student.class_section, day=day_name).order_by('start_time')
+    day_map = {'Monday': 1, 'Tuesday': 2, 'Wednesday': 3, 'Thursday': 4, 'Friday': 5, 'Saturday': 6, 'Sunday': 7}
+    day_num = day_map.get(day_name, 1)
+    
+    class_name = student.class_section.class_ref.name
+    section = student.class_section.section_ref.name
+    
+    timetable_records = TimeTableEntry.objects.filter(
+        class_name=class_name, 
+        section=section, 
+        day=day_num
+    ).order_by('start_time')
+    
     timetable_data = []
     for t in timetable_records:
         timetable_data.append({
-            "subject": t.subject.name if t.subject else "Subject",
-            "teacher_name": t.teacher.user.name or t.teacher.user.username if t.teacher else "Instructor",
-            "room_info": t.room_number,
+            "subject": t.subject,
+            "teacher_name": t.teacher.name or t.teacher.username,
+            "room_info": t.room,
             "start_time": str(t.start_time),
             "end_time": str(t.end_time)
         })
@@ -768,20 +779,22 @@ def teacher_dashboard(user = Depends(get_current_user)):
 
     today = date.today()
     day_name = today.strftime('%A')
+    day_map = {'Monday': 1, 'Tuesday': 2, 'Wednesday': 3, 'Thursday': 4, 'Friday': 5, 'Saturday': 6}
+    day_num = day_map.get(day_name, 1)
     
     # 1. Classes Today
-    timetables = Timetable.objects.filter(teacher=teacher, day=day_name).select_related('class_section__class_ref', 'class_section__section_ref')
+    timetables = TimeTableEntry.objects.filter(teacher=teacher, day=day_num)
     
     classes_today = []
     attendance_pending = 0
     
     for t in timetables:
-        c_name = f"{t.class_section.class_ref.name}-{t.class_section.section_ref.name}"
+        c_name = f"{t.class_name}-{t.section}"
         classes_today.append({
             "time": t.start_time.strftime("%I:%M %p"),
             "name": c_name,
             "subject": t.subject,
-            "class_id": t.class_section.id
+            "room": t.room
         })
         # Check if attendance marked using the newly indexed class_section field (optimized)
         is_marked = Attendance.objects.filter(class_section=t.class_section, date=today).exists()

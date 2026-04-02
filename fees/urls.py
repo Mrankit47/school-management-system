@@ -2,6 +2,7 @@ from django.urls import path
 
 from .views import (
     MyFeesView,
+    StudentPaymentCreateView,
     StudentReceiptPDFView,
     FeeStructureListCreateView,
     FeeStructureDetailView,
@@ -18,6 +19,7 @@ from .views import (
 
 urlpatterns = [
     path('my/', MyFeesView.as_view(), name='my-fees'),
+    path('my/pay/', StudentPaymentCreateView.as_view(), name='student-pay-create'),
     path('my/receipt/<int:payment_id>/', StudentReceiptPDFView.as_view(), name='student-receipt-pdf'),
     path('admin/dashboard/', AdminFeesDashboardView.as_view(), name='fees-admin-dashboard'),
     path('admin/structures/', FeeStructureListCreateView.as_view(), name='fee-structures'),

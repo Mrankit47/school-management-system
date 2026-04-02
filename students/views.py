@@ -33,6 +33,21 @@ def _next_roll_number_for_class_section(class_section):
                 max_numeric = num
     return f"{max_numeric + 1}{suffix}"
 
+
+def _next_admission_number():
+    existing = StudentProfile.objects.values_list('admission_number', flat=True)
+    used = set()
+    for adm in existing:
+        match = re.match(r'^ADM(\d+)$', str(adm or '').strip().upper())
+        if match:
+            used.add(int(match.group(1)))
+
+    # Always start from ADM101 and assign the first free number.
+    n = 101
+    while n in used:
+        n += 1
+    return f"ADM{n}"
+
 class StudentListView(views.APIView):
     """
     Admin-only students list.
@@ -257,9 +272,11 @@ class AdminStudentCreateView(views.APIView):
 
             roll_number = (data.get('roll_number') or '').strip() or _next_roll_number_for_class_section(class_section)
 
+            admission_number = (data.get('admission_number') or '').strip() or _next_admission_number()
+
             profile = StudentProfile.objects.create(
                 user=user,
-                admission_number=data['admission_number'],
+                admission_number=admission_number,
                 roll_number=roll_number,
                 rfid_code=data.get('rfid_code'),
                 class_section_id=class_section_id,
@@ -302,6 +319,7 @@ class StudentProfileView(views.APIView):
             "name": s.user.name or s.user.username,
             "username": s.user.username,
             "email": s.user.email,
+            "phone": s.user.phone,
             "class_name": (
                 f"{s.class_section.class_ref.name} - {s.class_section.section_ref.name}"
                 if s.class_section else "N/A"
@@ -311,4 +329,7 @@ class StudentProfileView(views.APIView):
             "date_of_admission": s.date_of_admission,
             "dob": s.dob,
             "gender": s.gender,
+            "parent_guardian_name": s.parent_guardian_name,
+            "parent_contact_number": s.parent_contact_number,
+            "address": s.address,
         })

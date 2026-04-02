@@ -12,7 +12,7 @@ from .serializers import AttendanceSerializer
 from core.permissions import IsTeacher, IsStudent
 from communication.models import Notification
 from holidays.models import Holiday
-from timetable.models import Timetable
+from timetable.models import TimeTableEntry
 from .pdf_report import build_student_attendance_report_pdf
 from django.http import HttpResponse
 from classes.models import ClassSection
@@ -37,6 +37,12 @@ class AttendanceMarkView(views.APIView):
             target_date = date_type.fromisoformat(date_raw)
         except Exception:
             return Response({'error': 'Invalid date format'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if target_date != timezone.localdate():
+            return Response(
+                {'error': 'Attendance can only be edited for today. Past dates are view-only.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         student = StudentProfile.objects.select_related('class_section').filter(id=student_id).first()
         if not student or not student.class_section:
@@ -129,11 +135,14 @@ class TeacherAttendanceSheetView(views.APIView):
                 }
             )
 
+        is_editable = target_date == timezone.localdate()
+
         return Response(
             {
                 'class_section_id': class_section.id,
                 'class_display': f'{class_section.class_ref.name} - {class_section.section_ref.name}',
                 'date': target_date.isoformat(),
+                'is_editable': is_editable,
                 'summary': {
                     'present': present,
                     'absent': absent,
@@ -166,6 +175,12 @@ class TeacherAttendanceBulkSaveView(views.APIView):
             target_date = date_type.fromisoformat(str(date_raw))
         except Exception:
             return Response({'error': 'Invalid class_section_id/date'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if target_date != timezone.localdate():
+            return Response(
+                {'error': 'Past attendance records are view-only. You can edit attendance only for today.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         class_section = (
             ClassSection.objects.select_related('class_ref', 'section_ref', 'class_teacher__user')
@@ -657,7 +672,12 @@ class MyAttendanceReportPDFView(views.APIView):
         # Timetable uses class_section. If student doesn't have class_section, we'll keep subject-wise empty.
         timetable_by_day = defaultdict(list)
         if student_profile.class_section_id:
-            timetable_qs = Timetable.objects.filter(class_section=student_profile.class_section).all()
+            class_name = student_profile.class_section.class_ref.name
+            section = student_profile.class_section.section_ref.name
+            timetable_qs = TimeTableEntry.objects.filter(
+                class_name=class_name, 
+                section=section
+            ).all()
             for t in timetable_qs:
                 timetable_by_day[t.day].append(t)
 
@@ -689,8 +709,8 @@ class MyAttendanceReportPDFView(views.APIView):
             if not rec:
                 continue
 
-            day_name = day_names[cur.weekday()]
-            timetable_entries = timetable_by_day.get(day_name) or []
+            day_num = cur.weekday() + 1  # Monday=1, ..., Sunday=7
+            timetable_entries = timetable_by_day.get(day_num) or []
             if not timetable_entries:
                 continue
 

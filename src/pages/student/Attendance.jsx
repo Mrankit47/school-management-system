@@ -564,13 +564,13 @@ const StudentAttendance = () => {
 
                     <div style={{ marginTop: 12, overflowX: 'auto' }}>
                         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                            <thead>
+                <thead>
                                 <tr style={{ backgroundColor: '#f2f4f7' }}>
                                     <th style={{ padding: '12px 10px', textAlign: 'left', color: colors.muted, fontWeight: 1000, fontSize: 12 }}>Date</th>
                                     <th style={{ padding: '12px 10px', textAlign: 'left', color: colors.muted, fontWeight: 1000, fontSize: 12 }}>Status</th>
                                 </tr>
-                            </thead>
-                            <tbody>
+                </thead>
+                <tbody>
                                 {loading ? (
                                     <tr>
                                         <td colSpan={2} style={{ padding: 14, color: colors.muted, fontWeight: 900 }}>
@@ -604,7 +604,7 @@ const StudentAttendance = () => {
                                         <td colSpan={2} style={{ padding: 14, color: colors.muted, fontWeight: 900 }}>
                                             No attendance records for this month.
                                         </td>
-                                    </tr>
+                        </tr>
                                 )}
                             </tbody>
                         </table>
@@ -747,8 +747,8 @@ const StudentAttendance = () => {
                                         </td>
                                     </tr>
                                 )}
-                            </tbody>
-                        </table>
+                </tbody>
+            </table>
                     </div>
                 </div>
 

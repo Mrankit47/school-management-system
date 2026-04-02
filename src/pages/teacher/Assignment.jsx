@@ -271,7 +271,7 @@ const Assignment = () => {
                                         {formData.class_id ? s.section_name : `${s.class_name} - ${s.section_name}`}
                                     </option>
                                 ))}
-                            </select>
+                </select>
                             {errors.section_id ? <div style={{ marginTop: 6, color: '#b91c1c', fontSize: 12, fontWeight: 900 }}>{errors.section_id}</div> : null}
                         </div>
 
@@ -423,7 +423,7 @@ const Assignment = () => {
                             {submitting ? 'Creating...' : 'Create Assignment'}
                         </button>
                     </div>
-                </form>
+            </form>
             </div>
         </div>
     );

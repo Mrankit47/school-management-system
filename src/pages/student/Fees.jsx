@@ -12,6 +12,8 @@ const card = {
 const Fees = () => {
     const [feeRecords, setFeeRecords] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [paymentForms, setPaymentForms] = useState({});
+    const [payingId, setPayingId] = useState(null);
 
     useEffect(() => {
         api
@@ -20,6 +22,30 @@ const Fees = () => {
             .catch(() => setFeeRecords([]))
             .finally(() => setLoading(false));
     }, []);
+
+    useEffect(() => {
+        const init = {};
+        (feeRecords || []).forEach((r) => {
+            const due = Number(r.due_amount || 0);
+            init[r.id] = {
+                amount: due > 0 ? due.toFixed(2) : '',
+                payment_date: new Date().toISOString().slice(0, 10),
+                payment_mode: 'UPI',
+                transaction_id: '',
+            };
+        });
+        setPaymentForms(init);
+    }, [feeRecords]);
+
+    const setFormField = (recordId, field, value) => {
+        setPaymentForms((prev) => ({
+            ...prev,
+            [recordId]: {
+                ...(prev[recordId] || {}),
+                [field]: value,
+            },
+        }));
+    };
 
     const downloadReceipt = async (paymentId) => {
         try {
@@ -63,6 +89,56 @@ const Fees = () => {
         a.download = `student_ledger_${record.id}.csv`;
         a.click();
         window.URL.revokeObjectURL(url);
+    };
+
+    const payNow = async (record) => {
+        const form = paymentForms[record.id] || {};
+        const amount = Number(form.amount || 0);
+        const due = Number(record.due_amount || 0);
+
+        if (!amount || amount <= 0) {
+            alert('Please enter valid amount.');
+            return;
+        }
+        if (amount - due > 0.009) {
+            alert(`Amount cannot be greater than due (₹${record.due_amount}).`);
+            return;
+        }
+        if (!form.payment_date) {
+            alert('Please select payment date.');
+            return;
+        }
+
+        setPayingId(record.id);
+        try {
+            const payload = {
+                student_fee_id: record.id,
+                amount: String(amount),
+                payment_date: form.payment_date,
+                payment_mode: form.payment_mode || 'UPI',
+                transaction_id: form.transaction_id || '',
+            };
+            const res = await api.post('fees/my/pay/', payload);
+            const updated = res?.data?.student_fee;
+            if (updated) {
+                setFeeRecords((prev) => prev.map((r) => (r.id === record.id ? updated : r)));
+                const nextDue = Number(updated.due_amount || 0);
+                setPaymentForms((prev) => ({
+                    ...prev,
+                    [record.id]: {
+                        amount: nextDue > 0 ? nextDue.toFixed(2) : '',
+                        payment_date: new Date().toISOString().slice(0, 10),
+                        payment_mode: 'UPI',
+                        transaction_id: '',
+                    },
+                }));
+            }
+            alert('Payment recorded successfully. Receipt is now available below.');
+        } catch (e) {
+            alert(e?.response?.data?.error || 'Could not process payment.');
+        } finally {
+            setPayingId(null);
+        }
     };
 
     if (loading) return <div style={{ padding: '20px', color: '#6b7280' }}>Loading fee status…</div>;
@@ -161,6 +237,78 @@ const Fees = () => {
                                     Tuition ₹{f.fee_breakdown.tuition_fees} · Exam ₹{f.fee_breakdown.exam_fees} · Other ₹{f.fee_breakdown.other_charges}
                                 </div>
                             )}
+
+                            {Number(f.due_amount || 0) > 0 ? (
+                                <div style={{ marginTop: '16px', border: '1px solid #e5e7eb', borderRadius: 12, padding: 12, backgroundColor: '#f9fafb' }}>
+                                    <div style={{ fontWeight: 900, marginBottom: 10 }}>Pay Fees</div>
+                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: 10 }}>
+                                        <div>
+                                            <div style={{ fontSize: 11, color: '#6b7280', fontWeight: 800, marginBottom: 5 }}>Amount</div>
+                                            <input
+                                                type="number"
+                                                min="0.01"
+                                                max={f.due_amount}
+                                                step="0.01"
+                                                value={paymentForms[f.id]?.amount || ''}
+                                                onChange={(e) => setFormField(f.id, 'amount', e.target.value)}
+                                                style={{ width: '100%', padding: '10px 12px', border: '1px solid #e5e7eb', borderRadius: 10 }}
+                                            />
+                                        </div>
+                                        <div>
+                                            <div style={{ fontSize: 11, color: '#6b7280', fontWeight: 800, marginBottom: 5 }}>Payment date</div>
+                                            <input
+                                                type="date"
+                                                value={paymentForms[f.id]?.payment_date || ''}
+                                                onChange={(e) => setFormField(f.id, 'payment_date', e.target.value)}
+                                                style={{ width: '100%', padding: '10px 12px', border: '1px solid #e5e7eb', borderRadius: 10 }}
+                                            />
+                                        </div>
+                                        <div>
+                                            <div style={{ fontSize: 11, color: '#6b7280', fontWeight: 800, marginBottom: 5 }}>Mode</div>
+                                            <select
+                                                value={paymentForms[f.id]?.payment_mode || 'UPI'}
+                                                onChange={(e) => setFormField(f.id, 'payment_mode', e.target.value)}
+                                                style={{ width: '100%', padding: '10px 12px', border: '1px solid #e5e7eb', borderRadius: 10 }}
+                                            >
+                                                <option value="UPI">UPI</option>
+                                                <option value="Cash">Cash</option>
+                                                <option value="Card">Card</option>
+                                                <option value="Bank Transfer">Bank Transfer</option>
+                                                <option value="Cheque">Cheque</option>
+                                                <option value="Other">Other</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <div style={{ fontSize: 11, color: '#6b7280', fontWeight: 800, marginBottom: 5 }}>Transaction ID (optional)</div>
+                                            <input
+                                                type="text"
+                                                value={paymentForms[f.id]?.transaction_id || ''}
+                                                onChange={(e) => setFormField(f.id, 'transaction_id', e.target.value)}
+                                                style={{ width: '100%', padding: '10px 12px', border: '1px solid #e5e7eb', borderRadius: 10 }}
+                                            />
+                                        </div>
+                                    </div>
+                                    <div style={{ marginTop: 10, display: 'flex', justifyContent: 'flex-end' }}>
+                                        <button
+                                            type="button"
+                                            disabled={payingId === f.id}
+                                            onClick={() => payNow(f)}
+                                            style={{
+                                                padding: '8px 12px',
+                                                borderRadius: 10,
+                                                border: 'none',
+                                                backgroundColor: '#2563eb',
+                                                color: '#fff',
+                                                fontWeight: 900,
+                                                cursor: payingId === f.id ? 'not-allowed' : 'pointer',
+                                                opacity: payingId === f.id ? 0.75 : 1,
+                                            }}
+                                        >
+                                            {payingId === f.id ? 'Processing...' : 'Pay Now'}
+                                        </button>
+                                    </div>
+                                </div>
+                            ) : null}
 
                             <div style={{ marginTop: '18px' }}>
                                 <div style={{ fontWeight: 900, marginBottom: '10px' }}>Fees Receipt</div>

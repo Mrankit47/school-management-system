@@ -12,6 +12,7 @@ import StudentResults from '../pages/student/Results';
 import StudentAssignments from '../pages/student/Assignments';
 import StudentTimetable from '../pages/student/Timetable';
 import StudentFees from '../pages/student/Fees';
+import StudentLedger from '../pages/student/Ledger';
 import StudentAttendance from '../pages/student/Attendance';
 import StudentHolidays from '../pages/student/Holidays';
 import StudentMessaging from '../pages/student/Messaging';
@@ -23,6 +24,7 @@ import TeacherStudents from '../pages/teacher/Students';
 import MarkAttendance from '../pages/teacher/MarkAttendance';
 import UploadResult from '../pages/teacher/UploadResult';
 import TeacherAssignment from '../pages/teacher/Assignment';
+import TeacherAssignmentList from '../pages/teacher/AssignmentList';
 import TeacherMessaging from '../pages/teacher/Messaging';
 import TeacherHolidays from '../pages/teacher/Holidays';
 
@@ -41,6 +43,7 @@ import AdminFees from '../pages/admin/Fees';
 import AdminHolidays from '../pages/admin/Holidays';
 import AdminReports from '../pages/admin/Reports';
 import SubjectDetails from '../pages/admin/SubjectDetails';
+import TimeTable from '../pages/common/TimeTable';
 
 const AppRoutes = () => {
     return (
@@ -58,9 +61,10 @@ const AppRoutes = () => {
                 <Route path="results/exam" element={<StudentResults />} />
                 <Route path="results/mst" element={<StudentResults />} />
                 <Route path="assignments" element={<StudentAssignments />} />
-                <Route path="timetable" element={<StudentTimetable />} />
+                <Route path="timetable" element={<TimeTable />} />
                 <Route path="attendance" element={<StudentAttendance />} />
                 <Route path="fees" element={<StudentFees />} />
+                <Route path="ledger" element={<StudentLedger />} />
                 <Route path="holidays" element={<StudentHolidays />} />
                 <Route path="messaging" element={<StudentMessaging />} />
               </Routes>
@@ -75,8 +79,10 @@ const AppRoutes = () => {
                 <Route path="attendance" element={<MarkAttendance />} />
                 <Route path="upload-result" element={<UploadResult />} />
                 <Route path="assignment" element={<TeacherAssignment />} />
+                <Route path="assignments" element={<TeacherAssignmentList />} />
                 <Route path="messaging" element={<TeacherMessaging />} />
                 <Route path="holidays" element={<TeacherHolidays />} />
+                <Route path="timetable" element={<TimeTable />} />
               </Routes>
             </ProtectedRoute>} />
 
@@ -97,6 +103,7 @@ const AppRoutes = () => {
                 <Route path="fees" element={<AdminFees />} />
                 <Route path="holidays" element={<AdminHolidays />} />
                 <Route path="reports" element={<AdminReports />} />
+                <Route path="timetable" element={<TimeTable />} />
               </Routes>
             </ProtectedRoute>} />
 

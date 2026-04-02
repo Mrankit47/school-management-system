@@ -89,6 +89,19 @@ const AddTeacher = () => {
 
     const emailRegex = useMemo(() => /^[^\s@]+@[^\s@]+\.[^\s@]+$/, []);
     const phoneDigits = useMemo(() => (form.phone_number || '').replace(/\D/g, ''), [form.phone_number]);
+    const employeeIdPreview = useMemo(() => {
+        const used = new Set(
+            (teachers || [])
+                .map((t) => {
+                    const m = String(t.employee_id || '').toUpperCase().match(/^T(\d+)$/);
+                    return m ? parseInt(m[1], 10) : null;
+                })
+                .filter((n) => Number.isFinite(n))
+        );
+        let next = 1;
+        while (used.has(next)) next += 1;
+        return `T${String(next).padStart(3, '0')}`;
+    }, [teachers]);
 
     const validate = () => {
         const nextErrors = {};
@@ -104,7 +117,6 @@ const AddTeacher = () => {
         if (!form.gender) nextErrors.gender = 'Gender is required';
         if (!form.dob) nextErrors.dob = 'Date of birth is required';
 
-        if (!form.employee_id.trim()) nextErrors.employee_id = 'Employee ID is required';
         if (!form.subject_specialization) nextErrors.subject_specialization = 'Subject specialization is required';
 
         if (!form.password) nextErrors.password = 'Password is required';
@@ -164,7 +176,7 @@ const AddTeacher = () => {
                 email: form.email.trim(),
                 password: form.password,
                 name: `${form.first_name} ${form.last_name}`.trim(),
-                employee_id: form.employee_id.trim(),
+                employee_id: employeeIdPreview,
                 subject_specialization: form.subject_specialization,
 
                 // Extra fields (backend may ignore but UI requirements are satisfied)
@@ -203,7 +215,15 @@ const AddTeacher = () => {
             setPreviewUrl('');
             setErrors({});
         } catch (err) {
-            setMessage('Error creating teacher.');
+            console.error('Teacher creation error:', err.response?.data);
+            const data = err.response?.data;
+            let errorMsg = 'Error creating teacher.';
+            if (data) {
+                if (typeof data === 'string') errorMsg = data;
+                else if (data.error) errorMsg = data.error;
+                else if (data.detail) errorMsg = data.detail;
+            }
+            setMessage(errorMsg);
         } finally {
             setBusy(false);
         }
@@ -339,14 +359,12 @@ const AddTeacher = () => {
                             <h3 style={{ margin: 0, marginBottom: '12px', color: '#111827' }}>Section: Professional Details</h3>
                             <div style={{ display: 'grid', gap: '12px' }}>
                                 <div>
-                                    <div style={labelStyle}>Employee ID</div>
+                                    <div style={labelStyle}>Employee ID (Auto Generated)</div>
                                     <input
                                         type="text"
-                                        value={form.employee_id}
-                                        onChange={(e) => setForm({ ...form, employee_id: e.target.value })}
-                                        placeholder="e.g., T001"
-                                        style={inputStyle}
-                                        required
+                                        value={employeeIdPreview}
+                                        readOnly
+                                        style={{ ...inputStyle, backgroundColor: '#f9fafb', color: '#6b7280' }}
                                     />
                                     {errors.employee_id && <div style={errorStyle}>{errors.employee_id}</div>}
                                 </div>

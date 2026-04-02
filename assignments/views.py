@@ -84,6 +84,49 @@ class AssignmentCreateView(views.APIView):
         )
 
 
+class AssignmentDetailView(views.APIView):
+    """
+    Teacher-only assignment detail/update/delete for assignments created by self.
+    """
+
+    permission_classes = [IsTeacher]
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
+
+    def get_object(self, request, assignment_id):
+        teacher_profile = TeacherProfile.objects.filter(user=request.user).first()
+        if not teacher_profile:
+            return None
+        return (
+            Assignment.objects.select_related('class_section__class_ref', 'class_section__section_ref')
+            .filter(id=assignment_id, created_by=teacher_profile)
+            .first()
+        )
+
+    def get(self, request, assignment_id: int):
+        assignment = self.get_object(request, assignment_id)
+        if not assignment:
+            return Response({'error': 'Assignment not found'}, status=status.HTTP_404_NOT_FOUND)
+        return Response(AssignmentSerializer(assignment).data)
+
+    def patch(self, request, assignment_id: int):
+        assignment = self.get_object(request, assignment_id)
+        if not assignment:
+            return Response({'error': 'Assignment not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        serializer = AssignmentSerializer(assignment, data=request.data, partial=True)
+        if serializer.is_valid():
+            updated = serializer.save()
+            return Response(AssignmentSerializer(updated).data, status=status.HTTP_200_OK)
+        return Response({'error': 'Invalid assignment data', 'details': serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+
+    def delete(self, request, assignment_id: int):
+        assignment = self.get_object(request, assignment_id)
+        if not assignment:
+            return Response({'error': 'Assignment not found'}, status=status.HTTP_404_NOT_FOUND)
+        assignment.delete()
+        return Response({'message': 'Assignment deleted successfully'}, status=status.HTTP_200_OK)
+
+
 class MyAssignmentSubmissionsView(views.APIView):
     """
     Student-only: returns student's submissions mapped by assignment id.

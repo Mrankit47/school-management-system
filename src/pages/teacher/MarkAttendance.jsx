@@ -48,6 +48,8 @@ const MarkAttendance = () => {
     const [rows, setRows] = useState([]); // local editable rows
     const [saving, setSaving] = useState(false);
 
+    const isEditable = !!sheet?.is_editable;
+
     const loadTeacherClasses = async () => {
         const [profileRes, classRes] = await Promise.all([api.get('teachers/profile/'), api.get('classes/sections/')]);
         const teacherProfile = profileRes.data || null;
@@ -87,14 +89,20 @@ const MarkAttendance = () => {
     }, [selectedClassId, date]);
 
     const setStudentStatus = (studentId, status) => {
+        if (!isEditable) return;
         setRows((prev) => prev.map((r) => (r.student_id === studentId ? { ...r, status } : r)));
     };
 
     const markAllPresent = () => {
+        if (!isEditable) return;
         setRows((prev) => prev.map((r) => ({ ...r, status: 'present' })));
     };
 
     const saveAttendance = async () => {
+        if (!isEditable) {
+            alert('Selected date is view-only. You can edit attendance only for today.');
+            return;
+        }
         if (!selectedClassId) return;
         setSaving(true);
         try {
@@ -121,7 +129,7 @@ const MarkAttendance = () => {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap', marginBottom: 12 }}>
                 <div>
                     <h1 style={{ margin: 0, fontWeight: 1000 }}>Attendance Management</h1>
-                    <div style={{ marginTop: 4, color: palette.muted, fontWeight: 900, fontSize: 13 }}>Select class/section and date, mark P/A, then save.</div>
+                    <div style={{ marginTop: 4, color: palette.muted, fontWeight: 900, fontSize: 13 }}>Select class/section and date. Past date records are view-only, today can be edited.</div>
                 </div>
                 <div style={{ display: 'flex', gap: 10, alignItems: 'flex-end', flexWrap: 'wrap' }}>
                     <div>
@@ -162,6 +170,7 @@ const MarkAttendance = () => {
                             <button
                                 type="button"
                                 onClick={markAllPresent}
+                                disabled={!isEditable}
                                 style={{ padding: '8px 12px', borderRadius: 10, border: `1px solid ${palette.border}`, backgroundColor: '#fff', fontWeight: 1000, cursor: 'pointer' }}
                             >
                                 Mark All Present
@@ -169,13 +178,18 @@ const MarkAttendance = () => {
                             <button
                                 type="button"
                                 onClick={saveAttendance}
-                                disabled={saving}
-                                style={{ padding: '8px 12px', borderRadius: 10, border: 'none', backgroundColor: palette.primary, color: '#fff', fontWeight: 1000, cursor: saving ? 'not-allowed' : 'pointer', opacity: saving ? 0.75 : 1 }}
+                                disabled={saving || !isEditable}
+                                style={{ padding: '8px 12px', borderRadius: 10, border: 'none', backgroundColor: palette.primary, color: '#fff', fontWeight: 1000, cursor: saving || !isEditable ? 'not-allowed' : 'pointer', opacity: saving || !isEditable ? 0.6 : 1 }}
                             >
                                 {saving ? 'Saving...' : 'Save Attendance'}
                             </button>
                         </div>
                     </div>
+                    {!isEditable ? (
+                        <div style={{ marginTop: 10, border: '1px solid #fde68a', background: '#fffbeb', color: '#a16207', borderRadius: 10, padding: '8px 10px', fontWeight: 900, fontSize: 12 }}>
+                            This is a previous date record. You can view attendance but cannot edit or change it.
+                        </div>
+                    ) : null}
 
                     <div style={{ marginTop: 12, overflowX: 'auto' }}>
                         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
@@ -207,14 +221,16 @@ const MarkAttendance = () => {
                                                     <button
                                                         type="button"
                                                         onClick={() => setStudentStatus(s.student_id, 'present')}
-                                                        style={{ padding: '8px 12px', marginRight: 8, borderRadius: 10, border: 'none', backgroundColor: '#16a34a', color: '#fff', fontWeight: 1000, cursor: 'pointer' }}
+                                                        disabled={!isEditable}
+                                                        style={{ padding: '8px 12px', marginRight: 8, borderRadius: 10, border: 'none', backgroundColor: '#16a34a', color: '#fff', fontWeight: 1000, cursor: !isEditable ? 'not-allowed' : 'pointer', opacity: !isEditable ? 0.6 : 1 }}
                                                     >
                                                         P
                                                     </button>
                                                     <button
                                                         type="button"
                                                         onClick={() => setStudentStatus(s.student_id, 'absent')}
-                                                        style={{ padding: '8px 12px', borderRadius: 10, border: 'none', backgroundColor: '#ef4444', color: '#fff', fontWeight: 1000, cursor: 'pointer' }}
+                                                        disabled={!isEditable}
+                                                        style={{ padding: '8px 12px', borderRadius: 10, border: 'none', backgroundColor: '#ef4444', color: '#fff', fontWeight: 1000, cursor: !isEditable ? 'not-allowed' : 'pointer', opacity: !isEditable ? 0.6 : 1 }}
                                                     >
                                                         A
                                                     </button>
