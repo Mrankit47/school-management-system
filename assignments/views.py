@@ -21,7 +21,11 @@ class AssignmentListView(views.APIView):
         elif request.user.role == 'teacher':
             assignments = Assignment.objects.filter(created_by=request.user.teacher_profile)
         else:
-            assignments = Assignment.objects.all()
+            school = getattr(request.user, 'school', None)
+            if not request.user.is_superuser and school:
+                assignments = Assignment.objects.filter(class_section__school=school)
+            else:
+                assignments = Assignment.objects.all()
 
         serializer = AssignmentSerializer(assignments, many=True)
         return Response(serializer.data)

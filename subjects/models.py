@@ -7,6 +7,7 @@ class Subject(models.Model):
         ('Inactive', 'Inactive'),
     )
 
+    school = models.ForeignKey('tenants.School', on_delete=models.CASCADE, null=True, blank=True, related_name='subjects')
     class_ref = models.ForeignKey('classes.MainClass', on_delete=models.CASCADE, related_name='subjects')
     name = models.CharField(max_length=150)
     code = models.CharField(max_length=50, blank=True, null=True)

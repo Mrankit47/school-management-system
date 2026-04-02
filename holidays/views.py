@@ -35,7 +35,11 @@ class HolidayListCreateView(views.APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
+        school = request.user.school
         qs = Holiday.objects.prefetch_related('applicable_classes').all()
+        
+        if not request.user.is_superuser:
+            qs = qs.filter(school=school)
 
         search = request.query_params.get('search')
         type_filter = request.query_params.get('type')
@@ -60,7 +64,6 @@ class HolidayListCreateView(views.APIView):
             last_day = calendar.monthrange(year, month)[1]
             month_end = date(year, month, last_day)
 
-            # Overlap with month: start <= month_end AND end >= month_start
             qs = qs.filter(start_date__lte=month_end).filter(
                 Q(end_date__isnull=True, start_date__gte=month_start)
                 | Q(end_date__isnull=False, end_date__gte=month_start)
@@ -78,10 +81,10 @@ class HolidayListCreateView(views.APIView):
         return Response(HolidayListSerializer(qs, many=True).data)
 
     def post(self, request):
-        # Admin-only
         if request.user.role != 'admin':
             return Response({'error': 'Not allowed'}, status=status.HTTP_403_FORBIDDEN)
 
+        school = request.user.school
         serializer = HolidaySerializer(data=request.data)
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -92,11 +95,16 @@ class HolidayListCreateView(views.APIView):
         if end_date < start_date:
             return Response({'error': 'end_date cannot be before start_date'}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Duplicate/overlap validation (no overlapping ranges).
-        if Holiday.has_overlapping_holiday(start_date=start_date, end_date=end_date):
+        qs = Holiday.objects.filter(school=school)
+        if qs.filter(
+            start_date__lte=end_date
+        ).filter(
+            Q(end_date__isnull=True, start_date__gte=start_date) |
+            Q(end_date__isnull=False, end_date__gte=start_date)
+        ).exists():
             return Response({'error': 'Holiday overlaps with an existing holiday date range'}, status=status.HTTP_400_BAD_REQUEST)
 
-        holiday = serializer.save()
+        holiday = serializer.save(school=school)
         return Response(HolidayListSerializer(holiday).data, status=status.HTTP_201_CREATED)
 
 
@@ -104,7 +112,12 @@ class HolidayDetailView(views.APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request, pk: int):
-        h = Holiday.objects.prefetch_related('applicable_classes').filter(pk=pk).first()
+        school = request.user.school
+        qs = Holiday.objects.prefetch_related('applicable_classes').filter(pk=pk)
+        if not request.user.is_superuser:
+            qs = qs.filter(school=school)
+            
+        h = qs.first()
         if not h:
             return Response({'error': 'Not found'}, status=status.HTTP_404_NOT_FOUND)
         return Response(HolidayListSerializer(h).data)
@@ -113,7 +126,8 @@ class HolidayDetailView(views.APIView):
         if request.user.role != 'admin':
             return Response({'error': 'Not allowed'}, status=status.HTTP_403_FORBIDDEN)
 
-        instance = Holiday.objects.filter(pk=pk).first()
+        school = request.user.school
+        instance = Holiday.objects.filter(school=school, pk=pk).first()
         if not instance:
             return Response({'error': 'Not found'}, status=status.HTTP_404_NOT_FOUND)
 
@@ -121,7 +135,6 @@ class HolidayDetailView(views.APIView):
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-        # Validate overlap using effective start/end.
         start_date = serializer.validated_data.get('start_date', instance.start_date)
         end_date = serializer.validated_data.get('end_date')
         if end_date is None:
@@ -130,7 +143,13 @@ class HolidayDetailView(views.APIView):
         if end_date < start_date:
             return Response({'error': 'end_date cannot be before start_date'}, status=status.HTTP_400_BAD_REQUEST)
 
-        if Holiday.has_overlapping_holiday(start_date=start_date, end_date=end_date, exclude_id=instance.id):
+        qs = Holiday.objects.filter(school=school).exclude(id=instance.id)
+        if qs.filter(
+            start_date__lte=end_date
+        ).filter(
+            Q(end_date__isnull=True, start_date__gte=start_date) |
+            Q(end_date__isnull=False, end_date__gte=start_date)
+        ).exists():
             return Response({'error': 'Holiday overlaps with an existing holiday date range'}, status=status.HTTP_400_BAD_REQUEST)
 
         holiday = serializer.save()
@@ -140,7 +159,8 @@ class HolidayDetailView(views.APIView):
         if request.user.role != 'admin':
             return Response({'error': 'Not allowed'}, status=status.HTTP_403_FORBIDDEN)
 
-        instance = Holiday.objects.filter(pk=pk).first()
+        school = request.user.school
+        instance = Holiday.objects.filter(school=school, pk=pk).first()
         if not instance:
             return Response({'error': 'Not found'}, status=status.HTTP_404_NOT_FOUND)
         instance.delete()
@@ -154,7 +174,8 @@ class HolidayExportCSVView(views.APIView):
         if request.user.role != 'admin':
             return Response({'error': 'Not allowed'}, status=status.HTTP_403_FORBIDDEN)
 
-        qs = Holiday.objects.prefetch_related('applicable_classes').all()
+        school = request.user.school
+        qs = Holiday.objects.prefetch_related('applicable_classes').filter(school=school)
 
         search = request.query_params.get('search')
         type_filter = request.query_params.get('type')
@@ -206,4 +227,3 @@ class HolidayExportCSVView(views.APIView):
         response = HttpResponse(buf.getvalue(), content_type='text/csv')
         response['Content-Disposition'] = 'attachment; filename="holidays.csv"'
         return response
-

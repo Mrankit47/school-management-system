@@ -20,12 +20,24 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
 
         # Add user info to the response
         user = self.user
+        request = self.context.get('request')
+        
+        # Superadmins don't belong to any school and bypass school check
+        if not user.is_superuser:
+            if not user.school:
+                raise serializers.ValidationError("This user is not assigned to any school.")
+            
+            if not user.school.is_active:
+                raise serializers.ValidationError("Your school account is suspended. Please contact support.")
+
         data['user'] = {
             'id': user.id,
             'username': user.username,
             'email': user.email,
             'name': user.name or user.username,
-            'role': user.role,
+            'role': 'superadmin' if user.is_superuser else user.role,
+            'school_id': getattr(user.school, 'school_id', None),
+            'school_name': getattr(user.school, 'name', None),
         }
 
         return data

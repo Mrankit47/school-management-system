@@ -73,11 +73,13 @@ class AdminDashboardStatsView(views.APIView):
         from teachers.models import TeacherProfile
         from classes.models import MainClass, MainSection
 
+        school = request.user.school
+
         stats = {
-            "total_students": StudentProfile.objects.count(),
-            "total_teachers": TeacherProfile.objects.count(),
-            "active_classes": MainClass.objects.count(),
-            "total_sections": MainSection.objects.count(),
+            "total_students": StudentProfile.objects.filter(user__school=school).count() if not request.user.is_superuser else StudentProfile.objects.count(),
+            "total_teachers": TeacherProfile.objects.filter(user__school=school).count() if not request.user.is_superuser else TeacherProfile.objects.count(),
+            "active_classes": MainClass.objects.filter(school=school).count() if not request.user.is_superuser else MainClass.objects.count(),
+            "total_sections": MainSection.objects.filter(school=school).count() if not request.user.is_superuser else MainSection.objects.count(),
         }
         return Response(
             {"success": True, "message": "Admin stats generated", "data": stats},
