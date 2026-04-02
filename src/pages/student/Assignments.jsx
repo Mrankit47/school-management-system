@@ -86,7 +86,7 @@ function Modal({ open, onClose, title, children }) {
                     <button
                         type="button"
                         onClick={onClose}
-                        style={{ border: 'none', backgroundColor: '#fff', border: `1px solid ${colors.border}`, padding: '8px 12px', borderRadius: 12, cursor: 'pointer', fontWeight: 1000 }}
+                        style={{ backgroundColor: '#fff', border: `1px solid ${colors.border}`, padding: '8px 12px', borderRadius: 12, cursor: 'pointer', fontWeight: 1000 }}
                     >
                         Close
                     </button>
