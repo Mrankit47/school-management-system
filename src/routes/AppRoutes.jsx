@@ -45,6 +45,7 @@ import TimeTable from '../pages/common/TimeTable';
 import SaaSLanding from '../pages/SaaSLanding';
 import SuperAdminLogin from '../pages/superadmin/Login';
 import SuperAdminDashboard from '../pages/superadmin/Dashboard';
+import SuperAdminProfile from '../pages/superadmin/Profile';
 
 const AppRoutes = () => {
     return (
@@ -59,6 +60,7 @@ const AppRoutes = () => {
             <Route path="/superadmin/*" element={<ProtectedRoute allowedRoles={['superadmin']}>
               <Routes>
                 <Route path="dashboard" element={<SuperAdminDashboard />} />
+                <Route path="profile" element={<SuperAdminProfile />} />
               </Routes>
             </ProtectedRoute>} />
             
