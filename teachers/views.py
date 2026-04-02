@@ -193,11 +193,11 @@ class TeacherListView(views.APIView):
     permission_classes = [IsAdmin]
 
     def get(self, request):
-        profiles = (
-            TeacherProfile.objects.select_related('user')
-            .all()
-            .order_by('id')
-        )
+        school = request.user.school
+        qs = TeacherProfile.objects.select_related('user')
+        if not request.user.is_superuser:
+            qs = qs.filter(user__school=school)
+        profiles = qs.order_by('id')
 
         return Response([
             {
@@ -223,11 +223,12 @@ class TeacherDetailView(views.APIView):
     permission_classes = [IsAdmin]
 
     def get(self, request, teacher_id: int):
-        p = (
-            TeacherProfile.objects.select_related('user')
-            .filter(id=teacher_id)
-            .first()
-        )
+        school = request.user.school
+        qs = TeacherProfile.objects.select_related('user').filter(id=teacher_id)
+        if not request.user.is_superuser:
+            qs = qs.filter(user__school=school)
+            
+        p = qs.first()
         if not p:
             return Response({"error": "Teacher not found"}, status=status.HTTP_404_NOT_FOUND)
 
@@ -254,7 +255,12 @@ class TeacherDeleteView(views.APIView):
     permission_classes = [IsAdmin]
 
     def delete(self, request, teacher_id: int):
-        p = TeacherProfile.objects.select_related('user').filter(id=teacher_id).first()
+        school = request.user.school
+        qs = TeacherProfile.objects.select_related('user').filter(id=teacher_id)
+        if not request.user.is_superuser:
+            qs = qs.filter(user__school=school)
+            
+        p = qs.first()
         if not p:
             return Response({"error": "Teacher not found"}, status=status.HTTP_404_NOT_FOUND)
         try:
@@ -280,7 +286,12 @@ class TeacherUpdateView(views.APIView):
 
     def patch(self, request, teacher_id: int):
         data = request.data
-        p = TeacherProfile.objects.select_related('user').filter(id=teacher_id).first()
+        school = request.user.school
+        qs = TeacherProfile.objects.select_related('user').filter(id=teacher_id)
+        if not request.user.is_superuser:
+            qs = qs.filter(user__school=school)
+            
+        p = qs.first()
         if not p:
             return Response({"error": "Teacher not found"}, status=status.HTTP_404_NOT_FOUND)
 
@@ -334,8 +345,8 @@ class AdminTeacherCreateView(views.APIView):
             if User.objects.filter(username=data.get('username')).exists():
                 return Response({"error": "A user with this username already exists."}, status=status.HTTP_400_BAD_REQUEST)
 
-            requested_employee_id = (data.get('employee_id') or '').strip().upper()
-            if requested_employee_id and TeacherProfile.objects.filter(employee_id=requested_employee_id).exists():
+            # Check if employee_id already exists
+            if TeacherProfile.objects.filter(user__school=request.user.school, employee_id=data.get('employee_id')).exists():
                 return Response({"error": "A teacher with this Employee ID already exists."}, status=status.HTTP_400_BAD_REQUEST)
 
             employee_id = requested_employee_id or _next_employee_id()
@@ -345,7 +356,8 @@ class AdminTeacherCreateView(views.APIView):
                 email=data['email'],
                 password=data['password'],
                 name=data.get('name', ''),
-                role='teacher'
+                role='teacher',
+                school=request.user.school
             )
             # Helper to convert empty string to None
             def clean_field(val):

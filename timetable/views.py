@@ -28,7 +28,12 @@ class TimeTableViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
+        school = getattr(user, 'school', None)
         queryset = TimeTableEntry.objects.all().select_related('teacher')
+
+        # Enforce tenant boundary unless superuser
+        if not user.is_superuser and school:
+            queryset = queryset.filter(school=school)
 
         if user.role == 'admin':
             class_name = self.request.query_params.get('class_name')
@@ -50,4 +55,12 @@ class TimeTableViewSet(viewsets.ModelViewSet):
                 )
             return queryset.none()
         
+        
         return queryset.none()
+
+    def perform_create(self, serializer):
+        user = self.request.user
+        if not user.is_superuser:
+            serializer.save(school=user.school)
+        else:
+            serializer.save()
