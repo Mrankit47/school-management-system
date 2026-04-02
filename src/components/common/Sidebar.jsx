@@ -55,7 +55,7 @@ const Sidebar = () => {
         { path: '/teacher/upload-result', label: 'Upload Results', icon: '📤' },
         { path: '/teacher/assignment', label: 'Create Assignment', icon: '➕' },
         { path: '/teacher/students', label: 'My Students', icon: '👥' },
-        { path: '/teacher/Messaging', label: 'Messages', icon: '💬' },
+        { path: '/teacher/timetable', label: 'Time Table', icon: '📅' },
         { path: '/teacher/Holidays', label: 'Holidays', icon: '🏝️' },
         { path: '/teacher/Profile', label: 'Profile', icon: '🧑🏻‍💻' },
     ];
@@ -81,6 +81,7 @@ const Sidebar = () => {
                 { path: '/admin/assign-teacher', label: 'Assign Teacher' },
                 { path: '/admin/exams', label: 'Exams' },
                 { path: '/admin/holidays', label: 'Holidays' },
+                { path: '/admin/timetable', label: 'Time Table' },
             ]
         },
         { path: '/admin/fees', label: 'Finance', icon: '💰' },

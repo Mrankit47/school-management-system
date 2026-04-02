@@ -80,6 +80,11 @@ WSGI_APPLICATION = 'config.wsgi.application'
 
 
 
+
+
+
+
+
 # Authentication
 AUTH_USER_MODEL = 'accounts.User'
 

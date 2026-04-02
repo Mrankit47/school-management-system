@@ -1,6 +1,10 @@
-from django.urls import path
-from .views import TimetableListView
+from django.urls import path, include
+from rest_framework.routers import DefaultRouter
+from .views import TimeTableViewSet
+
+router = DefaultRouter()
+router.register(r'', TimeTableViewSet, basename='timetable')
 
 urlpatterns = [
-    path('', TimetableListView.as_view(), name='timetable-list'),
+    path('', include(router.urls)),
 ]

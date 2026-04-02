@@ -203,6 +203,7 @@ class TeacherListView(views.APIView):
         return Response([
             {
                 "id": p.id,
+                "user_id": p.user.id,
                 "employee_id": p.employee_id,
                 "name": p.user.name or p.user.username,
                 "subject_specialization": p.subject_specialization,
@@ -234,6 +235,7 @@ class TeacherDetailView(views.APIView):
         name = p.user.name or p.user.username
         return Response({
             "id": p.id,
+            "user_id": p.user.id,
             "employee_id": p.employee_id,
             "name": name,
             "email": p.user.email,
@@ -298,16 +300,21 @@ class TeacherUpdateView(views.APIView):
             u.name = f"{u.first_name} {u.last_name}".strip() or u.name
         u.save()
 
+        # Helper to convert empty string to None, and keep default if None (for PATCH)
+        def clean_field(val, default):
+            if val is None: return default
+            return val if val != "" else None
+
         # Update TeacherProfile fields
         p.employee_id = data.get('employee_id', p.employee_id)
         p.subject_specialization = data.get('subject_specialization', p.subject_specialization)
 
         p.phone_number = data.get('phone_number', p.phone_number)
         p.gender = data.get('gender', p.gender)
-        p.dob = data.get('dob', p.dob)
+        p.dob = clean_field(data.get('dob'), p.dob)
         p.qualification = data.get('qualification', p.qualification)
-        p.experience_years = data.get('experience_years', p.experience_years)
-        p.joining_date = data.get('joining_date', p.joining_date)
+        p.experience_years = clean_field(data.get('experience_years'), p.experience_years)
+        p.joining_date = clean_field(data.get('joining_date'), p.joining_date)
         p.status = data.get('status', p.status)
         p.profile_image_base64 = data.get('profile_image_base64', p.profile_image_base64)
         p.save()
@@ -339,16 +346,20 @@ class AdminTeacherCreateView(views.APIView):
                 name=data.get('name', ''),
                 role='teacher'
             )
+            # Helper to convert empty string to None
+            def clean_field(val):
+                return val if val != "" else None
+
             profile = TeacherProfile.objects.create(
                 user=user,
                 employee_id=data['employee_id'],
                 subject_specialization=data.get('subject_specialization'),
                 phone_number=data.get('phone_number'),
                 gender=data.get('gender'),
-                dob=data.get('dob'),
+                dob=clean_field(data.get('dob')),
                 qualification=data.get('qualification'),
-                experience_years=data.get('experience_years'),
-                joining_date=data.get('joining_date'),
+                experience_years=clean_field(data.get('experience_years')),
+                joining_date=clean_field(data.get('joining_date')),
                 status=data.get('status') or 'Active',
                 profile_image_base64=data.get('profile_image_base64'),
             )
