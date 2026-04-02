@@ -16,6 +16,7 @@ import StudentLedger from '../pages/student/Ledger';
 import StudentAttendance from '../pages/student/Attendance';
 import StudentHolidays from '../pages/student/Holidays';
 import StudentMessaging from '../pages/student/Messaging';
+import StudentSyllabus from '../pages/student/Syllabus';
 
 // Teacher
 import TeacherDashboard from '../pages/teacher/Dashboard';
@@ -27,6 +28,7 @@ import TeacherAssignment from '../pages/teacher/Assignment';
 import TeacherAssignmentList from '../pages/teacher/AssignmentList';
 import TeacherMessaging from '../pages/teacher/Messaging';
 import TeacherHolidays from '../pages/teacher/Holidays';
+import TeacherSyllabus from '../pages/teacher/Syllabus';
 
 // Admin
 import AddStudent from '../pages/admin/AddStudent';
@@ -44,6 +46,7 @@ import AdminHolidays from '../pages/admin/Holidays';
 import AdminReports from '../pages/admin/Reports';
 import SubjectDetails from '../pages/admin/SubjectDetails';
 import TimeTable from '../pages/common/TimeTable';
+import AdminSyllabus from '../pages/admin/Syllabus';
 
 const AppRoutes = () => {
     return (
@@ -66,6 +69,7 @@ const AppRoutes = () => {
                 <Route path="fees" element={<StudentFees />} />
                 <Route path="ledger" element={<StudentLedger />} />
                 <Route path="holidays" element={<StudentHolidays />} />
+                <Route path="syllabus" element={<StudentSyllabus />} />
                 <Route path="messaging" element={<StudentMessaging />} />
               </Routes>
             </ProtectedRoute>} />
@@ -80,6 +84,7 @@ const AppRoutes = () => {
                 <Route path="upload-result" element={<UploadResult />} />
                 <Route path="assignment" element={<TeacherAssignment />} />
                 <Route path="assignments" element={<TeacherAssignmentList />} />
+                <Route path="syllabus" element={<TeacherSyllabus />} />
                 <Route path="messaging" element={<TeacherMessaging />} />
                 <Route path="holidays" element={<TeacherHolidays />} />
                 <Route path="timetable" element={<TimeTable />} />
@@ -104,6 +109,7 @@ const AppRoutes = () => {
                 <Route path="holidays" element={<AdminHolidays />} />
                 <Route path="reports" element={<AdminReports />} />
                 <Route path="timetable" element={<TimeTable />} />
+                <Route path="syllabus" element={<AdminSyllabus />} />
               </Routes>
             </ProtectedRoute>} />
 

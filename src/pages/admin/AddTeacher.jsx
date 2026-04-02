@@ -39,7 +39,6 @@ const AddTeacher = () => {
 
         employee_id: '',
         subject_specialization: '',
-        qualification: '',
         experience_years: '',
         joining_date: '',
 
@@ -55,6 +54,10 @@ const AddTeacher = () => {
     const [errors, setErrors] = useState({});
     const [message, setMessage] = useState('');
     const [busy, setBusy] = useState(false);
+
+    // Allow multiple qualifications in the UI.
+    // Backend stores `qualification` as a single CharField, so we join with " / " on submit.
+    const [qualifications, setQualifications] = useState(['']);
 
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [teachers, setTeachers] = useState([]);
@@ -171,6 +174,11 @@ const AddTeacher = () => {
 
         setBusy(true);
         try {
+            const qualificationValue = (qualifications || [])
+                .map((q) => (q || '').trim())
+                .filter(Boolean)
+                .join(' / ');
+
             const payload = {
                 username: generateUsername(),
                 email: form.email.trim(),
@@ -183,7 +191,7 @@ const AddTeacher = () => {
                 phone_number: `+91${phoneDigits}`,
                 gender: form.gender,
                 dob: form.dob,
-                qualification: form.qualification,
+                qualification: qualificationValue,
                 experience_years: form.experience_years,
                 joining_date: form.joining_date,
                 status: form.status,
@@ -203,7 +211,6 @@ const AddTeacher = () => {
                 dob: '',
                 employee_id: '',
                 subject_specialization: '',
-                qualification: '',
                 experience_years: '',
                 joining_date: '',
                 password: '',
@@ -212,6 +219,7 @@ const AddTeacher = () => {
                 profile_image: null,
                 profile_image_base64: '',
             });
+            setQualifications(['']);
             setPreviewUrl('');
             setErrors({});
         } catch (err) {
@@ -387,14 +395,59 @@ const AddTeacher = () => {
 
                                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                                     <div>
-                                        <div style={labelStyle}>Qualification</div>
-                                        <input
-                                            type="text"
-                                            value={form.qualification}
-                                            onChange={(e) => setForm({ ...form, qualification: e.target.value })}
-                                            placeholder="e.g., M.Sc / B.Ed"
-                                            style={inputStyle}
-                                        />
+                                        <div style={labelStyle}>Qualifications</div>
+                                        <div style={{ display: 'grid', gap: '10px' }}>
+                                            {(qualifications || []).map((q, idx) => (
+                                                <div key={`${idx}`} style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '10px', alignItems: 'center' }}>
+                                                    <input
+                                                        type="text"
+                                                        value={q}
+                                                        onChange={(e) => {
+                                                            const next = [...qualifications];
+                                                            next[idx] = e.target.value;
+                                                            setQualifications(next);
+                                                        }}
+                                                        placeholder={idx === 0 ? 'e.g., M.Sc' : 'Add another'}
+                                                        style={inputStyle}
+                                                    />
+                                                    {qualifications.length > 1 && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setQualifications((prev) => prev.filter((_, i) => i !== idx))}
+                                                            style={{
+                                                                backgroundColor: '#fff',
+                                                                border: '1px solid #e5e7eb',
+                                                                color: '#6b7280',
+                                                                cursor: 'pointer',
+                                                                padding: '10px 12px',
+                                                                borderRadius: '12px',
+                                                                fontWeight: 800,
+                                                                whiteSpace: 'nowrap',
+                                                            }}
+                                                            title="Remove qualification"
+                                                        >
+                                                            Remove
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            ))}
+
+                                            <button
+                                                type="button"
+                                                onClick={() => setQualifications((prev) => [...prev, ''])}
+                                                style={{
+                                                    backgroundColor: '#eff6ff',
+                                                    border: '1px solid #bfdbfe',
+                                                    color: '#1d4ed8',
+                                                    cursor: 'pointer',
+                                                    padding: '10px 14px',
+                                                    borderRadius: '12px',
+                                                    fontWeight: 900,
+                                                }}
+                                            >
+                                                + Add Qualification
+                                            </button>
+                                        </div>
                                     </div>
                                     <div>
                                         <div style={labelStyle}>Experience (Years)</div>

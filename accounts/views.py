@@ -58,3 +58,28 @@ class ChangePasswordView(views.APIView):
         request.user.set_password(new_password)
         request.user.save()
         return Response({'message': 'Password updated successfully'}, status=status.HTTP_200_OK)
+
+
+class AdminDashboardStatsView(views.APIView):
+    """
+    Admin-only stats used by the Admin Dashboard cards.
+    Frontend expects:
+      { success: true, data: { total_students, total_teachers, ... } }
+    """
+    permission_classes = [IsAdmin]
+
+    def get(self, request):
+        from students.models import StudentProfile
+        from teachers.models import TeacherProfile
+        from classes.models import MainClass, MainSection
+
+        stats = {
+            "total_students": StudentProfile.objects.count(),
+            "total_teachers": TeacherProfile.objects.count(),
+            "active_classes": MainClass.objects.count(),
+            "total_sections": MainSection.objects.count(),
+        }
+        return Response(
+            {"success": True, "message": "Admin stats generated", "data": stats},
+            status=status.HTTP_200_OK,
+        )

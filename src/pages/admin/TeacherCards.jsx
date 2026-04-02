@@ -73,7 +73,7 @@ const TeacherCards = ({ teachers, refreshTeachers }) => {
                                 <div className="flex items-start justify-between mb-6">
                                     <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-school-blue via-school-sky to-cyan-400 flex items-center justify-center text-white font-poppins font-bold text-xl shadow-xl shadow-school-sky/20 group-hover:-rotate-3 transition-transform duration-500">
                                         {initials}
-                                    </div>
+                            </div>
                                     <div className="flex flex-col items-end gap-2">
                                         <span className="px-3 py-1 bg-slate-50 border border-slate-100 text-[10px] font-bold text-slate-400 rounded-lg uppercase tracking-widest shadow-sm">
                                             {t.employee_id}
@@ -83,9 +83,9 @@ const TeacherCards = ({ teachers, refreshTeachers }) => {
                                                 {t.status}
                                             </span>
                                         )}
-                                    </div>
-                                </div>
-                                
+                            </div>
+                        </div>
+
                                 <div className="space-y-1">
                                     <h3 className="font-poppins font-bold text-school-text text-lg group-hover:text-school-blue transition-colors truncate">
                                         {t.name}
@@ -104,31 +104,31 @@ const TeacherCards = ({ teachers, refreshTeachers }) => {
                             {/* Action Bar */}
                             <div className="px-7 py-5 bg-slate-50/50 backdrop-blur-md border-t border-slate-100/50 flex items-center justify-between gap-3">
                                 <div className="flex gap-2">
-                                    <button
-                                        onClick={() => setViewTeacher(t)}
+                            <button
+                                onClick={() => setViewTeacher(t)}
                                         className="w-10 h-10 rounded-xl bg-white border border-slate-200 text-slate-400 hover:text-school-navy hover:border-school-navy/30 hover:shadow-lg hover:shadow-school-navy/10 transition-all flex items-center justify-center group/btn"
                                         title="View Profile"
                                     >
                                         <span className="group-hover/btn:scale-125 transition-transform">👤</span>
-                                    </button>
-                                    <button
-                                        onClick={() => openEdit(t)}
+                            </button>
+                            <button
+                                onClick={() => openEdit(t)}
                                         className="w-10 h-10 rounded-xl bg-white border border-slate-200 text-slate-400 hover:text-emerald-500 hover:border-emerald-500/30 hover:shadow-lg hover:shadow-emerald-500/10 transition-all flex items-center justify-center group/btn"
                                         title="Edit Faculty"
                                     >
                                         <span className="group-hover/btn:scale-125 transition-transform">✏️</span>
-                                    </button>
+                            </button>
                                 </div>
-                                <button
-                                    onClick={() => handleDelete(t.id)}
-                                    disabled={busy}
+                            <button
+                                onClick={() => handleDelete(t.id)}
+                                disabled={busy}
                                     className="w-10 h-10 rounded-xl bg-white border border-slate-200 text-slate-400 hover:text-red-500 hover:border-red-500/30 hover:shadow-lg hover:shadow-red-500/10 transition-all flex items-center justify-center group/btn disabled:opacity-50"
                                     title="Remove Faculty"
                                 >
                                     <span className="group-hover/btn:scale-125 transition-transform">🗑️</span>
-                                </button>
-                            </div>
+                            </button>
                         </div>
+                    </div>
                     );
                 })}
             </div>
@@ -139,25 +139,25 @@ const TeacherCards = ({ teachers, refreshTeachers }) => {
                     <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={closeModal}></div>
                     <div className="relative w-full max-w-2xl bg-white rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 max-h-[90vh] flex flex-col">
                         <div className="p-6 bg-slate-900 text-white flex items-center justify-between">
-                            <div>
+                                <div>
                                 <h3 className="text-xl font-bold">{viewTeacher ? 'Teacher Profile' : 'Edit Information'}</h3>
                                 <p className="text-xs text-slate-400 mt-0.5">{viewTeacher ? 'Comprehensive overview of faculty records' : 'Update the faculty profile details below'}</p>
                             </div>
                             <button onClick={closeModal} className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center hover:bg-white/20 transition-colors">✕</button>
-                        </div>
-                        
+                                </div>
+
                         <div className="flex-1 overflow-y-auto p-8 custom-scrollbar">
                             {viewTeacher ? (
                                 <div className="space-y-8">
                                     <div className="flex items-center gap-6 pb-8 border-b border-slate-100">
                                         <div className="w-20 h-20 rounded-3xl bg-school-blue flex items-center justify-center text-white text-3xl font-bold shadow-xl shadow-school-blue/20">
                                             {getInitials(viewTeacher.name)}
-                                        </div>
-                                        <div>
+                                    </div>
+                                    <div>
                                             <h4 className="text-2xl font-bold text-school-text">{viewTeacher.name}</h4>
                                             <p className="text-school-navy font-bold uppercase tracking-widest text-xs mt-1">{viewTeacher.employee_id}</p>
-                                        </div>
                                     </div>
+                                </div>
 
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
                                         {[
@@ -174,7 +174,7 @@ const TeacherCards = ({ teachers, refreshTeachers }) => {
                                             <div key={i} className="space-y-1">
                                                 <p className={labelClasses}>{item.label}</p>
                                                 <p className="font-bold text-school-text">{item.val || '—'}</p>
-                                            </div>
+                                    </div>
                                         ))}
                                     </div>
                                 </div>
@@ -192,8 +192,8 @@ const TeacherCards = ({ teachers, refreshTeachers }) => {
                                         <button type="button" onClick={closeModal} className="px-6 py-2.5 text-xs font-bold text-slate-500 hover:bg-slate-50 rounded-xl transition-colors">Cancel</button>
                                         <button type="submit" disabled={busy} className="px-8 py-2.5 bg-school-navy text-white text-xs font-bold rounded-xl shadow-lg shadow-school-navy/10 hover:bg-school-blue transition-all disabled:opacity-50">Save Changes</button>
                                     </div>
-                                </form>
-                            )}
+                            </form>
+                        )}
                         </div>
                     </div>
                 </div>
