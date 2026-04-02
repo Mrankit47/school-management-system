@@ -66,7 +66,18 @@ class FeeStructureListCreateView(views.APIView):
             class_ref = ser.validated_data.get('class_ref')
             if not request.user.is_superuser and class_ref and class_ref.school != school:
                 return Response({'error': 'Not authorized for this class'}, status=status.HTTP_403_FORBIDDEN)
-            ser.save()
+            structure = ser.save()
+            
+            students = StudentProfile.objects.filter(class_section__class_ref_id=structure.class_ref_id)
+            for s in students:
+                sf, _ = StudentFee.objects.get_or_create(
+                    student=s,
+                    fee_structure=structure,
+                    defaults={'due_date': structure.due_date},
+                )
+                if sf.due_date != structure.due_date:
+                    sf.due_date = structure.due_date
+                    sf.save(update_fields=['due_date'])
             return Response(ser.data, status=status.HTTP_201_CREATED)
         return Response(ser.errors, status=status.HTTP_400_BAD_REQUEST)
 

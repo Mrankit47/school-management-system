@@ -346,10 +346,16 @@ class AdminTeacherCreateView(views.APIView):
                 return Response({"error": "A user with this username already exists."}, status=status.HTTP_400_BAD_REQUEST)
 
             # Check if employee_id already exists
-            if TeacherProfile.objects.filter(user__school=request.user.school, employee_id=data.get('employee_id')).exists():
+            requested_employee_id = (data.get('employee_id') or '').strip().upper()
+            if requested_employee_id and TeacherProfile.objects.filter(user__school=request.user.school, employee_id=requested_employee_id).exists():
                 return Response({"error": "A teacher with this Employee ID already exists."}, status=status.HTTP_400_BAD_REQUEST)
 
             employee_id = requested_employee_id or _next_employee_id()
+
+            school = request.user.school
+            if not school and getattr(request.user, 'is_superuser', False):
+                from tenants.models import School
+                school = School.objects.first()
 
             user = User.objects.create_user(
                 username=data['username'],
@@ -357,7 +363,7 @@ class AdminTeacherCreateView(views.APIView):
                 password=data['password'],
                 name=data.get('name', ''),
                 role='teacher',
-                school=request.user.school
+                school=school
             )
             # Helper to convert empty string to None
             def clean_field(val):
