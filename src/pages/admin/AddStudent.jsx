@@ -369,14 +369,20 @@ const AddStudent = () => {
 
                     <div>
                         <div style={labelStyle}>Category</div>
-                        <input
-                            type="text"
-                            placeholder="Category"
+                        <select
                             value={formData.category}
                             onChange={(e) => setFormData({ ...formData, category: e.target.value })}
                             style={inputStyle}
                             required
-                        />
+                        >
+                            <option value="">-- Select Category --</option>
+                            <option value="General">General</option>
+                            <option value="OBC">OBC</option>
+                            <option value="SC">SC</option>
+                            <option value="ST">ST</option>
+                            <option value="EWS">EWS</option>
+                            <option value="Other">Other</option>
+                        </select>
                     </div>
 
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>

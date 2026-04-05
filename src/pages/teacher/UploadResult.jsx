@@ -1,14 +1,27 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import api from '../../services/api';
 
+/** Backend may return a bare array or a wrapper like `{ data: [...] }`. */
+function asList(payload) {
+    if (Array.isArray(payload)) return payload;
+    if (payload && Array.isArray(payload.data)) return payload.data;
+    if (payload && Array.isArray(payload.results)) return payload.results;
+    return [];
+}
+
 const UploadResult = () => {
     const [exams, setExams] = useState([]);
     const [students, setStudents] = useState([]);
+    /** ClassSection rows where this teacher is class_teacher (from classes/sections/) */
+    const [mySections, setMySections] = useState([]);
 
     const [allSubjects, setAllSubjects] = useState([]);
 
     const [examId, setExamId] = useState('');
+    /** MainClass name for subject filter (e.g. "10", "3") */
     const [className, setClassName] = useState('');
+    /** Selected ClassSection id for student list */
+    const [selectedSectionId, setSelectedSectionId] = useState('');
     const [studentId, setStudentId] = useState('');
 
     const [rowMaxMarks, setRowMaxMarks] = useState({});
@@ -23,11 +36,6 @@ const UploadResult = () => {
         if (!className) return [];
         return (allSubjects || []).filter((s) => s.class_name === className);
     }, [allSubjects, className]);
-
-    const selectedExam = useMemo(() => {
-        if (!examId) return null;
-        return exams.find((e) => e.id === parseInt(examId)) || null;
-    }, [exams, examId]);
 
     const parseNumber = (v) => {
         if (v === '' || v === null || v === undefined) return null;
@@ -101,50 +109,110 @@ const UploadResult = () => {
         return { pass, grade, pct };
     }, [totals.percentage]);
 
-    const fetchStudentsByClassSection = async (classSectionId) => {
-        const res = await api.get(`students/by-class/${classSectionId}/`);
-        setStudents(res.data || []);
-    };
-
-    const fetchSubjects = async () => {
-        // SubjectListView is admin + teacher accessible.
-        const res = await api.get('subjects/', { params: { status: 'Active' } });
-        setAllSubjects(res.data || []);
-    };
-
     useEffect(() => {
-        setLoading(true);
-        Promise.all([api.get('academics/exams/'), fetchSubjects()])
-            .then(([examsRes]) => setExams(examsRes.data || []))
-            .catch(() => setTopError('Failed to load meta data'))
-            .finally(() => setLoading(false));
-        // eslint-disable-next-line react-hooks/exhaustive-deps
+        let cancelled = false;
+        (async () => {
+            setLoading(true);
+            setTopError('');
+            try {
+                const [profRes, secRes, examsRes, subRes] = await Promise.all([
+                    api.get('teachers/profile/'),
+                    api.get('classes/sections/'),
+                    api.get('academics/exams/'),
+                    api.get('subjects/', { params: { status: 'Active' } }),
+                ]);
+                if (cancelled) return;
+
+                setAllSubjects(asList(subRes.data));
+
+                const teacherProfile = profRes.data;
+                const tid = teacherProfile?.id;
+                const allSections = asList(secRes.data);
+                const allExams = asList(examsRes.data);
+
+                // Prefer backend `classes_assigned` (same source as profile); also merge sections where class_teacher matches (string/number safe).
+                const fromProfile = (teacherProfile?.classes_assigned || []).map((c) => ({
+                    id: c.id,
+                    class_name: c.class_name,
+                    section_name: c.section_name,
+                }));
+                const fromSectionsList = allSections
+                    .filter((c) => c.class_teacher != null && Number(c.class_teacher) === Number(tid))
+                    .map((c) => ({
+                        id: c.id,
+                        class_name: c.class_name,
+                        section_name: c.section_name,
+                    }));
+                const byId = new Map();
+                for (const row of [...fromProfile, ...fromSectionsList]) {
+                    if (row?.id != null) byId.set(Number(row.id), row);
+                }
+                const mine = Array.from(byId.values());
+                setMySections(mine);
+
+                // Exams: show full list again (like before). Filtering to "only my class" hid every exam when class_teacher id did not match strictly.
+                setExams(allExams);
+            } catch {
+                if (!cancelled) setTopError('Failed to load meta data');
+            } finally {
+                if (!cancelled) setLoading(false);
+            }
+        })();
+        return () => {
+            cancelled = true;
+        };
     }, []);
 
+    // When exam is selected: sync class section + marks rows (do not clear section when no exam — teacher may pick class first).
     useEffect(() => {
-        if (!selectedExam) {
-            setClassName('');
-            setStudentId('');
-            setStudents([]);
-            setRowMaxMarks({});
-            setRowMarks({});
+        if (!examId) {
             return;
         }
+        const ex = exams.find((e) => e.id === parseInt(examId, 10));
+        if (!ex) return;
 
-        // Flow step: exam -> class (derived from exam)
         setAttemptedSubmit(false);
-        setClassName(selectedExam.class_name || '');
         setStudentId('');
-
-        // Reset marks entry when class changes
         setRowMaxMarks({});
         setRowMarks({});
 
-        const classSectionId = selectedExam.class_section;
-        fetchStudentsByClassSection(classSectionId).catch(() => {
-            setTopError('Failed to load students for selected exam');
-        });
-    }, [selectedExam]);
+        const sid = ex.class_section;
+        setSelectedSectionId(sid != null ? String(sid) : '');
+        const sec = mySections.find((s) => Number(s.id) === Number(sid));
+        setClassName(sec?.class_name || ex.class_name || '');
+    }, [examId, exams, mySections]);
+
+    // Load students for selected class section (backend allows only class teacher for this class).
+    useEffect(() => {
+        if (!selectedSectionId) {
+            setStudents([]);
+            return;
+        }
+        const id = parseInt(selectedSectionId, 10);
+        if (!Number.isFinite(id)) {
+            setStudents([]);
+            return;
+        }
+        let cancelled = false;
+        setTopError('');
+        api.get(`students/by-class/${id}/`)
+            .then((res) => {
+                if (!cancelled) setStudents(res.data || []);
+            })
+            .catch((err) => {
+                if (!cancelled) {
+                    setStudents([]);
+                    setTopError(
+                        err?.response?.data?.error
+                        || err?.response?.data?.detail
+                        || 'Failed to load students for selected class'
+                    );
+                }
+            });
+        return () => {
+            cancelled = true;
+        };
+    }, [selectedSectionId]);
 
     useEffect(() => {
         // Initialize rows when filtered subjects change
@@ -173,6 +241,15 @@ const UploadResult = () => {
 
         if (!examId) {
             setTopError('Select Exam');
+            return;
+        }
+        if (!selectedSectionId) {
+            setTopError('Select Class');
+            return;
+        }
+        const examRow = exams.find((x) => x.id === parseInt(examId, 10));
+        if (examRow && String(examRow.class_section) !== String(selectedSectionId)) {
+            setTopError('Selected class must match the exam’s class.');
             return;
         }
         if (!className) {
@@ -260,7 +337,10 @@ const UploadResult = () => {
                             </div>
                             <select
                                 value={examId}
-                                onChange={(e) => setExamId(e.target.value)}
+                                onChange={(e) => {
+                                    setExamId(e.target.value);
+                                    setTopError('');
+                                }}
                                 required
                                 style={{ ...{
                                     width: '100%',
@@ -276,7 +356,7 @@ const UploadResult = () => {
                                 <option value="">-- Select Exam --</option>
                                 {exams.map((e) => (
                                     <option key={e.id} value={e.id}>
-                                        {e.name} ({e.class_name})
+                                        {e.name} ({e.class_section_display || `${e.class_name}${e.section_name ? ` - ${e.section_name}` : ''}`})
                                     </option>
                                 ))}
                             </select>
@@ -287,17 +367,31 @@ const UploadResult = () => {
                                 Select Class
                             </div>
                             <select
-                                value={className}
-                                onChange={(e) => setClassName(e.target.value)}
+                                value={selectedSectionId}
+                                onChange={(e) => {
+                                    const sid = e.target.value;
+                                    setSelectedSectionId(sid);
+                                    setStudentId('');
+                                    setTopError('');
+                                    const sec = mySections.find((s) => String(s.id) === sid);
+                                    setClassName(sec?.class_name || '');
+                                    if (examId) {
+                                        const ex = exams.find((x) => x.id === parseInt(examId, 10));
+                                        if (ex && String(ex.class_section) !== sid) {
+                                            setExamId('');
+                                        }
+                                    }
+                                }}
                                 required
                                 style={{ width: '100%', padding: '10px 12px', border: '1px solid #e5e7eb', borderRadius: '12px', fontSize: '13px', outline: 'none', backgroundColor: '#fff' }}
-                                disabled={!selectedExam || loading || submitting}
+                                disabled={loading || submitting || !mySections.length}
                             >
-                                {selectedExam ? (
-                                    <option value={selectedExam.class_name}>{selectedExam.class_name}</option>
-                                ) : (
-                                    <option value="">-- Select Exam First --</option>
-                                )}
+                                <option value="">-- Select Class --</option>
+                                {mySections.map((s) => (
+                                    <option key={s.id} value={String(s.id)}>
+                                        {s.class_name} - {s.section_name}
+                                    </option>
+                                ))}
                             </select>
                         </div>
 
@@ -310,7 +404,7 @@ const UploadResult = () => {
                                 onChange={(e) => setStudentId(e.target.value)}
                                 required
                                 style={{ width: '100%', padding: '10px 12px', border: '1px solid #e5e7eb', borderRadius: '12px', fontSize: '13px', outline: 'none', backgroundColor: '#fff' }}
-                                disabled={!selectedExam || loading || submitting || students.length === 0}
+                                disabled={!selectedSectionId || loading || submitting || students.length === 0}
                             >
                                 <option value="">-- Select Student --</option>
                                 {students.map((s) => (

@@ -1,4 +1,5 @@
 module.exports = {
+  ignorePatterns: ['dist', 'venv', 'node_modules', 'build', 'coverage', '*.min.js'],
   env: { browser: true, es2020: true, node: true },
   extends: [
     'eslint:recommended',

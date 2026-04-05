@@ -9,11 +9,15 @@ const Navbar = () => {
     const { logout } = useAuthStore();
     const user = authService.getCurrentUser();
     const [studentProfile, setStudentProfile] = useState(null);
+    const [teacherProfile, setTeacherProfile] = useState(null);
     const [isProfileOpen, setIsProfileOpen] = useState(false);
 
     useEffect(() => {
         if (user.role === 'student') {
             api.get('students/profile/').then(res => setStudentProfile(res.data)).catch(() => {});
+        }
+        if (user.role === 'teacher') {
+            api.get('teachers/profile/').then(res => setTeacherProfile(res.data)).catch(() => {});
         }
     }, [user.role]);
 
@@ -23,6 +27,11 @@ const Navbar = () => {
     };
 
     const initials = (user.name || 'U').split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
+    const profileId = user.role === 'student'
+        ? studentProfile?.admission_number
+        : user.role === 'teacher'
+            ? teacherProfile?.employee_id
+            : user?.id;
 
     // Unified Navbar for all roles
     return (
@@ -89,7 +98,7 @@ const Navbar = () => {
                                         </div>
                                         <div className="flex flex-col">
                                             <h3 className="font-black text-slate-900 leading-tight">{user.name}</h3>
-                                            <p className="text-[11px] font-bold text-school-blue mt-0.5">ID: {studentProfile?.admission_number || '---'}</p>
+                                            <p className="text-[11px] font-bold text-school-blue mt-0.5">ID: {profileId || '---'}</p>
                                         </div>
                                     </div>
                                     {user.role === 'student' && (

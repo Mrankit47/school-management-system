@@ -54,8 +54,8 @@ const Sidebar = () => {
         { path: '/teacher/attendance', label: 'Mark Attendance', icon: '✅' },
         { path: '/teacher/upload-result', label: 'Upload Results', icon: '📤' },
         { path: '/teacher/assignment', label: 'Create Assignment', icon: '➕' },
-        { path: '/teacher/syllabus', label: 'Syllabus', icon: '📄' },
         { path: '/teacher/assignments', label: 'Assignment List', icon: '📚' },
+        { path: '/teacher/syllabus', label: 'Syllabus', icon: '📄' },
         { path: '/teacher/students', label: 'My Students', icon: '👥' },
         { path: '/teacher/timetable', label: 'Time Table', icon: '📅' },
         { path: '/teacher/Holidays', label: 'Holidays', icon: '🏝️' },
@@ -68,10 +68,10 @@ const Sidebar = () => {
             label: 'User Management', 
             icon: '👥',
             subLinks: [
-                { path: '/admin/manage-students', label: 'Student List' },
-                { path: '/admin/manage-teachers', label: 'Teacher List' },
-                { path: '/admin/add-student', label: 'Add Student' },
                 { path: '/admin/add-teacher', label: 'Add Teacher' },
+                { path: '/admin/add-student', label: 'Add Student' },
+                { path: '/admin/manage-teachers', label: 'Teacher List' },
+                { path: '/admin/manage-students', label: 'Student List' },
             ]
         },
         {
