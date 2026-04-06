@@ -13,6 +13,7 @@ class TeacherProfile(models.Model):
     joining_date = models.DateField(blank=True, null=True)
     status = models.CharField(max_length=10, default='Active')
     profile_image_base64 = models.TextField(blank=True, null=True)
+    photo = models.ImageField(upload_to='teacher_photos/', blank=True, null=True)
 
     def __str__(self):
         return f"{self.user.name} ({self.employee_id})"

@@ -1,7 +1,13 @@
+import os
+
+from django.conf import settings
+from django.http import HttpResponse
 from rest_framework import status, views, permissions
+from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.response import Response
 from accounts.models import User
 from .models import StudentProfile
+from .pdf_id_card import build_student_id_card_pdf
 from core.permissions import IsAdmin
 from classes.models import ClassSection, MainClass, MainSection
 import re
@@ -312,6 +318,15 @@ class StudentProfileView(views.APIView):
         if not s:
             return Response({"error": "Student profile not found"}, status=status.HTTP_404_NOT_FOUND)
 
+        photo_url = None
+        has_photo = False
+        if s.photo and s.photo.name:
+            try:
+                photo_url = request.build_absolute_uri(s.photo.url)
+                has_photo = True
+            except ValueError:
+                pass
+
         return Response({
             "id": s.id,
             "admission_number": s.admission_number,
@@ -332,4 +347,102 @@ class StudentProfileView(views.APIView):
             "parent_guardian_name": s.parent_guardian_name,
             "parent_contact_number": s.parent_contact_number,
             "address": s.address,
+            "photo_url": photo_url,
+            "has_photo": has_photo,
         })
+
+
+_ALLOWED_PHOTO_CT = frozenset(
+    {
+        'image/jpeg',
+        'image/jpg',
+        'image/png',
+        'image/webp',
+        'image/gif',
+        'application/octet-stream',  # some browsers; extension is still validated
+    }
+)
+
+
+class StudentProfilePhotoView(views.APIView):
+    permission_classes = [permissions.IsAuthenticated]
+    parser_classes = [MultiPartParser, FormParser]
+
+    def post(self, request):
+        if request.user.role != 'student':
+            return Response(
+                {"error": "Only students can update their profile photo"},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+        s = StudentProfile.objects.filter(user=request.user).first()
+        if not s:
+            return Response({"error": "Student profile not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        f = request.FILES.get('photo')
+        if not f:
+            return Response({"error": "Send a file in field \"photo\""}, status=status.HTTP_400_BAD_REQUEST)
+
+        ext = os.path.splitext(f.name or '')[1].lower()
+        if ext not in ('.jpg', '.jpeg', '.png', '.webp', '.gif'):
+            return Response({"error": "Allowed types: JPG, PNG, WebP, GIF"}, status=status.HTTP_400_BAD_REQUEST)
+
+        ctype = (getattr(f, 'content_type', None) or '').lower()
+        if ctype and ctype not in _ALLOWED_PHOTO_CT:
+            return Response({"error": "Invalid image content type"}, status=status.HTTP_400_BAD_REQUEST)
+
+        max_bytes = 4 * 1024 * 1024
+        if getattr(f, 'size', 0) > max_bytes:
+            return Response({"error": "Image must be 4MB or smaller"}, status=status.HTTP_400_BAD_REQUEST)
+
+        if s.photo:
+            s.photo.delete(save=False)
+        s.photo = f
+        s.save()
+
+        photo_url = request.build_absolute_uri(s.photo.url)
+        return Response({"message": "Photo saved", "photo_url": photo_url, "has_photo": True})
+
+    def delete(self, request):
+        if request.user.role != 'student':
+            return Response(
+                {"error": "Only students can update their profile photo"},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+        s = StudentProfile.objects.filter(user=request.user).first()
+        if not s:
+            return Response({"error": "Student profile not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        if s.photo:
+            s.photo.delete(save=False)
+        s.photo = None
+        s.save(update_fields=['photo'])
+        return Response({"message": "Photo removed", "photo_url": None, "has_photo": False})
+
+
+class StudentIdCardPdfView(views.APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        if request.user.role != 'student':
+            return Response(
+                {"error": "Only students can download their ID card"},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+        s = (
+            StudentProfile.objects.select_related(
+                'user',
+                'class_section__class_ref',
+                'class_section__section_ref',
+            )
+            .filter(user=request.user)
+            .first()
+        )
+        if not s:
+            return Response({"error": "Student profile not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        school_name = getattr(settings, 'SCHOOL_NAME', 'School Management System')
+        pdf_bytes = build_student_id_card_pdf(s, school_name=school_name)
+        filename = f"id-card-{s.admission_number or s.id}.pdf"
+        response = HttpResponse(pdf_bytes, content_type='application/pdf')
+        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+        return response

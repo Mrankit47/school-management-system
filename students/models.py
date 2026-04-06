@@ -16,6 +16,7 @@ class StudentProfile(models.Model):
     address = models.TextField(blank=True, null=True)
     date_of_admission = models.DateField(blank=True, null=True)
     category = models.CharField(max_length=50, blank=True, null=True)
+    photo = models.ImageField(upload_to='student_photos/', blank=True, null=True)
 
     class Meta:
         constraints = [

@@ -90,6 +90,8 @@ REST_FRAMEWORK = {
 }
 
 # Database
+# Database
+
   
 
 SIMPLE_JWT = {

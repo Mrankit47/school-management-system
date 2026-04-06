@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 
@@ -18,6 +18,10 @@ const Profile = () => {
     const [feeRecords, setFeeRecords] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
+    const [photoBusy, setPhotoBusy] = useState(false);
+    const [photoError, setPhotoError] = useState('');
+    const [idCardBusy, setIdCardBusy] = useState(false);
+    const fileInputRef = useRef(null);
 
     useEffect(() => {
         setLoading(true);
@@ -114,22 +118,99 @@ const Profile = () => {
     const fatherName = profile.parent_guardian_name || '—';
     const motherName = profile.mother_name || '—';
     const photoInitial = (profile.name || 'S').slice(0, 1).toUpperCase();
-    const openIdCard = () => {
-        const win = window.open('', '_blank');
-        if (!win) return;
-        win.document.write(`
-            <html><head><title>Student ID Card</title></head>
-            <body style="font-family:Arial;padding:24px">
-                <h2>Student ID Card</h2>
-                <p><strong>Name:</strong> ${profile.name || '-'}</p>
-                <p><strong>Admission Number:</strong> ${profile.admission_number || '-'}</p>
-                <p><strong>Class:</strong> ${classDisplay}</p>
-                <p><strong>Email:</strong> ${profile.email || '-'}</p>
-                <p><strong>Phone:</strong> ${profile.phone || profile.parent_contact_number || '-'}</p>
-            </body></html>
-        `);
-        win.document.close();
-        win.print();
+
+    const pickPhoto = () => {
+        setPhotoError('');
+        fileInputRef.current?.click();
+    };
+
+    const onPhotoSelected = async (e) => {
+        const file = e.target.files?.[0];
+        e.target.value = '';
+        if (!file) return;
+        setPhotoBusy(true);
+        setPhotoError('');
+        try {
+            const fd = new FormData();
+            fd.append('photo', file);
+            const res = await api.post('students/profile/photo/', fd);
+            setProfile((p) =>
+                p
+                    ? {
+                          ...p,
+                          photo_url: res.data.photo_url,
+                          has_photo: !!res.data.has_photo,
+                      }
+                    : p
+            );
+        } catch (err) {
+            const msg =
+                err?.response?.data?.error ||
+                err?.response?.data?.detail ||
+                (typeof err?.response?.data === 'string' ? err.response.data : null) ||
+                'Could not upload photo.';
+            setPhotoError(msg);
+        } finally {
+            setPhotoBusy(false);
+        }
+    };
+
+    const removePhoto = async () => {
+        if (!profile?.has_photo && !profile?.photo_url) return;
+        setPhotoBusy(true);
+        setPhotoError('');
+        try {
+            await api.delete('students/profile/photo/');
+            setProfile((p) =>
+                p ? { ...p, photo_url: null, has_photo: false } : p
+            );
+        } catch (err) {
+            const msg =
+                err?.response?.data?.error ||
+                err?.response?.data?.detail ||
+                'Could not remove photo.';
+            setPhotoError(msg);
+        } finally {
+            setPhotoBusy(false);
+        }
+    };
+
+    const downloadIdCardPdf = async () => {
+        setIdCardBusy(true);
+        setPhotoError('');
+        try {
+            const res = await api.get('students/profile/id-card/', { responseType: 'blob' });
+            const blob = new Blob([res.data], { type: 'application/pdf' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `student-id-card-${profile.admission_number || profile.id || 'student'}.pdf`;
+            a.rel = 'noopener';
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            URL.revokeObjectURL(url);
+        } catch (err) {
+            let msg = err?.response?.data?.error || 'Could not download ID card.';
+            if (err?.response?.data instanceof Blob) {
+                try {
+                    const t = await err.response.data.text();
+                    if (t) {
+                        try {
+                            const j = JSON.parse(t);
+                            msg = j.error || j.detail || msg;
+                        } catch {
+                            msg = t.length < 200 ? t : msg;
+                        }
+                    }
+                } catch {
+                    /* ignore */
+                }
+            }
+            setPhotoError(typeof msg === 'string' ? msg : 'Could not download ID card.');
+        } finally {
+            setIdCardBusy(false);
+        }
     };
 
     return (
@@ -137,16 +218,93 @@ const Profile = () => {
             <h1 style={{ marginTop: 0 }}>My Profile</h1>
             {error ? <div style={{ color: '#b91c1c', fontWeight: 900, marginBottom: 12 }}>{error}</div> : null}
 
-            <div style={{ ...card, display: 'flex', alignItems: 'center', gap: 16, marginBottom: 14 }}>
-                <div style={{ width: 72, height: 72, borderRadius: '50%', background: '#dbeafe', color: '#1d4ed8', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 1000, fontSize: 28 }}>
-                    {photoInitial}
-                </div>
-                <div>
-                    <div style={{ fontWeight: 1000, fontSize: 20 }}>{profile.name || 'Student'}</div>
-                    <div style={{ marginTop: 4, color: '#6b7280', fontWeight: 900, fontSize: 13 }}>
-                        Admission: {profile.admission_number || '—'} | {classDisplay}
+            <div style={{ ...card, marginBottom: 14 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
+                    {profile.photo_url ? (
+                        <img
+                            src={profile.photo_url}
+                            alt=""
+                            style={{
+                                width: 72,
+                                height: 72,
+                                borderRadius: '50%',
+                                objectFit: 'cover',
+                                border: '1px solid #e5e7eb',
+                            }}
+                        />
+                    ) : (
+                        <div
+                            style={{
+                                width: 72,
+                                height: 72,
+                                borderRadius: '50%',
+                                background: '#dbeafe',
+                                color: '#1d4ed8',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                fontWeight: 1000,
+                                fontSize: 28,
+                            }}
+                        >
+                            {photoInitial}
+                        </div>
+                    )}
+                    <div style={{ flex: '1 1 200px' }}>
+                        <div style={{ fontWeight: 1000, fontSize: 20 }}>{profile.name || 'Student'}</div>
+                        <div style={{ marginTop: 4, color: '#6b7280', fontWeight: 900, fontSize: 13 }}>
+                            Admission: {profile.admission_number || '—'} | {classDisplay}
+                        </div>
                     </div>
                 </div>
+                <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp,image/gif,.jpg,.jpeg,.png,.webp,.gif"
+                    style={{ display: 'none' }}
+                    onChange={onPhotoSelected}
+                />
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 12, alignItems: 'center' }}>
+                    <button
+                        type="button"
+                        onClick={pickPhoto}
+                        disabled={photoBusy}
+                        style={{
+                            padding: '8px 14px',
+                            borderRadius: 10,
+                            border: '1px solid #2563eb',
+                            background: '#eff6ff',
+                            color: '#1d4ed8',
+                            fontWeight: 900,
+                            cursor: photoBusy ? 'not-allowed' : 'pointer',
+                            fontSize: 13,
+                        }}
+                    >
+                        {photoBusy ? 'Please wait…' : 'Upload photo'}
+                    </button>
+                    {(profile.has_photo || profile.photo_url) && (
+                        <button
+                            type="button"
+                            onClick={removePhoto}
+                            disabled={photoBusy}
+                            style={{
+                                padding: '8px 14px',
+                                borderRadius: 10,
+                                border: '1px solid #e5e7eb',
+                                background: '#fff',
+                                color: '#64748b',
+                                fontWeight: 900,
+                                cursor: photoBusy ? 'not-allowed' : 'pointer',
+                                fontSize: 13,
+                            }}
+                        >
+                            Remove photo
+                        </button>
+                    )}
+                </div>
+                {photoError ? (
+                    <div style={{ marginTop: 8, color: '#b91c1c', fontWeight: 800, fontSize: 13 }}>{photoError}</div>
+                ) : null}
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(12, minmax(0,1fr))', gap: 12 }}>
@@ -170,7 +328,23 @@ const Profile = () => {
                         <button type="button" onClick={() => navigate('/student/attendance')} style={{ padding: '10px 12px', borderRadius: 10, border: 'none', background: '#e0f2fe', color: '#0369a1', fontWeight: 900, cursor: 'pointer' }}>View Attendance</button>
                         <button type="button" onClick={() => navigate('/student/fees')} style={{ padding: '10px 12px', borderRadius: 10, border: 'none', background: '#ecfccb', color: '#3f6212', fontWeight: 900, cursor: 'pointer' }}>View Fees</button>
                         <button type="button" onClick={() => navigate('/student/results/exam')} style={{ padding: '10px 12px', borderRadius: 10, border: 'none', background: '#ede9fe', color: '#5b21b6', fontWeight: 900, cursor: 'pointer' }}>View Results</button>
-                        <button type="button" onClick={openIdCard} style={{ padding: '10px 12px', borderRadius: 10, border: 'none', background: '#fee2e2', color: '#991b1b', fontWeight: 900, cursor: 'pointer' }}>Download ID Card</button>
+                        <button
+                            type="button"
+                            onClick={downloadIdCardPdf}
+                            disabled={idCardBusy}
+                            style={{
+                                padding: '10px 12px',
+                                borderRadius: 10,
+                                border: 'none',
+                                background: '#fee2e2',
+                                color: '#991b1b',
+                                fontWeight: 900,
+                                cursor: idCardBusy ? 'not-allowed' : 'pointer',
+                                opacity: idCardBusy ? 0.75 : 1,
+                            }}
+                        >
+                            {idCardBusy ? 'Preparing PDF…' : 'Download ID Card (PDF)'}
+                        </button>
                     </div>
                 </div>
 
