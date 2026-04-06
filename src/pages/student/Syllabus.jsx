@@ -52,7 +52,7 @@ function Modal({ open, title, onClose, children }) {
             <div style={{ width: 'min(920px, 100%)', background: '#fff', borderRadius: 16, border: `1px solid ${colors.border}`, boxShadow: colors.shadow, overflow: 'hidden' }}>
                 <div style={{ padding: 16, borderBottom: `1px solid ${colors.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
                     <div style={{ fontWeight: 1000, color: colors.text, fontSize: 16 }}>{title}</div>
-                    <button type="button" onClick={onClose} style={{ border: 'none', background: '#fff', border: `1px solid ${colors.border}`, padding: '8px 12px', borderRadius: 12, cursor: 'pointer', fontWeight: 1000 }}>
+                    <button type="button" onClick={onClose} style={{ background: '#fff', border: `1px solid ${colors.border}`, padding: '8px 12px', borderRadius: 12, cursor: 'pointer', fontWeight: 1000 }}>
                         Close
                     </button>
                 </div>

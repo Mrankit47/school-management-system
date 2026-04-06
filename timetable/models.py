@@ -39,8 +39,8 @@ class TimeTableEntry(models.Model):
     class Meta:
         ordering = ['day', 'period']
         unique_together = [
-            ('class_name', 'section', 'day', 'period'),
-            ('teacher', 'day', 'period')
+            ('school', 'class_name', 'section', 'day', 'period'),
+            ('school', 'teacher', 'day', 'period')
         ]
         indexes = [
             models.Index(fields=['teacher', 'day']),
@@ -52,7 +52,6 @@ class TimeTableEntry(models.Model):
             raise ValidationError("Period must be between 1 and 6.")
 
     def save(self, *args, **kwargs):
-        self.full_clean()
         # Auto-set times based on period
         time_map = {
             1: (time(8, 0), time(9, 0)),
@@ -62,8 +61,10 @@ class TimeTableEntry(models.Model):
             5: (time(13, 0), time(14, 0)),
             6: (time(14, 0), time(15, 0)),
         }
-        if self.period in time_map:
+        if getattr(self, 'period', None) in time_map:
             self.start_time, self.end_time = time_map[self.period]
+        
+        self.full_clean()
         super().save(*args, **kwargs)
 
     def __str__(self):
