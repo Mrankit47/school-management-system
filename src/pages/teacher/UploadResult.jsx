@@ -115,9 +115,8 @@ const UploadResult = () => {
             setLoading(true);
             setTopError('');
             try {
-                const [profRes, secRes, examsRes, subRes] = await Promise.all([
-                    api.get('teachers/profile/'),
-                    api.get('classes/sections/'),
+                const [secRes, examsRes, subRes] = await Promise.all([
+                    api.get('classes/teaching-sections/'),
                     api.get('academics/exams/'),
                     api.get('subjects/', { params: { status: 'Active' } }),
                 ]);
@@ -125,29 +124,14 @@ const UploadResult = () => {
 
                 setAllSubjects(asList(subRes.data));
 
-                const teacherProfile = profRes.data;
-                const tid = teacherProfile?.id;
-                const allSections = asList(secRes.data);
+                const teachingSections = asList(secRes.data);
                 const allExams = asList(examsRes.data);
 
-                // Prefer backend `classes_assigned` (same source as profile); also merge sections where class_teacher matches (string/number safe).
-                const fromProfile = (teacherProfile?.classes_assigned || []).map((c) => ({
+                const mine = teachingSections.map((c) => ({
                     id: c.id,
                     class_name: c.class_name,
                     section_name: c.section_name,
                 }));
-                const fromSectionsList = allSections
-                    .filter((c) => c.class_teacher != null && Number(c.class_teacher) === Number(tid))
-                    .map((c) => ({
-                        id: c.id,
-                        class_name: c.class_name,
-                        section_name: c.section_name,
-                    }));
-                const byId = new Map();
-                for (const row of [...fromProfile, ...fromSectionsList]) {
-                    if (row?.id != null) byId.set(Number(row.id), row);
-                }
-                const mine = Array.from(byId.values());
                 setMySections(mine);
 
                 // Exams: show full list again (like before). Filtering to "only my class" hid every exam when class_teacher id did not match strictly.

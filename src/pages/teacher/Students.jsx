@@ -25,7 +25,6 @@ const Students = () => {
     const [error, setError] = useState('');
 
     const [teacherProfile, setTeacherProfile] = useState(null);
-    const [allSections, setAllSections] = useState([]);
     const [assignedClasses, setAssignedClasses] = useState([]);
     const [selectedClassId, setSelectedClassId] = useState('');
 
@@ -37,14 +36,11 @@ const Students = () => {
 
     useEffect(() => {
         setLoading(true);
-        Promise.all([api.get('teachers/profile/'), api.get('classes/sections/')])
+        Promise.all([api.get('teachers/profile/'), api.get('classes/teaching-sections/')])
             .then(async ([teacherRes, sectionRes]) => {
                 const profile = teacherRes.data || null;
-                const sections = sectionRes.data || [];
+                const mine = sectionRes.data || [];
                 setTeacherProfile(profile);
-                setAllSections(sections);
-
-                const mine = sections.filter((s) => s.class_teacher === profile?.id);
                 setAssignedClasses(mine);
                 if (mine.length) setSelectedClassId(String(mine[0].id));
 

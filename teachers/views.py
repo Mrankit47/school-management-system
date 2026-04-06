@@ -11,6 +11,8 @@ from .pdf_id_card import build_teacher_id_card_pdf
 from .serializers import TeacherProfileSerializer, TeacherDocumentSerializer
 from core.permissions import IsAdmin, IsTeacher
 from classes.models import ClassSection
+from classes.teacher_access import teacher_accessible_class_sections_queryset
+from subjects.models import TeacherAssignment
 from assignments.models import Assignment as AssignmentModel
 from attendance.models import Attendance as AttendanceModel
 from django.db import transaction
@@ -32,7 +34,7 @@ def _next_employee_id():
 
 def _teacher_role_label(profile: TeacherProfile) -> str:
     has_class = ClassSection.objects.filter(class_teacher=profile).exists()
-    has_subjects = profile.subjects.exists()
+    has_subjects = profile.subjects.exists() or TeacherAssignment.objects.filter(teacher=profile).exists()
     if has_class and has_subjects:
         return 'Class Teacher & Subject Teacher'
     if has_class:
@@ -65,10 +67,10 @@ class TeacherProfileView(views.APIView):
         if profile:
             data = TeacherProfileSerializer(profile).data
 
-            classes_assigned_qs = (
-                ClassSection.objects.select_related('class_ref', 'section_ref')
-                .filter(class_teacher=profile)
-                .order_by('class_ref__name', 'section_ref__name')
+            school = None if request.user.is_superuser else request.user.school
+            classes_assigned_qs = teacher_accessible_class_sections_queryset(profile, school).select_related(
+                'class_ref',
+                'section_ref',
             )
             classes_assigned = []
             total_students = 0

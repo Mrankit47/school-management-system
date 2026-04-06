@@ -10,6 +10,7 @@ from .models import StudentProfile
 from .pdf_id_card import build_student_id_card_pdf
 from core.permissions import IsAdmin
 from classes.models import ClassSection, MainClass, MainSection
+from classes.teacher_access import teacher_teaches_class_section
 import re
 
 
@@ -122,7 +123,7 @@ class StudentsByClassSectionView(views.APIView):
             teacher_profile = getattr(request.user, 'teacher_profile', None)
             
             class_section = ClassSection.objects.filter(id=class_section_id).first()
-            if not class_section or not teacher_profile or class_section.class_teacher_id != teacher_profile.id:
+            if not class_section or not teacher_profile or not teacher_teaches_class_section(teacher_profile, class_section):
                 return Response({"error": "Not allowed for this class"}, status=status.HTTP_403_FORBIDDEN)
 
         records = qs.order_by('id')

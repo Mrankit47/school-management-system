@@ -5,24 +5,29 @@ from rest_framework.response import Response
 from .models import Notification, Message
 from .serializers import NotificationSerializer, MessageSerializer
 from students.models import StudentProfile
-from classes.models import ClassSection
+from teachers.models import TeacherProfile
+from classes.teacher_access import teacher_accessible_class_sections_queryset, teacher_user_ids_for_student_class_section
 
 
-def _teacher_allowed_student_ids(teacher_profile_id: int):
-    class_ids = ClassSection.objects.filter(class_teacher_id=teacher_profile_id).values_list('id', flat=True)
-    return set(StudentProfile.objects.filter(class_section_id__in=list(class_ids)).values_list('user_id', flat=True))
+def _teacher_allowed_student_ids(teacher_profile_id: int, school=None):
+    profile = TeacherProfile.objects.select_related('user').filter(id=teacher_profile_id).first()
+    if not profile:
+        return set()
+    sch = school if school is not None else getattr(profile.user, 'school', None)
+    section_ids = teacher_accessible_class_sections_queryset(profile, sch).values_list('id', flat=True)
+    return set(StudentProfile.objects.filter(class_section_id__in=list(section_ids)).values_list('user_id', flat=True))
 
 
 def _student_allowed_teacher_ids(student_user_id: int):
-    sp = StudentProfile.objects.select_related('class_section__class_teacher__user').filter(user_id=student_user_id).first()
-    if not sp or not sp.class_section or not sp.class_section.class_teacher:
+    sp = StudentProfile.objects.select_related('class_section').filter(user_id=student_user_id).first()
+    if not sp or not sp.class_section:
         return set()
-    return {sp.class_section.class_teacher.user_id}
+    return teacher_user_ids_for_student_class_section(sp.class_section)
 
 
 def _is_allowed_pair(user, other_user_id: int) -> bool:
     if user.role == 'teacher':
-        allowed = _teacher_allowed_student_ids(user.teacher_profile.id)
+        allowed = _teacher_allowed_student_ids(user.teacher_profile.id, getattr(user, 'school', None))
         return other_user_id in allowed
     if user.role == 'student':
         allowed = _student_allowed_teacher_ids(user.id)
@@ -60,16 +65,21 @@ class MessageThreadsView(views.APIView):
         class_section_id = request.query_params.get('class_section_id')
 
         if request.user.role == 'teacher':
-            allowed_student_ids = _teacher_allowed_student_ids(request.user.teacher_profile.id)
+            tp = request.user.teacher_profile
+            allowed_student_ids = _teacher_allowed_student_ids(tp.id, getattr(request.user, 'school', None))
             if class_section_id:
                 try:
                     class_section_id = int(class_section_id)
                 except Exception:
                     return Response({'error': 'Invalid class_section_id'}, status=status.HTTP_400_BAD_REQUEST)
-                filtered_students = StudentProfile.objects.filter(
-                    class_section_id=class_section_id,
-                    class_section__class_teacher_id=request.user.teacher_profile.id,
-                ).values_list('user_id', flat=True)
+                if class_section_id not in teacher_accessible_class_sections_queryset(
+                    tp,
+                    getattr(request.user, 'school', None),
+                ).values_list('id', flat=True):
+                    return Response({'error': 'Not allowed for this class section'}, status=status.HTTP_403_FORBIDDEN)
+                filtered_students = StudentProfile.objects.filter(class_section_id=class_section_id).values_list(
+                    'user_id', flat=True
+                )
                 allowed_student_ids = set(filtered_students)
 
             msgs = (

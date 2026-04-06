@@ -51,10 +51,8 @@ const MarkAttendance = () => {
     const isEditable = !!sheet?.is_editable;
 
     const loadTeacherClasses = async () => {
-        const [profileRes, classRes] = await Promise.all([api.get('teachers/profile/'), api.get('classes/sections/')]);
-        const teacherProfile = profileRes.data || null;
-        const allSections = classRes.data || [];
-        const mine = allSections.filter((c) => c.class_teacher === teacherProfile?.id);
+        const res = await api.get('classes/teaching-sections/');
+        const mine = res.data || [];
         setClasses(mine);
         if (mine.length && !selectedClassId) {
             setSelectedClassId(String(mine[0].id));
