@@ -46,7 +46,8 @@ INSTALLED_APPS = [
     'timetable',
     'subjects',
     'holidays',
-    'syllabus',
+    'tenants',
+    'syllabus'
 ]
 
 MIDDLEWARE = [
@@ -65,7 +66,7 @@ ROOT_URLCONF = 'config.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [BASE_DIR / 'templates'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -80,6 +81,19 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'config.wsgi.application'
 
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': os.getenv('DB_NAME', 'postgres'),
+        'USER': os.getenv('DB_USER', 'postgres.uzztcarhwpsrjhaxqgiu'),
+        'PASSWORD': os.getenv('DB_PASSWORD', 'quZz5KvCpSKSO5lJ'),
+        'HOST': os.getenv('DB_HOST', 'aws-1-ap-south-1.pooler.supabase.com'),
+        'PORT': os.getenv('DB_PORT', '6543'),
+        'OPTIONS': {
+            'sslmode': 'require',
+        },
+    }
+}
 
 # Authentication
 AUTH_USER_MODEL = 'accounts.User'

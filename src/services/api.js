@@ -24,12 +24,15 @@ api.interceptors.response.use(
     (response) => response,
     (error) => {
         if (error.response && error.response.status === 401) {
-            // Auto logout if token expires or is invalid
-            localStorage.removeItem('access_token');
-            localStorage.removeItem('refresh_token');
-            // Only redirect if not already on login page
-            if (window.location.pathname !== '/login') {
-                window.location.href = '/login';
+            // Do not trigger global logout redirect if the 401 came from the login endpoint itself
+            if (!error.config.url.includes('auth/login')) {
+                // Auto logout if token expires or is invalid
+                localStorage.removeItem('access_token');
+                localStorage.removeItem('refresh_token');
+                // Only redirect if not already on login page
+                if (window.location.pathname !== '/login') {
+                    window.location.href = '/login';
+                }
             }
         }
         return Promise.reject(error);
