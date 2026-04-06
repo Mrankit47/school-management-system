@@ -1,6 +1,8 @@
 from django.urls import path
-from .views import MyNotificationsView
+from .views import MyNotificationsView, MessageThreadsView, ConversationView
 
 urlpatterns = [
     path('my/', MyNotificationsView.as_view(), name='my-notifications'),
+    path('threads/', MessageThreadsView.as_view(), name='message-threads'),
+    path('conversation/<int:other_user_id>/', ConversationView.as_view(), name='message-conversation'),
 ]

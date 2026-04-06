@@ -23,6 +23,19 @@ class MyFeesView(views.APIView):
     permission_classes = [IsStudent]
 
     def get(self, request):
+        student = StudentProfile.objects.select_related('class_section__class_ref').filter(user=request.user).first()
+        if student and student.class_section:
+            structure = FeeStructure.objects.filter(class_ref_id=student.class_section.class_ref_id).first()
+            if structure:
+                sf, _ = StudentFee.objects.get_or_create(
+                    student=student,
+                    fee_structure=structure,
+                    defaults={'due_date': structure.due_date},
+                )
+                if sf.due_date != structure.due_date:
+                    sf.due_date = structure.due_date
+                    sf.save(update_fields=['due_date'])
+
         fees = (
             StudentFee.objects.filter(student__user=request.user)
             .select_related('student__user', 'student__class_section__class_ref', 'student__class_section__section_ref', 'fee_structure')
@@ -49,11 +62,17 @@ class FeeStructureListCreateView(views.APIView):
         school = request.user.school
         ser = FeeStructureSerializer(data=request.data)
         if ser.is_valid():
-            # Check class_ref tenant
-            class_ref = ser.validated_data.get('class_ref')
-            if not request.user.is_superuser and class_ref and class_ref.school != school:
-                return Response({'error': 'Not authorized for this class'}, status=status.HTTP_403_FORBIDDEN)
-            ser.save()
+            structure = ser.save()
+            students = StudentProfile.objects.filter(class_section__class_ref_id=structure.class_ref_id)
+            for s in students:
+                sf, _ = StudentFee.objects.get_or_create(
+                    student=s,
+                    fee_structure=structure,
+                    defaults={'due_date': structure.due_date},
+                )
+                if sf.due_date != structure.due_date:
+                    sf.due_date = structure.due_date
+                    sf.save(update_fields=['due_date'])
             return Response(ser.data, status=status.HTTP_201_CREATED)
         return Response(ser.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -82,16 +101,78 @@ class FeeStructureDetailView(views.APIView):
         
         ser = FeeStructureSerializer(obj, data=request.data, partial=True)
         if ser.is_valid():
-            class_ref = ser.validated_data.get('class_ref')
-            if class_ref and not request.user.is_superuser and class_ref.school != school:
-                 return Response({'error': 'Not authorized for this class'}, status=status.HTTP_403_FORBIDDEN)
-                 
-            ser.save()
+            updated = ser.save()
+            students = StudentProfile.objects.filter(class_section__class_ref_id=updated.class_ref_id)
+            for s in students:
+                sf, _ = StudentFee.objects.get_or_create(
+                    student=s,
+                    fee_structure=updated,
+                    defaults={'due_date': updated.due_date},
+                )
+                if sf.due_date != updated.due_date:
+                    sf.due_date = updated.due_date
+                    sf.save(update_fields=['due_date'])
             for sf in obj.student_fees.all():
                 sf.due_date = obj.due_date
                 sf.save(update_fields=['due_date'])
             return Response(ser.data)
         return Response(ser.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class StudentPaymentCreateView(views.APIView):
+    permission_classes = [IsStudent]
+
+    def post(self, request):
+        student_fee_id = request.data.get('student_fee_id')
+        amount = request.data.get('amount')
+        payment_date = request.data.get('payment_date')
+        payment_mode = request.data.get('payment_mode', 'UPI')
+        transaction_id = request.data.get('transaction_id', '')
+
+        if not student_fee_id or amount is None or not payment_date:
+            return Response(
+                {"error": "student_fee_id, amount, and payment_date are required"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        sf = (
+            StudentFee.objects.select_related('fee_structure')
+            .filter(id=student_fee_id, student__user=request.user)
+            .first()
+        )
+        if not sf:
+            return Response({"error": "Student fee record not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        try:
+            amount_dec = Decimal(str(amount))
+        except Exception:
+            return Response({"error": "Invalid amount"}, status=status.HTTP_400_BAD_REQUEST)
+
+        if amount_dec <= 0:
+            return Response({"error": "Amount must be positive"}, status=status.HTTP_400_BAD_REQUEST)
+
+        balance = sf.due_amount
+        if amount_dec > balance + Decimal('0.009'):
+            return Response(
+                {"error": f"Amount exceeds due balance (₹{balance})"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        pay = Payment.objects.create(
+            student_fee=sf,
+            amount=amount_dec,
+            payment_date=payment_date,
+            payment_mode=payment_mode,
+            transaction_id=transaction_id or '',
+        )
+        sf.refresh_from_db()
+        return Response(
+            {
+                'payment': PaymentSerializer(pay).data,
+                'student_fee': StudentFeeSerializer(sf).data,
+            },
+            status=status.HTTP_201_CREATED,
+        )
 
     def delete(self, request, pk: int):
         school = request.user.school

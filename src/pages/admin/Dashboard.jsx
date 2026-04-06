@@ -4,7 +4,6 @@ import StudentCards from './StudentCards';
 import TeacherCards from './TeacherCards';
 
 const AdminDashboard = () => {
-    const [counts, setCounts] = useState({ students: 0, teachers: 0, staff: 0 });
     const [recentStudents, setRecentStudents] = useState([]);
     const [loading, setLoading] = useState(true);
     const [formData, setFormData] = useState({
@@ -28,15 +27,16 @@ const AdminDashboard = () => {
     const [students, setStudents] = useState([]);
     const [teachers, setTeachers] = useState([]);
     const [teachersCount, setTeachersCount] = useState(0);
+    const [studentsCount, setStudentsCount] = useState(0);
     const [studentsLoading, setStudentsLoading] = useState(false);
     const parentPhoneDigits = (formData.parent_contact_number || '').replace(/\D/g, '').slice(0, 10);
 
     const fetchCounts = async () => {
         try {
             const res = await api.get('admin/dashboard/stats');
-            const data = res.data.data;
-            setStudents({ length: data.total_students });
-            setTeachersCount(data.total_teachers);
+            const data = res?.data?.data || {};
+            setStudentsCount(Number(data.total_students || 0));
+            setTeachersCount(Number(data.total_teachers || 0));
         } catch (e) {
             console.error("Error fetching stats:", e);
         }
@@ -59,6 +59,24 @@ const AdminDashboard = () => {
         setStudentsLoading(true);
         Promise.all([fetchCounts(), fetchClassesAndSections()])
             .finally(() => setStudentsLoading(false));
+    }, []);
+
+    // Auto refresh dashboard stats (so delete/update actions reflect immediately).
+    useEffect(() => {
+        const tick = async () => {
+            await fetchCounts();
+        };
+
+        const id = setInterval(tick, 5000);
+        const onVis = () => {
+            if (!document.hidden) tick();
+        };
+        document.addEventListener('visibilitychange', onVis);
+        return () => {
+            clearInterval(id);
+            document.removeEventListener('visibilitychange', onVis);
+        };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     const handleSubmit = async (e) => {
@@ -110,18 +128,7 @@ const AdminDashboard = () => {
                     </h1>
                     <p className="text-sm text-school-body font-medium mt-1">Management Overview & Academic Control Center</p>
                 </div>
-                <div className="flex gap-3">
-                    <button 
-                        onClick={() => setIsFormOpen(!isFormOpen)}
-                        className={`px-6 py-3 rounded-2xl text-sm font-bold transition-all duration-300 shadow-xl flex items-center gap-2 ${
-                            isFormOpen 
-                            ? 'bg-white border border-slate-200 text-school-body hover:bg-slate-50 shadow-slate-200/50' 
-                            : 'bg-gradient-to-r from-school-navy to-school-blue text-white hover:shadow-school-blue/20 hover:-translate-y-0.5 active:scale-95'
-                        }`}
-                    >
-                        {isFormOpen ? '✕ Close Registration' : '＋ Register New Student'}
-                    </button>
-                </div>
+                {/* Registration button removed from dashboard as requested */}
             </div>
 
             {/* Dashboard Stats & Overview */}
@@ -130,7 +137,7 @@ const AdminDashboard = () => {
                     {/* Stats Cards */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                         {[
-                            { label: 'Total Students', value: students.length, icon: '🎓', color: 'from-blue-500 to-school-blue', shadow: 'shadow-blue-500/20' },
+                            { label: 'Total Students', value: studentsCount, icon: '🎓', color: 'from-blue-500 to-school-blue', shadow: 'shadow-blue-500/20' },
                             { label: 'Total Teachers', value: teachersCount, icon: '👨‍🏫', color: 'from-indigo-600 to-violet-500', shadow: 'shadow-indigo-500/20' },
                             { label: 'Active Classes', value: mainClasses.length, icon: '🏫', color: 'from-emerald-500 to-teal-400', shadow: 'shadow-emerald-500/20' },
                             { label: 'Total Sections', value: mainSections.length, icon: '🏢', color: 'from-amber-500 to-orange-400', shadow: 'shadow-amber-500/20' },

@@ -12,8 +12,11 @@ import StudentResults from '../pages/student/Results';
 import StudentAssignments from '../pages/student/Assignments';
 import StudentTimetable from '../pages/student/Timetable';
 import StudentFees from '../pages/student/Fees';
+import StudentLedger from '../pages/student/Ledger';
 import StudentAttendance from '../pages/student/Attendance';
 import StudentHolidays from '../pages/student/Holidays';
+import StudentMessaging from '../pages/student/Messaging';
+import StudentSyllabus from '../pages/student/Syllabus';
 
 // Teacher
 import TeacherDashboard from '../pages/teacher/Dashboard';
@@ -22,12 +25,14 @@ import TeacherStudents from '../pages/teacher/Students';
 import MarkAttendance from '../pages/teacher/MarkAttendance';
 import UploadResult from '../pages/teacher/UploadResult';
 import TeacherAssignment from '../pages/teacher/Assignment';
+import TeacherAssignmentList from '../pages/teacher/AssignmentList';
 import TeacherMessaging from '../pages/teacher/Messaging';
 import TeacherHolidays from '../pages/teacher/Holidays';
+import TeacherSyllabus from '../pages/teacher/Syllabus';
 
 // Admin
-import AdminDashboard from '../pages/admin/Dashboard';
 import AddStudent from '../pages/admin/AddStudent';
+import AdminDashboard from '../pages/admin/Dashboard';
 import AddTeacher from '../pages/admin/AddTeacher';
 import AdminProfile from '../pages/admin/Profile';
 import ManageStudents from '../pages/admin/ManageStudents';
@@ -41,6 +46,7 @@ import AdminHolidays from '../pages/admin/Holidays';
 import AdminReports from '../pages/admin/Reports';
 import SubjectDetails from '../pages/admin/SubjectDetails';
 import TimeTable from '../pages/common/TimeTable';
+import AdminSyllabus from '../pages/admin/Syllabus';
 
 import SaaSLanding from '../pages/SaaSLanding';
 import SuperAdminLogin from '../pages/superadmin/Login';
@@ -77,9 +83,10 @@ const AppRoutes = () => {
                 <Route path="timetable" element={<TimeTable />} />
                 <Route path="attendance" element={<StudentAttendance />} />
                 <Route path="fees" element={<StudentFees />} />
-                <Route path="ledger" element={<StudentFees />} />
-                <Route path="contact" element={<StudentDashboard />} />
-                <Route path="syllabus" element={<StudentDashboard />} />
+                <Route path="ledger" element={<StudentLedger />} />
+                <Route path="holidays" element={<StudentHolidays />} />
+                <Route path="syllabus" element={<StudentSyllabus />} />
+                <Route path="messaging" element={<StudentMessaging />} />
               </Routes>
             </ProtectedRoute>} />
 
@@ -92,6 +99,8 @@ const AppRoutes = () => {
                 <Route path="attendance" element={<MarkAttendance />} />
                 <Route path="upload-result" element={<UploadResult />} />
                 <Route path="assignment" element={<TeacherAssignment />} />
+                <Route path="assignments" element={<TeacherAssignmentList />} />
+                <Route path="syllabus" element={<TeacherSyllabus />} />
                 <Route path="messaging" element={<TeacherMessaging />} />
                 <Route path="holidays" element={<TeacherHolidays />} />
                 <Route path="timetable" element={<TimeTable />} />
@@ -101,8 +110,8 @@ const AppRoutes = () => {
             {/* Admin */}
             <Route path="/admin/*" element={<ProtectedRoute allowedRoles={['admin']}>
               <Routes>
-                <Route path="dashboard" element={<AdminDashboard />} />
                 <Route path="add-student" element={<AddStudent />} />
+                <Route path="dashboard" element={<AdminDashboard />} />
                 <Route path="add-teacher" element={<AddTeacher />} />
                 <Route path="profile" element={<AdminProfile />} />
                 <Route path="manage-students" element={<ManageStudents />} />
@@ -116,6 +125,7 @@ const AppRoutes = () => {
                 <Route path="holidays" element={<AdminHolidays />} />
                 <Route path="reports" element={<AdminReports />} />
                 <Route path="timetable" element={<TimeTable />} />
+                <Route path="syllabus" element={<AdminSyllabus />} />
               </Routes>
             </ProtectedRoute>} />
 

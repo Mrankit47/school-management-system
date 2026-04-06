@@ -61,7 +61,8 @@ const Login = () => {
                 else navigate('/student/dashboard');
             }
         } catch (err) {
-            setError('Invalid credentials. Please check your username and password.');
+            const errorMsg = err.response?.data?.detail || err.response?.data?.error || 'Invalid credentials. Please check your username and password.';
+            setError(errorMsg);
         } finally {
             setIsLoading(false);
         }

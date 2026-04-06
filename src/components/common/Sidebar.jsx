@@ -9,20 +9,6 @@ const Sidebar = () => {
 
     if (!role) return null;
 
-    const toggleMenu = (label, depth) => {
-        setOpenMenus(prev => {
-            if (depth === 0) {
-                // For top-level items, close others (accordion behavior)
-                return { [label]: !prev[label] };
-            }
-            // For nested items, preserve existing open menus
-            return {
-                ...prev,
-                [label]: !prev[label]
-            };
-        });
-    };
-
     const studentLinks = [
         { path: '/student/dashboard', label: 'Dashboard', icon: '📊' },
         { 
@@ -68,6 +54,8 @@ const Sidebar = () => {
         { path: '/teacher/attendance', label: 'Mark Attendance', icon: '✅' },
         { path: '/teacher/upload-result', label: 'Upload Results', icon: '📤' },
         { path: '/teacher/assignment', label: 'Create Assignment', icon: '➕' },
+        { path: '/teacher/syllabus', label: 'Syllabus', icon: '📄' },
+        { path: '/teacher/assignments', label: 'Assignment List', icon: '📚' },
         { path: '/teacher/students', label: 'My Students', icon: '👥' },
         { path: '/teacher/timetable', label: 'Time Table', icon: '📅' },
         { path: '/teacher/Holidays', label: 'Holidays', icon: '🏝️' },
@@ -94,6 +82,7 @@ const Sidebar = () => {
                 { path: '/admin/subjects', label: 'Subjects' },
                 { path: '/admin/assign-teacher', label: 'Assign Teacher' },
                 { path: '/admin/exams', label: 'Exams' },
+                { path: '/admin/syllabus', label: 'Syllabus' },
                 { path: '/admin/holidays', label: 'Holidays' },
                 { path: '/admin/timetable', label: 'Time Table' },
             ]
@@ -102,6 +91,13 @@ const Sidebar = () => {
     ];
 
     const links = role === 'student' ? studentLinks : (role === 'teacher' ? teacherLinks : adminLinks);
+
+    const toggleMenu = (label) => {
+        setOpenMenus((prev) => ({
+            ...prev,
+            [label]: !prev[label],
+        }));
+    };
 
     // Initialize open menus based on current location
     useEffect(() => {
@@ -185,8 +181,6 @@ const Sidebar = () => {
             </div>
         );
     };
-
-    const activeLinks = links[role] || [];
 
     return (
         <aside className="w-64 bg-white border-r border-slate-200 h-full flex flex-col transition-all duration-300 z-50">

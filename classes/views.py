@@ -1,5 +1,6 @@
 from rest_framework import views, permissions, status
 from rest_framework.response import Response
+from django.db import transaction
 
 from core.permissions import IsAdmin
 from students.models import StudentProfile
@@ -118,11 +119,10 @@ class AdminMainClassDetailView(views.APIView):
 
         if name is not None:
             next_name = name.strip()
-            if not next_name:
-                return Response({"error": "name cannot be empty"}, status=status.HTTP_400_BAD_REQUEST)
-            if MainClass.objects.filter(school=school, name=next_name).exclude(id=obj.id).exists():
+            if next_name and MainClass.objects.filter(name=next_name).exclude(id=obj.id).exists():
                 return Response({"error": "Class name already exists"}, status=status.HTTP_400_BAD_REQUEST)
-            obj.name = next_name
+            if next_name:
+                obj.name = next_name
         if code is not None:
             obj.code = (code or '').strip() or None
         if description is not None:
@@ -136,8 +136,16 @@ class AdminMainClassDetailView(views.APIView):
         obj = MainClass.objects.filter(school=school, id=class_id).first()
         if not obj:
             return Response({"error": "Class not found"}, status=status.HTTP_404_NOT_FOUND)
-        obj.delete()
-        return Response({"message": "Class deleted successfully"}, status=status.HTTP_200_OK)
+        try:
+            with transaction.atomic():
+                section_ids = list(obj.sections.values_list('id', flat=True))
+                if section_ids:
+                    # Keep student accounts and detach class assignment before deleting sections.
+                    StudentProfile.objects.filter(class_section_id__in=section_ids).update(class_section=None)
+                obj.delete()
+            return Response({"message": "Class deleted successfully"}, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({"error": f"Failed to delete class: {str(e)}"}, status=status.HTTP_400_BAD_REQUEST)
 
 
 class AdminClassSectionCreateView(views.APIView):
@@ -222,8 +230,13 @@ class AdminClassSectionDetailView(views.APIView):
         obj = ClassSection.objects.filter(school=school, id=section_id).first()
         if not obj:
             return Response({"error": "Section not found"}, status=status.HTTP_404_NOT_FOUND)
-        obj.delete()
-        return Response({"message": "Section deleted successfully"}, status=status.HTTP_200_OK)
+        try:
+            with transaction.atomic():
+                StudentProfile.objects.filter(class_section=obj).update(class_section=None)
+                obj.delete()
+            return Response({"message": "Section deleted successfully"}, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({"error": f"Failed to delete section: {str(e)}"}, status=status.HTTP_400_BAD_REQUEST)
 
 
 class AdminClassSectionListView(views.APIView):

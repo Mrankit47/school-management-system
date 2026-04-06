@@ -7,6 +7,7 @@ const AddStudent = () => {
         email: '', password: '', confirm_password: '',
         first_name: '', last_name: '', name: '',
         admission_number: '',
+        roll_number: '',
         class_id: '', section_id: ''
         ,
         dob: '',
@@ -25,6 +26,21 @@ const AddStudent = () => {
     const [students, setStudents] = useState([]);
     const [studentsLoading, setStudentsLoading] = useState(false);
     const parentPhoneDigits = (formData.parent_contact_number || '').replace(/\D/g, '').slice(0, 10);
+    const selectedSection = mainSections.find((s) => String(s.id) === String(formData.section_id));
+    const rollPreview = selectedSection?.name ? `101${String(selectedSection.name).trim().charAt(0).toUpperCase()}` : 'Auto (e.g. 101A)';
+    const admissionPreview = (() => {
+        const used = new Set(
+            (students || [])
+            .map((s) => {
+                const m = String(s.admission_number || '').toUpperCase().match(/^ADM(\d+)$/);
+                return m ? parseInt(m[1], 10) : null;
+            })
+            .filter((n) => Number.isFinite(n))
+        );
+        let next = 101;
+        while (used.has(next)) next += 1;
+        return `ADM${next}`;
+    })();
 
     const inputStyle = {
         width: '100%',
@@ -112,6 +128,7 @@ const AddStudent = () => {
                 last_name: '',
                 name: '',
                 admission_number: '',
+                roll_number: '',
                 class_id: '',
                 section_id: '',
                 dob: '',
@@ -224,14 +241,22 @@ const AddStudent = () => {
                     </div>
 
                     <div>
-                        <div style={labelStyle}>Admission Number</div>
+                        <div style={labelStyle}>Admission Number (Auto Generated)</div>
                         <input
                             type="text"
-                            placeholder="Admission Number"
-                            value={formData.admission_number}
-                            onChange={(e) => setFormData({ ...formData, admission_number: e.target.value })}
-                            style={inputStyle}
-                            required
+                            value={admissionPreview}
+                            readOnly
+                            style={{ ...inputStyle, backgroundColor: '#f9fafb', color: '#6b7280' }}
+                        />
+                    </div>
+
+                    <div>
+                        <div style={labelStyle}>Roll Number (Auto Generated)</div>
+                        <input
+                            type="text"
+                            value={rollPreview}
+                            readOnly
+                            style={{ ...inputStyle, backgroundColor: '#f9fafb', color: '#6b7280' }}
                         />
                     </div>
 

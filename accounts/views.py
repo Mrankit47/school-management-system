@@ -12,8 +12,9 @@ class UserCreateView(views.APIView):
     def post(self, request):
         serializer = UserSerializer(data=request.data)
         if serializer.is_valid():
-            # In a real app, you would handle password hashing properly here
-            user = serializer.save()
+            # Automatically assign the creator's school if not provided
+            school = serializer.validated_data.get('school') or request.user.school
+            user = serializer.save(school=school)
             user.set_password(request.data.get('password'))
             user.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
@@ -28,3 +29,59 @@ class UserProfileView(views.APIView):
     def get(self, request):
         serializer = UserSerializer(request.user)
         return Response(serializer.data)
+
+
+class ChangePasswordView(views.APIView):
+    """
+    Allow logged-in user to change their own password.
+    Expected payload: { old_password, new_password, confirm_password }
+    """
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    def patch(self, request):
+        old_password = request.data.get('old_password')
+        new_password = request.data.get('new_password')
+        confirm_password = request.data.get('confirm_password')
+
+        if not old_password or not new_password or not confirm_password:
+            return Response({'error': 'old_password, new_password and confirm_password are required'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if new_password != confirm_password:
+            return Response({'error': 'New password and confirm password do not match'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if len(new_password) < 6:
+            return Response({'error': 'Password must be at least 6 characters'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if not request.user.check_password(old_password):
+            return Response({'error': 'Old password is incorrect'}, status=status.HTTP_400_BAD_REQUEST)
+
+        request.user.set_password(new_password)
+        request.user.save()
+        return Response({'message': 'Password updated successfully'}, status=status.HTTP_200_OK)
+
+
+class AdminDashboardStatsView(views.APIView):
+    """
+    Admin-only stats used by the Admin Dashboard cards.
+    Frontend expects:
+      { success: true, data: { total_students, total_teachers, ... } }
+    """
+    permission_classes = [IsAdmin]
+
+    def get(self, request):
+        from students.models import StudentProfile
+        from teachers.models import TeacherProfile
+        from classes.models import MainClass, MainSection
+
+        school = request.user.school
+        stats = {
+            "total_students": StudentProfile.objects.filter(user__school=school).count(),
+            "total_teachers": TeacherProfile.objects.filter(user__school=school).count(),
+            "active_classes": MainClass.objects.filter(school=school).count(),
+            "total_sections": MainSection.objects.filter(school=school).count(),
+        }
+        return Response(
+            {"success": True, "message": "Admin stats generated", "data": stats},
+            status=status.HTTP_200_OK,
+        )

@@ -543,12 +543,12 @@ export default function StudentDashboard() {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap', marginBottom: 14 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
                     <div style={{ width: 56, height: 56, borderRadius: 18, backgroundColor: '#e0e7ff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 1000, color: colors.primary }}>
-                        {profile?.user?.name ? profile.user.name.slice(0, 1).toUpperCase() : 'S'}
+                        {profile?.name ? profile.name.slice(0, 1).toUpperCase() : 'S'}
                     </div>
                     <div>
                         <div style={{ fontWeight: 1000, fontSize: 18 }}>Student Dashboard</div>
                         <div style={{ marginTop: 4, color: themeStyles.muted, fontWeight: 900, fontSize: 13 }}>
-                            {profile ? `${profile.user.name} | ${profile.class_name} - ${profile.section_name}` : ''}
+                            {profile ? `${profile.name || 'Student'} | ${profile.class_name} - ${profile.section_name}` : ''}
                         </div>
                         {profile?.admission_number ? (
                             <div style={{ marginTop: 2, color: themeStyles.muted, fontWeight: 900, fontSize: 12 }}>

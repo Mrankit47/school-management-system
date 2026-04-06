@@ -24,8 +24,8 @@ api.interceptors.response.use(
             // Auto logout if token expires or is invalid
             localStorage.removeItem('access_token');
             localStorage.removeItem('refresh_token');
-            // Only redirect if not already on login page
-            if (window.location.pathname !== '/login') {
+            // Only redirect if not already on any login page (includes school-specific logins)
+            if (!window.location.pathname.includes('/login')) {
                 window.location.href = '/login';
             }
         }

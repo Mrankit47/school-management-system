@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import TeacherProfile
+from .models import TeacherProfile, TeacherDocument
 from accounts.serializers import UserSerializer
 
 class TeacherProfileSerializer(serializers.ModelSerializer):
@@ -21,3 +21,17 @@ class TeacherProfileSerializer(serializers.ModelSerializer):
             'status',
             'profile_image_base64',
         ]
+
+
+class TeacherDocumentSerializer(serializers.ModelSerializer):
+    file_url = serializers.SerializerMethodField()
+
+    class Meta:
+        model = TeacherDocument
+        fields = ['id', 'file', 'file_url', 'uploaded_at']
+        read_only_fields = ['file', 'file_url', 'uploaded_at']
+
+    def get_file_url(self, obj):
+        if obj.file:
+            return obj.file.url
+        return None

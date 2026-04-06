@@ -5,6 +5,7 @@ from django.conf.urls.static import static
 from rest_framework_simplejwt.views import TokenRefreshView
 from rest_framework_simplejwt.views import TokenObtainPairView
 from accounts.serializers import CustomTokenObtainPairSerializer
+from accounts.views import AdminDashboardStatsView
 
 
 class CustomTokenObtainPairView(TokenObtainPairView):
@@ -31,6 +32,10 @@ urlpatterns = [
     path('api/timetable/', include('timetable.urls')),
     path('api/subjects/', include('subjects.urls')),
     path('api/holidays/', include('holidays.urls')),
+    path('api/syllabus/', include('syllabus.urls')),
+
+    # Admin Dashboard stats (used by the React admin dashboard cards)
+    path('api/admin/dashboard/stats', AdminDashboardStatsView.as_view(), name='admin-dashboard-stats'),
 ]
 
 # Serve uploaded files in dev mode.

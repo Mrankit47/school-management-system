@@ -17,10 +17,14 @@ class TeacherProfile(models.Model):
     def __str__(self):
         return f"{self.user.name} ({self.employee_id})"
 
-class TeacherProfileDocument(models.Model):
+class TeacherDocument(models.Model):
+    """
+    Optional teacher documents (certificates, resume, etc.).
+    Teachers can upload and view them from their profile.
+    """
     teacher = models.ForeignKey(TeacherProfile, on_delete=models.CASCADE, related_name='documents')
-    file_url = models.URLField(max_length=500)
+    file = models.FileField(upload_to='teacher_documents/', blank=True, null=True)
     uploaded_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"Document for {self.teacher.user.username}"
+        return f"Document for {self.teacher.employee_id}"

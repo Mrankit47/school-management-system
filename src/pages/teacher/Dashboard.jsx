@@ -477,7 +477,7 @@ const TeacherDashboard = () => {
 
                     <div style={{ marginTop: 12, overflowX: 'auto', border: `1px solid ${palette.border}`, borderRadius: 12 }}>
                         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                            <thead>
+                <thead>
                                 <tr style={{ backgroundColor: '#f1f5f9' }}>
                                     <th style={{ padding: '10px', textAlign: 'left' }}>Admission No</th>
                                     <th style={{ padding: '10px', textAlign: 'left' }}>Name</th>
@@ -491,7 +491,7 @@ const TeacherDashboard = () => {
                                     <tr key={s.id} style={{ borderTop: `1px solid ${palette.border}`, backgroundColor: s.low_attendance ? '#fff7ed' : '#fff' }}>
                                         <td style={{ padding: '10px', fontWeight: 900 }}>{s.admission_number}</td>
                                         <td style={{ padding: '10px' }}>{s.name}</td>
-                                        <td style={{ padding: '10px', fontWeight: 900, color: s.status === 'absent' ? palette.danger : s.status === 'late' ? palette.warn : palette.success }}>
+                                        <td style={{ padding: '10px', fontWeight: 900, color: s.status === 'absent' ? palette.danger : s.status === 'late' || s.status === 'pending' ? palette.warn : palette.success }}>
                                             {s.status ? s.status.toUpperCase() : 'UNMARKED'}
                                         </td>
                                         <td style={{ padding: '10px', fontWeight: 900 }}>
@@ -607,16 +607,16 @@ const TeacherDashboard = () => {
                                     <th style={{ padding: 10, textAlign: 'left' }}>Subject</th>
                                     <th style={{ padding: 10, textAlign: 'left' }}>Time</th>
                                     <th style={{ padding: 10, textAlign: 'left' }}>Class</th>
-                                </tr>
-                            </thead>
-                            <tbody>
+                    </tr>
+                </thead>
+                <tbody>
                                 {todayClasses.map((t) => (
                                     <tr key={t.id} style={{ borderTop: `1px solid ${palette.border}` }}>
                                         <td style={{ padding: 10, fontWeight: 900 }}>{t.subject}</td>
                                         <td style={{ padding: 10 }}>{t.start_time} - {t.end_time}</td>
                                         <td style={{ padding: 10 }}>{t.class_section}</td>
-                                    </tr>
-                                ))}
+                        </tr>
+                    ))}
                                 {todayClasses.length === 0 ? (
                                     <tr>
                                         <td colSpan={3} style={{ padding: 10, color: palette.muted, fontWeight: 900 }}>
@@ -624,8 +624,8 @@ const TeacherDashboard = () => {
                                         </td>
                                     </tr>
                                 ) : null}
-                            </tbody>
-                        </table>
+                </tbody>
+            </table>
                     </div>
                 </Card>
 

@@ -55,10 +55,23 @@ const Assignment = () => {
     const [loadError, setLoadError] = useState('');
 
     useEffect(() => {
-        Promise.all([api.get('classes/sections/'), api.get('subjects/', { params: { status: 'Active' } })])
+        Promise.allSettled([api.get('classes/sections/'), api.get('subjects/', { params: { status: 'Active' } })])
             .then(([classRes, subjectRes]) => {
-                setClassSections(classRes.data || []);
-                setSubjects(subjectRes.data || []);
+                if (classRes.status === 'fulfilled') {
+                    setClassSections(classRes.value?.data || []);
+                } else {
+                    setClassSections([]);
+                }
+
+                if (subjectRes.status === 'fulfilled') {
+                    setSubjects(subjectRes.value?.data || []);
+                } else {
+                    setSubjects([]);
+                }
+
+                if (classRes.status !== 'fulfilled' && subjectRes.status !== 'fulfilled') {
+                    setLoadError('Could not load class/subject data');
+                }
             })
             .catch(() => setLoadError('Could not load class/subject data'));
     }, []);
@@ -72,13 +85,15 @@ const Assignment = () => {
     }, [classSections]);
 
     const sectionOptions = useMemo(() => {
-        if (!formData.class_id) return [];
-        return (classSections || []).filter((cs) => String(cs.class_id) === String(formData.class_id));
+        const allSections = classSections || [];
+        if (!formData.class_id) return allSections;
+        return allSections.filter((cs) => String(cs.class_id) === String(formData.class_id));
     }, [classSections, formData.class_id]);
 
     const subjectOptions = useMemo(() => {
-        if (!formData.class_id) return [];
-        return (subjects || []).filter((s) => String(s.class_ref) === String(formData.class_id));
+        const allSubjects = subjects || [];
+        if (!formData.class_id) return allSubjects;
+        return allSubjects.filter((s) => String(s.class_ref) === String(formData.class_id));
     }, [subjects, formData.class_id]);
 
     const selectedFileName = formData.attachment ? formData.attachment.name : '';
@@ -101,11 +116,11 @@ const Assignment = () => {
         setSuccessMsg('');
     };
 
-    const onSectionChange = (sectionId) => {
-        const sec = sectionOptions.find((s) => String(s.section_id) === String(sectionId));
+    const onSectionChange = (classSectionId) => {
+        const sec = sectionOptions.find((s) => String(s.id) === String(classSectionId));
         setFormData((prev) => ({
             ...prev,
-            section_id: sectionId,
+            section_id: sec ? String(sec.section_id) : '',
             class_section: sec ? String(sec.id) : '',
         }));
         setErrors((prev) => ({ ...prev, section_id: undefined, class_section: undefined }));
@@ -219,7 +234,7 @@ const Assignment = () => {
                                 <option value="">-- Select Subject --</option>
                                 {subjectOptions.map((s) => (
                                     <option key={s.id} value={s.name}>
-                                        {s.name}
+                                        {s.name || s.subject_name || 'Unnamed Subject'}
                                     </option>
                                 ))}
                             </select>
@@ -246,17 +261,17 @@ const Assignment = () => {
                         <div>
                             <div style={labelStyle}>Section *</div>
                             <select
-                                value={formData.section_id}
+                                value={formData.class_section}
                                 onChange={(e) => onSectionChange(e.target.value)}
                                 style={{ ...inputStyle, borderColor: errors.section_id ? '#fca5a5' : inputStyle.border }}
                             >
                                 <option value="">-- Select Section --</option>
                                 {sectionOptions.map((s) => (
-                                    <option key={s.id} value={s.section_id}>
-                                        {s.section_name}
+                                    <option key={s.id} value={s.id}>
+                                        {formData.class_id ? s.section_name : `${s.class_name} - ${s.section_name}`}
                                     </option>
                                 ))}
-                            </select>
+                </select>
                             {errors.section_id ? <div style={{ marginTop: 6, color: '#b91c1c', fontSize: 12, fontWeight: 900 }}>{errors.section_id}</div> : null}
                         </div>
 
@@ -408,7 +423,7 @@ const Assignment = () => {
                             {submitting ? 'Creating...' : 'Create Assignment'}
                         </button>
                     </div>
-                </form>
+            </form>
             </div>
         </div>
     );

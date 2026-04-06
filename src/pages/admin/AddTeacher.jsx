@@ -39,7 +39,6 @@ const AddTeacher = () => {
 
         employee_id: '',
         subject_specialization: '',
-        qualification: '',
         experience_years: '',
         joining_date: '',
 
@@ -55,6 +54,10 @@ const AddTeacher = () => {
     const [errors, setErrors] = useState({});
     const [message, setMessage] = useState('');
     const [busy, setBusy] = useState(false);
+
+    // Allow multiple qualifications in the UI.
+    // Backend stores `qualification` as a single CharField, so we join with " / " on submit.
+    const [qualifications, setQualifications] = useState(['']);
 
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [teachers, setTeachers] = useState([]);
@@ -89,6 +92,19 @@ const AddTeacher = () => {
 
     const emailRegex = useMemo(() => /^[^\s@]+@[^\s@]+\.[^\s@]+$/, []);
     const phoneDigits = useMemo(() => (form.phone_number || '').replace(/\D/g, ''), [form.phone_number]);
+    const employeeIdPreview = useMemo(() => {
+        const used = new Set(
+            (teachers || [])
+                .map((t) => {
+                    const m = String(t.employee_id || '').toUpperCase().match(/^T(\d+)$/);
+                    return m ? parseInt(m[1], 10) : null;
+                })
+                .filter((n) => Number.isFinite(n))
+        );
+        let next = 1;
+        while (used.has(next)) next += 1;
+        return `T${String(next).padStart(3, '0')}`;
+    }, [teachers]);
 
     const validate = () => {
         const nextErrors = {};
@@ -104,7 +120,6 @@ const AddTeacher = () => {
         if (!form.gender) nextErrors.gender = 'Gender is required';
         if (!form.dob) nextErrors.dob = 'Date of birth is required';
 
-        if (!form.employee_id.trim()) nextErrors.employee_id = 'Employee ID is required';
         if (!form.subject_specialization) nextErrors.subject_specialization = 'Subject specialization is required';
 
         if (!form.password) nextErrors.password = 'Password is required';
@@ -159,19 +174,24 @@ const AddTeacher = () => {
 
         setBusy(true);
         try {
+            const qualificationValue = (qualifications || [])
+                .map((q) => (q || '').trim())
+                .filter(Boolean)
+                .join(' / ');
+
             const payload = {
                 username: generateUsername(),
                 email: form.email.trim(),
                 password: form.password,
                 name: `${form.first_name} ${form.last_name}`.trim(),
-                employee_id: form.employee_id.trim(),
+                employee_id: employeeIdPreview,
                 subject_specialization: form.subject_specialization,
 
                 // Extra fields (backend may ignore but UI requirements are satisfied)
                 phone_number: `+91${phoneDigits}`,
                 gender: form.gender,
                 dob: form.dob,
-                qualification: form.qualification,
+                qualification: qualificationValue,
                 experience_years: form.experience_years,
                 joining_date: form.joining_date,
                 status: form.status,
@@ -191,7 +211,6 @@ const AddTeacher = () => {
                 dob: '',
                 employee_id: '',
                 subject_specialization: '',
-                qualification: '',
                 experience_years: '',
                 joining_date: '',
                 password: '',
@@ -200,6 +219,7 @@ const AddTeacher = () => {
                 profile_image: null,
                 profile_image_base64: '',
             });
+            setQualifications(['']);
             setPreviewUrl('');
             setErrors({});
         } catch (err) {
@@ -347,14 +367,12 @@ const AddTeacher = () => {
                             <h3 style={{ margin: 0, marginBottom: '12px', color: '#111827' }}>Section: Professional Details</h3>
                             <div style={{ display: 'grid', gap: '12px' }}>
                                 <div>
-                                    <div style={labelStyle}>Employee ID</div>
+                                    <div style={labelStyle}>Employee ID (Auto Generated)</div>
                                     <input
                                         type="text"
-                                        value={form.employee_id}
-                                        onChange={(e) => setForm({ ...form, employee_id: e.target.value })}
-                                        placeholder="e.g., T001"
-                                        style={inputStyle}
-                                        required
+                                        value={employeeIdPreview}
+                                        readOnly
+                                        style={{ ...inputStyle, backgroundColor: '#f9fafb', color: '#6b7280' }}
                                     />
                                     {errors.employee_id && <div style={errorStyle}>{errors.employee_id}</div>}
                                 </div>
@@ -377,14 +395,59 @@ const AddTeacher = () => {
 
                                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                                     <div>
-                                        <div style={labelStyle}>Qualification</div>
-                                        <input
-                                            type="text"
-                                            value={form.qualification}
-                                            onChange={(e) => setForm({ ...form, qualification: e.target.value })}
-                                            placeholder="e.g., M.Sc / B.Ed"
-                                            style={inputStyle}
-                                        />
+                                        <div style={labelStyle}>Qualifications</div>
+                                        <div style={{ display: 'grid', gap: '10px' }}>
+                                            {(qualifications || []).map((q, idx) => (
+                                                <div key={`${idx}`} style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '10px', alignItems: 'center' }}>
+                                                    <input
+                                                        type="text"
+                                                        value={q}
+                                                        onChange={(e) => {
+                                                            const next = [...qualifications];
+                                                            next[idx] = e.target.value;
+                                                            setQualifications(next);
+                                                        }}
+                                                        placeholder={idx === 0 ? 'e.g., M.Sc' : 'Add another'}
+                                                        style={inputStyle}
+                                                    />
+                                                    {qualifications.length > 1 && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setQualifications((prev) => prev.filter((_, i) => i !== idx))}
+                                                            style={{
+                                                                backgroundColor: '#fff',
+                                                                border: '1px solid #e5e7eb',
+                                                                color: '#6b7280',
+                                                                cursor: 'pointer',
+                                                                padding: '10px 12px',
+                                                                borderRadius: '12px',
+                                                                fontWeight: 800,
+                                                                whiteSpace: 'nowrap',
+                                                            }}
+                                                            title="Remove qualification"
+                                                        >
+                                                            Remove
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            ))}
+
+                                            <button
+                                                type="button"
+                                                onClick={() => setQualifications((prev) => [...prev, ''])}
+                                                style={{
+                                                    backgroundColor: '#eff6ff',
+                                                    border: '1px solid #bfdbfe',
+                                                    color: '#1d4ed8',
+                                                    cursor: 'pointer',
+                                                    padding: '10px 14px',
+                                                    borderRadius: '12px',
+                                                    fontWeight: 900,
+                                                }}
+                                            >
+                                                + Add Qualification
+                                            </button>
+                                        </div>
                                     </div>
                                     <div>
                                         <div style={labelStyle}>Experience (Years)</div>
