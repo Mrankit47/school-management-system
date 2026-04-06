@@ -41,9 +41,9 @@ INSTALLED_APPS = [
     'timetable',
     'subjects',
     'holidays',
-    'syllabus',
     'tenants',
-    'leaves',
+    'syllabus',
+    'dealers'
 ]
 
 MIDDLEWARE = [
@@ -76,6 +76,7 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'config.wsgi.application'
+
 
 
 # Authentication

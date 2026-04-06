@@ -119,7 +119,9 @@ class AdminMainClassDetailView(views.APIView):
 
         if name is not None:
             next_name = name.strip()
-            if next_name and MainClass.objects.filter(name=next_name).exclude(id=obj.id).exists():
+            if not next_name:
+                return Response({"error": "name cannot be empty"}, status=status.HTTP_400_BAD_REQUEST)
+            if MainClass.objects.filter(school=school, name=next_name).exclude(id=obj.id).exists():
                 return Response({"error": "Class name already exists"}, status=status.HTTP_400_BAD_REQUEST)
             if next_name:
                 obj.name = next_name

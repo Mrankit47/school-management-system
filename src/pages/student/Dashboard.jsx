@@ -194,15 +194,15 @@ export default function StudentDashboard() {
     useEffect(() => {
         setLoading(true);
         Promise.all([
-            api.get('students/profile/'),
-            api.get('attendance/my-attendance/'),
-            api.get('timetable/'),
-            api.get('communication/my/'),
-            api.get('assignments/'),
-            api.get('assignments/my-submissions/'),
-            api.get('academics/exams/'),
-            api.get('academics/results/my/'),
-            api.get('fees/my/'),
+            api.get('students/profile/').catch(e => ({ data: null })),
+            api.get('attendance/my-attendance/').catch(e => ({ data: [] })),
+            api.get('timetable/').catch(e => ({ data: [] })),
+            api.get('communication/my/').catch(e => ({ data: [] })),
+            api.get('assignments/').catch(e => ({ data: [] })),
+            api.get('assignments/my-submissions/').catch(e => ({ data: [] })),
+            api.get('academics/exams/').catch(e => ({ data: [] })),
+            api.get('academics/results/my/').catch(e => ({ data: [] })),
+            api.get('fees/my/').catch(e => ({ data: [] })),
         ])
             .then(([pRes, aRes, tRes, nRes, asRes, subRes, eRes, rRes, fRes]) => {
                 setProfile(pRes.data || null);

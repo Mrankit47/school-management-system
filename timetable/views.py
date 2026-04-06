@@ -59,8 +59,27 @@ class TimeTableViewSet(viewsets.ModelViewSet):
         return queryset.none()
 
     def perform_create(self, serializer):
+        from django.core.exceptions import ValidationError as DjangoValidationError
+        from rest_framework.exceptions import ValidationError as DRFValidationError
         user = self.request.user
-        if not user.is_superuser:
-            serializer.save(school=user.school)
-        else:
+        try:
+            if not getattr(user, 'is_superuser', False):
+                serializer.save(school=getattr(user, 'school', None))
+            else:
+                serializer.save()
+        except DjangoValidationError as e:
+            errors = e.message_dict.copy() if hasattr(e, 'message_dict') else {'non_field_errors': getattr(e, 'messages', str(e))}
+            if '__all__' in errors:
+                errors['non_field_errors'] = errors.pop('__all__')
+            raise DRFValidationError(errors)
+
+    def perform_update(self, serializer):
+        from django.core.exceptions import ValidationError as DjangoValidationError
+        from rest_framework.exceptions import ValidationError as DRFValidationError
+        try:
             serializer.save()
+        except DjangoValidationError as e:
+            errors = e.message_dict.copy() if hasattr(e, 'message_dict') else {'non_field_errors': getattr(e, 'messages', str(e))}
+            if '__all__' in errors:
+                errors['non_field_errors'] = errors.pop('__all__')
+            raise DRFValidationError(errors)

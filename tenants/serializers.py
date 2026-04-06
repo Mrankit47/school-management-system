@@ -22,7 +22,12 @@ class SchoolAdminSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = School
-        fields = '__all__'
+        fields = [
+            'id', 'name', 'school_id', 'location', 'dealer', 'logo', 'about', 
+            'contact_email', 'is_active', 'created_at', 'user_count', 
+            'teacher_count', 'student_count',
+            'admin_name', 'admin_email', 'admin_username', 'admin_password', 'admin_phone'
+        ]
 
     def create(self, validated_data):
         admin_name = validated_data.pop('admin_name', None)

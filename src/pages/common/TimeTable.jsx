@@ -324,8 +324,8 @@ const TimeTable = () => {
                                 onClick={() => setIsEditMode(!isEditMode)}
                                 disabled={!filters.class_name}
                                 className={`flex items-center gap-2 px-4 py-2 rounded-xl border transition-all font-bold text-sm ${isEditMode
-                                        ? 'bg-school-blue text-white border-school-blue shadow-lg shadow-school-blue/20'
-                                        : 'bg-white text-slate-600 border-slate-200 hover:border-school-blue hover:text-school-blue'
+                                    ? 'bg-school-blue text-white border-school-blue shadow-lg shadow-school-blue/20'
+                                    : 'bg-white text-slate-600 border-slate-200 hover:border-school-blue hover:text-school-blue'
                                     } disabled:opacity-50 disabled:cursor-not-allowed`}
                             >
                                 <Edit2 className="w-4 h-4" />

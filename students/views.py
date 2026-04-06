@@ -106,29 +106,20 @@ class StudentsByClassSectionView(views.APIView):
         if request.user.role not in ('teacher', 'admin'):
             return Response({"error": "Not allowed"}, status=status.HTTP_403_FORBIDDEN)
 
-        class_section = (
-            ClassSection.objects.select_related('class_ref', 'section_ref', 'class_teacher__user')
-            .filter(id=class_section_id)
-            .first()
-        )
-        if not class_section:
-            return Response({"error": "Class section not found"}, status=status.HTTP_404_NOT_FOUND)
+        school = request.user.school
+        qs = StudentProfile.objects.select_related('user').filter(class_section_id=class_section_id)
+        if not request.user.is_superuser:
+            qs = qs.filter(user__school=school)
 
         # Teachers can only see students from their assigned classes.
         if request.user.role == 'teacher':
             teacher_profile = getattr(request.user, 'teacher_profile', None)
-            if not teacher_profile or class_section.class_teacher_id != teacher_profile.id:
+            
+            class_section = ClassSection.objects.filter(id=class_section_id).first()
+            if not class_section or not teacher_profile or class_section.class_teacher_id != teacher_profile.id:
                 return Response({"error": "Not allowed for this class"}, status=status.HTTP_403_FORBIDDEN)
 
-        records = (
-            StudentProfile.objects.select_related(
-                'user',
-                'class_section__class_ref',
-                'class_section__section_ref',
-            )
-            .filter(class_section_id=class_section_id)
-            .order_by('id')
-        )
+        records = qs.order_by('id')
 
         return Response([
             {
@@ -250,6 +241,11 @@ class AdminStudentCreateView(views.APIView):
     def post(self, request):
         data = request.data
         try:
+            school = request.user.school
+            if not school and getattr(request.user, 'is_superuser', False):
+                from tenants.models import School
+                school = School.objects.first()
+
             user = User.objects.create_user(
                 username=data['username'],
                 email=data['email'],
@@ -259,7 +255,7 @@ class AdminStudentCreateView(views.APIView):
                 last_name=data.get('last_name', ''),
                 name=data.get('name') or f"{data.get('first_name', '')} {data.get('last_name', '')}".strip(),
                 role='student',
-                school=request.user.school
+                school=school
             )
 
             class_section_id = data.get('class_section_id')

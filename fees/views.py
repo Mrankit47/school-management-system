@@ -62,7 +62,12 @@ class FeeStructureListCreateView(views.APIView):
         school = request.user.school
         ser = FeeStructureSerializer(data=request.data)
         if ser.is_valid():
+            # Check class_ref tenant
+            class_ref = ser.validated_data.get('class_ref')
+            if not request.user.is_superuser and class_ref and class_ref.school != school:
+                return Response({'error': 'Not authorized for this class'}, status=status.HTTP_403_FORBIDDEN)
             structure = ser.save()
+            
             students = StudentProfile.objects.filter(class_section__class_ref_id=structure.class_ref_id)
             for s in students:
                 sf, _ = StudentFee.objects.get_or_create(
@@ -101,17 +106,11 @@ class FeeStructureDetailView(views.APIView):
         
         ser = FeeStructureSerializer(obj, data=request.data, partial=True)
         if ser.is_valid():
-            updated = ser.save()
-            students = StudentProfile.objects.filter(class_section__class_ref_id=updated.class_ref_id)
-            for s in students:
-                sf, _ = StudentFee.objects.get_or_create(
-                    student=s,
-                    fee_structure=updated,
-                    defaults={'due_date': updated.due_date},
-                )
-                if sf.due_date != updated.due_date:
-                    sf.due_date = updated.due_date
-                    sf.save(update_fields=['due_date'])
+            class_ref = ser.validated_data.get('class_ref')
+            if class_ref and not request.user.is_superuser and class_ref.school != school:
+                 return Response({'error': 'Not authorized for this class'}, status=status.HTTP_403_FORBIDDEN)
+                 
+            ser.save()
             for sf in obj.student_fees.all():
                 sf.due_date = obj.due_date
                 sf.save(update_fields=['due_date'])

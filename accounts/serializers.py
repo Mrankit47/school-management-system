@@ -29,8 +29,10 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
         user = self.user
         request = self.context.get('request')
         
-        # Superadmins don't belong to any school and bypass school check
-        if not user.is_superuser:
+        # Superadmins and Dealers don't belong to any school and bypass school check
+        is_platform_role = user.is_superuser or user.role == 'dealer'
+        
+        if not is_platform_role:
             if not user.school:
                 raise serializers.ValidationError("This user is not assigned to any school.")
             

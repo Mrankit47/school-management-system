@@ -10,7 +10,7 @@ class Migration(migrations.Migration):
 
     dependencies = [
         ('classes', '0002_classsection_room_number_mainclass_code_and_more'),
-        ('subjects', '0002_remove_subjectassignment_school_and_more'),
+        ('subjects', '0001_initial'),
         ('teachers', '0001_initial'),
     ]
 
