@@ -72,6 +72,7 @@ const Sidebar = () => {
                 { path: '/admin/manage-teachers', label: 'Teacher List' },
                 { path: '/admin/add-student', label: 'Add Student' },
                 { path: '/admin/add-teacher', label: 'Add Teacher' },
+                { path: '/admin/bulk-import', label: 'Bulk Import Data' },
             ]
         },
         {

@@ -42,7 +42,8 @@ INSTALLED_APPS = [
     'subjects',
     'holidays',
     'tenants',
-    'syllabus'
+    'syllabus',
+    'bulk_upload',
 ]
 
 MIDDLEWARE = [
