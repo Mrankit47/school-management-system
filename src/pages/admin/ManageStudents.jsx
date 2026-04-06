@@ -53,6 +53,13 @@ const formatDate = (dateStr) => {
     return d.toLocaleDateString();
 };
 
+const csvValue = (value) => {
+    if (value == null) return '';
+    const text = String(value);
+    if (/[",\n]/.test(text)) return `"${text.replace(/"/g, '""')}"`;
+    return text;
+};
+
 const ManageStudents = () => {
     const [students, setStudents] = useState([]);
     const [classes, setClasses] = useState([]);
@@ -175,6 +182,60 @@ const ManageStudents = () => {
         setPage(1);
     };
 
+    const downloadCsv = () => {
+        const rows = filtered || [];
+        if (!rows.length) {
+            window.alert('No student data to download.');
+            return;
+        }
+        const headers = [
+            'Student Name',
+            'Session Name',
+            'Gender',
+            'DOB',
+            'Class',
+            'Section',
+            'Guardian Name',
+            'Guardian Email',
+            'Guardian Mobile',
+            'Status',
+            'Admission Number',
+            'Category',
+            'Region',
+        ];
+        const lines = [headers.map(csvValue).join(',')];
+        rows.forEach((s) => {
+            lines.push(
+                [
+                    s.name || '',
+                    s.sessionName || '',
+                    s.gender || 'Unknown',
+                    formatDate(s.dob),
+                    s.classLabel || '',
+                    s.sectionLabel || '',
+                    s.parent_guardian_name || '',
+                    s.email || '',
+                    s.parent_contact_number || '',
+                    s.activity || '',
+                    s.admission_number || '',
+                    s.category || '',
+                    s.region || '',
+                ].map(csvValue).join(',')
+            );
+        });
+        const csv = '\ufeff' + lines.join('\n');
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const stamp = new Date().toISOString().slice(0, 10);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `students-${stamp}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+    };
+
     const handleDelete = async (row) => {
         const ok = window.confirm(`Delete student "${row?.name}"?`);
         if (!ok) return;
@@ -220,38 +281,38 @@ const ManageStudents = () => {
         border: '1px solid #e2e8f0',
         borderRadius: 18,
         boxShadow: '0 8px 20px rgba(15, 23, 42, 0.06)',
-        padding: 18,
+        padding: 20,
     };
 
     const th = {
         textAlign: 'left',
-        fontSize: 12,
+        fontSize: 13,
         fontWeight: 800,
         color: '#475569',
-        padding: '12px 10px',
+        padding: '13px 12px',
         whiteSpace: 'nowrap',
         background: '#f1f5f9',
     };
 
     const td = {
-        fontSize: 13,
+        fontSize: 14,
         color: '#0f172a',
-        padding: '12px 10px',
+        padding: '13px 12px',
         borderTop: '1px solid #e2e8f0',
         whiteSpace: 'nowrap',
     };
 
     const selectStyle = {
         minWidth: 120,
-        padding: '10px 12px',
+        padding: '11px 13px',
         border: '1px solid #d1d5db',
         borderRadius: 10,
-        fontSize: 13,
+        fontSize: 14,
         backgroundColor: '#fff',
     };
 
     return (
-        <div style={{ padding: 20, background: '#f1f5f9', minHeight: '100%' }}>
+        <div style={{ padding: 24, background: '#f1f5f9', minHeight: '100%' }}>
             <div style={shellCard}>
                 <h1 style={{ margin: 0, fontSize: 30, color: '#0f172a' }}>Student Management</h1>
 
@@ -291,6 +352,13 @@ const ManageStudents = () => {
                     >
                         Clear All
                     </button>
+                    <button
+                        type="button"
+                        onClick={downloadCsv}
+                        style={{ ...selectStyle, minWidth: 130, background: '#ecfdf5', color: '#166534', borderColor: '#86efac', cursor: 'pointer', fontWeight: 700 }}
+                    >
+                        Download CSV
+                    </button>
                 </div>
 
                 <div style={{ marginTop: 14, position: 'relative', maxWidth: 420 }}>
@@ -317,7 +385,7 @@ const ManageStudents = () => {
                     <div style={{ padding: 18, color: '#64748b' }}>Loading students...</div>
                 ) : (
                     <div style={{ overflowX: 'auto' }}>
-                        <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: 0, minWidth: 1300 }}>
+                        <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: 0, minWidth: 1420 }}>
                         <thead>
                                 <tr>
                                     <th style={th}>S.No</th>

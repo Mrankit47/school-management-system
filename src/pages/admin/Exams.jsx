@@ -39,6 +39,40 @@ const stepBadgeStyle = (active, done) => ({
     color: done ? '#166534' : active ? '#1d4ed8' : '#4b5563',
 });
 
+/** Backend may return { error } or DRF field errors { start_time: [...] } — surface both. */
+function formatApiError(err, fallback) {
+    const d = err?.response?.data;
+    if (!d) return err?.message || fallback;
+    if (typeof d.error === 'string') return d.error;
+    if (typeof d.detail === 'string') return d.detail;
+    if (Array.isArray(d)) return d.map(String).join(' | ');
+    if (typeof d === 'object') {
+        const parts = Object.entries(d).map(([k, v]) => {
+            const val = Array.isArray(v) ? v.join(', ') : typeof v === 'object' ? JSON.stringify(v) : String(v);
+            return `${k}: ${val}`;
+        });
+        if (parts.length) return parts.join(' | ');
+    }
+    return fallback;
+}
+
+function normalizeTimeForApi(t) {
+    if (!t || typeof t !== 'string') return t;
+    const s = t.trim();
+    if (/^\d{2}:\d{2}$/.test(s)) return `${s}:00`;
+    if (/^\d{2}:\d{2}:\d{2}$/.test(s)) return s;
+    return t;
+}
+
+function timeToMinutes(t) {
+    const raw = normalizeTimeForApi(t);
+    if (!raw) return null;
+    const [h, m, sec] = raw.split(':').map((x) => parseInt(x, 10));
+    if (Number.isNaN(h) || Number.isNaN(m)) return null;
+    const s = Number.isNaN(sec) ? 0 : sec;
+    return h * 60 + m + s / 60;
+}
+
 const Exams = () => {
     const [exams, setExams] = useState([]);
     const [sections, setSections] = useState([]);
@@ -80,6 +114,19 @@ const Exams = () => {
     const [publishing, setPublishing] = useState(false);
     const [overviewClassFilter, setOverviewClassFilter] = useState('all');
     const [overviewStatusFilter, setOverviewStatusFilter] = useState('all');
+    const [editingExamId, setEditingExamId] = useState(null);
+    const [deletingExamId, setDeletingExamId] = useState(null);
+    const [editExamForm, setEditExamForm] = useState({
+        name: '',
+        class_section: '',
+        exam_type: 'Midterm',
+        start_date: '',
+        end_date: '',
+        total_marks: '',
+        passing_marks: '',
+        status: 'Draft',
+        description: '',
+    });
 
     const selectedExam = useMemo(() => exams.find((e) => String(e.id) === String(selectedExamId)) || null, [exams, selectedExamId]);
 
@@ -89,8 +136,19 @@ const Exams = () => {
     };
 
     const loadMeta = async () => {
-        const [sRes] = await Promise.all([api.get('classes/sections/')]);
-        setSections(sRes.data || []);
+        try {
+            const sRes = await api.get('classes/admin-sections/');
+            const raw = sRes.data || [];
+            const sorted = [...raw].sort((a, b) => {
+                const k1 = `${a.class_name || ''}-${a.section_name || ''}`;
+                const k2 = `${b.class_name || ''}-${b.section_name || ''}`;
+                return k1.localeCompare(k2, undefined, { numeric: true });
+            });
+            setSections(sorted);
+        } catch {
+            const sRes = await api.get('classes/sections/');
+            setSections(sRes.data || []);
+        }
     };
 
     useEffect(() => {
@@ -167,20 +225,27 @@ const Exams = () => {
             setError('Please fill all schedule fields.');
             return;
         }
-        if (scheduleForm.start_time >= scheduleForm.end_time) {
+        const startM = timeToMinutes(scheduleForm.start_time);
+        const endM = timeToMinutes(scheduleForm.end_time);
+        if (startM != null && endM != null && startM >= endM) {
             setError('Start time must be before end time.');
             return;
         }
         setError('');
         try {
-            await api.post(`academics/exams/${selectedExamId}/schedule/`, scheduleForm);
+            await api.post(`academics/exams/${selectedExamId}/schedule/`, {
+                subject: scheduleForm.subject,
+                exam_date: scheduleForm.exam_date,
+                start_time: normalizeTimeForApi(scheduleForm.start_time),
+                end_time: normalizeTimeForApi(scheduleForm.end_time),
+            });
             const res = await api.get(`academics/exams/${selectedExamId}/schedule/`);
             setSchedules(res.data || []);
             setScheduleForm({ subject: '', exam_date: '', start_time: '', end_time: '' });
             setMessage('Subject schedule added');
             setStep(3);
         } catch (err) {
-            setError(err?.response?.data?.error || 'Failed to add schedule');
+            setError(formatApiError(err, 'Failed to add schedule'));
         }
     };
 
@@ -244,6 +309,89 @@ const Exams = () => {
             setError('Failed to update publish status');
         } finally {
             setPublishing(false);
+        }
+    };
+
+    const startEditExam = (exam) => {
+        setEditingExamId(exam.id);
+        setEditExamForm({
+            name: exam.name || '',
+            class_section: exam.class_section ? String(exam.class_section) : '',
+            exam_type: exam.exam_type || 'Midterm',
+            start_date: exam.start_date || '',
+            end_date: exam.end_date || '',
+            total_marks: exam.total_marks ?? '',
+            passing_marks: exam.passing_marks ?? '',
+            status: exam.status || 'Draft',
+            description: exam.description || '',
+        });
+        setError('');
+        setMessage('');
+    };
+
+    const cancelEditExam = () => {
+        setEditingExamId(null);
+        setEditExamForm({
+            name: '',
+            class_section: '',
+            exam_type: 'Midterm',
+            start_date: '',
+            end_date: '',
+            total_marks: '',
+            passing_marks: '',
+            status: 'Draft',
+            description: '',
+        });
+    };
+
+    const saveExamEdit = async () => {
+        if (!editingExamId) return;
+        setError('');
+        setMessage('');
+        if (!editExamForm.name || !editExamForm.class_section || !editExamForm.start_date || !editExamForm.end_date) {
+            setError('Please fill required exam fields.');
+            return;
+        }
+        if (editExamForm.start_date > editExamForm.end_date) {
+            setError('Start date must be before end date.');
+            return;
+        }
+        try {
+            const payload = {
+                ...editExamForm,
+                total_marks: editExamForm.total_marks || 0,
+                passing_marks: editExamForm.passing_marks || 0,
+                date: editExamForm.start_date || undefined,
+            };
+            await api.patch(`academics/exams/${editingExamId}/`, payload);
+            await refreshExams();
+            setMessage('Exam updated successfully');
+            cancelEditExam();
+        } catch (err) {
+            setError(err?.response?.data?.error || 'Failed to update exam');
+        }
+    };
+
+    const deleteExam = async (examId, examName) => {
+        const ok = window.confirm(`Delete exam "${examName}"? This will also remove schedule and results linked to it.`);
+        if (!ok) return;
+        setDeletingExamId(examId);
+        setError('');
+        setMessage('');
+        try {
+            await api.delete(`academics/exams/${examId}/`);
+            await refreshExams();
+            if (String(selectedExamId) === String(examId)) {
+                setSelectedExamId('');
+                setStep(1);
+                setSchedules([]);
+                setSubjects([]);
+            }
+            setMessage('Exam deleted successfully');
+        } catch (err) {
+            setError(err?.response?.data?.error || 'Failed to delete exam');
+        } finally {
+            setDeletingExamId(null);
         }
     };
 
@@ -572,16 +720,139 @@ const Exams = () => {
                         <div style={{ display: 'grid', gap: '10px' }}>
                             {overviewExams.slice(0, 8).map((e) => (
                                 <div key={e.id} style={{ border: '1px solid #eef2f7', borderRadius: '10px', padding: '10px', backgroundColor: '#fafafa' }}>
-                                    <div style={{ fontWeight: 900 }}>{e.name}</div>
-                                    <div style={{ marginTop: '4px', fontSize: '12px', color: '#6b7280' }}>
-                                        {e.class_section_display || `${e.class_name}-${e.section_name}`}
-                                    </div>
-                                    <div style={{ marginTop: '4px', fontSize: '13px', color: '#374151' }}>
-                                        {e.start_date} to {e.end_date}
-                                    </div>
-                                    <div style={{ marginTop: '4px', fontSize: '12px', fontWeight: 800 }}>
-                                        Status: {e.status} • Results: {e.result_published ? 'Published' : 'Unpublished'}
-                                    </div>
+                                    {editingExamId === e.id ? (
+                                        <div style={{ display: 'grid', gap: '8px' }}>
+                                            <input
+                                                value={editExamForm.name}
+                                                onChange={(ev) => setEditExamForm({ ...editExamForm, name: ev.target.value })}
+                                                style={input}
+                                                placeholder="Exam name"
+                                            />
+                                            <select
+                                                value={editExamForm.class_section}
+                                                onChange={(ev) => setEditExamForm({ ...editExamForm, class_section: ev.target.value })}
+                                                style={input}
+                                            >
+                                                <option value="">-- Class/Section --</option>
+                                                {sections.map((s) => (
+                                                    <option key={s.id} value={s.id}>
+                                                        {s.class_name} - {s.section_name}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                                                <input
+                                                    type="date"
+                                                    value={editExamForm.start_date}
+                                                    onChange={(ev) => setEditExamForm({ ...editExamForm, start_date: ev.target.value })}
+                                                    style={input}
+                                                />
+                                                <input
+                                                    type="date"
+                                                    value={editExamForm.end_date}
+                                                    onChange={(ev) => setEditExamForm({ ...editExamForm, end_date: ev.target.value })}
+                                                    style={input}
+                                                />
+                                            </div>
+                                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                                                <input
+                                                    type="number"
+                                                    value={editExamForm.total_marks}
+                                                    onChange={(ev) => setEditExamForm({ ...editExamForm, total_marks: ev.target.value })}
+                                                    style={input}
+                                                    placeholder="Total marks"
+                                                />
+                                                <input
+                                                    type="number"
+                                                    value={editExamForm.passing_marks}
+                                                    onChange={(ev) => setEditExamForm({ ...editExamForm, passing_marks: ev.target.value })}
+                                                    style={input}
+                                                    placeholder="Passing marks"
+                                                />
+                                            </div>
+                                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                                                <select
+                                                    value={editExamForm.exam_type}
+                                                    onChange={(ev) => setEditExamForm({ ...editExamForm, exam_type: ev.target.value })}
+                                                    style={input}
+                                                >
+                                                    <option value="Midterm">Midterm</option>
+                                                    <option value="Final">Final</option>
+                                                    <option value="Unit Test">Unit Test</option>
+                                                    <option value="Practical">Practical</option>
+                                                    <option value="Other">Other</option>
+                                                </select>
+                                                <select
+                                                    value={editExamForm.status}
+                                                    onChange={(ev) => setEditExamForm({ ...editExamForm, status: ev.target.value })}
+                                                    style={input}
+                                                >
+                                                    <option value="Draft">Draft</option>
+                                                    <option value="Published">Published</option>
+                                                </select>
+                                            </div>
+                                            <textarea
+                                                value={editExamForm.description}
+                                                onChange={(ev) => setEditExamForm({ ...editExamForm, description: ev.target.value })}
+                                                style={{ ...input, minHeight: '64px', resize: 'vertical' }}
+                                                placeholder="Description"
+                                            />
+                                            <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                                                <button
+                                                    type="button"
+                                                    onClick={saveExamEdit}
+                                                    style={{ padding: '7px 10px', borderRadius: '8px', border: 'none', backgroundColor: '#16a34a', color: '#fff', fontWeight: 800, cursor: 'pointer' }}
+                                                >
+                                                    Save
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={cancelEditExam}
+                                                    style={{ padding: '7px 10px', borderRadius: '8px', border: '1px solid #e5e7eb', backgroundColor: '#fff', color: '#111827', fontWeight: 800, cursor: 'pointer' }}
+                                                >
+                                                    Cancel
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <>
+                                            <div style={{ fontWeight: 900 }}>{e.name}</div>
+                                            <div style={{ marginTop: '4px', fontSize: '12px', color: '#6b7280' }}>
+                                                {e.class_section_display || `${e.class_name}-${e.section_name}`}
+                                            </div>
+                                            <div style={{ marginTop: '4px', fontSize: '13px', color: '#374151' }}>
+                                                {e.start_date} to {e.end_date}
+                                            </div>
+                                            <div style={{ marginTop: '4px', fontSize: '12px', fontWeight: 800 }}>
+                                                Status: {e.status} • Results: {e.result_published ? 'Published' : 'Unpublished'}
+                                            </div>
+                                            <div style={{ marginTop: '8px', display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => startEditExam(e)}
+                                                    style={{ padding: '7px 10px', borderRadius: '8px', border: 'none', backgroundColor: '#2563eb', color: '#fff', fontWeight: 800, cursor: 'pointer' }}
+                                                >
+                                                    Edit
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => deleteExam(e.id, e.name)}
+                                                    disabled={deletingExamId === e.id}
+                                                    style={{
+                                                        padding: '7px 10px',
+                                                        borderRadius: '8px',
+                                                        border: 'none',
+                                                        backgroundColor: deletingExamId === e.id ? '#fca5a5' : '#ef4444',
+                                                        color: '#fff',
+                                                        fontWeight: 800,
+                                                        cursor: deletingExamId === e.id ? 'not-allowed' : 'pointer',
+                                                    }}
+                                                >
+                                                    {deletingExamId === e.id ? 'Deleting...' : 'Delete'}
+                                                </button>
+                                            </div>
+                                        </>
+                                    )}
                                 </div>
                             ))}
                         </div>

@@ -300,6 +300,7 @@ class StudentPunchAttendanceView(views.APIView):
                 teacher_user = class_section.class_teacher.user
                 Notification.objects.create(
                     user=teacher_user,
+                    target_role=teacher_user.role,
                     title='Attendance Verification Pending',
                     message=f"{student_profile.user.name or student_profile.user.username} punched attendance for {target_date.isoformat()}. Please verify (Approve/Reject).",
                     is_read=False,

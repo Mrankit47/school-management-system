@@ -17,6 +17,7 @@ const Sidebar = () => {
             subLinks: [
                 { path: '/student/assignments', label: 'Assignment' },
                 { path: '/student/attendance', label: 'Attendance Status' },
+                { path: '/student/exams', label: 'My Exams' },
                 { 
                     label: 'Exam Result',
                     subLinks: [
@@ -40,7 +41,7 @@ const Sidebar = () => {
             icon: 'ℹ️',
             subLinks: [
                 { path: '/student/contact', label: 'Contact' },
-                { path: '/student/notifications', label: 'Notice' },
+                { path: '/student/notifications', label: 'Notifications' },
                 { path: '/student/syllabus', label: 'Syllabus' },
                 { path: '/student/profile', label: 'Your Profile' },
                 { path: '/student/Holidays', label: 'Holidays' },
@@ -58,6 +59,7 @@ const Sidebar = () => {
         { path: '/teacher/syllabus', label: 'Syllabus', icon: '📄' },
         { path: '/teacher/students', label: 'My Students', icon: '👥' },
         { path: '/teacher/timetable', label: 'Time Table', icon: '📅' },
+        { path: '/teacher/notifications', label: 'Notifications', icon: '🔔' },
         { path: '/teacher/Holidays', label: 'Holidays', icon: '🏝️' },
         { path: '/teacher/Profile', label: 'Profile', icon: '🧑🏻‍💻' },
     ];
@@ -82,6 +84,7 @@ const Sidebar = () => {
                 { path: '/admin/subjects', label: 'Subjects' },
                 { path: '/admin/assign-teacher', label: 'Assign Teacher' },
                 { path: '/admin/exams', label: 'Exams' },
+                { path: '/admin/announcements', label: 'Announcements' },
                 { path: '/admin/syllabus', label: 'Syllabus' },
                 { path: '/admin/holidays', label: 'Holidays' },
                 { path: '/admin/timetable', label: 'Time Table' },

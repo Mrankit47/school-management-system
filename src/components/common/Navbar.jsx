@@ -69,10 +69,19 @@ const Navbar = () => {
                     </div>
                 )}
 
-                <button className="relative w-10 h-10 flex items-center justify-center rounded-xl bg-slate-50 text-slate-500 hover:bg-slate-100 transition-all group">
-                    <span className="text-xl group-hover:scale-110 transition-transform">🔔</span>
-                    <span className="absolute top-2.5 right-2.5 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white shadow-sm ring-1 ring-red-200"></span>
-                </button>
+                {user.role === 'student' || user.role === 'teacher' ? (
+                    <Link
+                        to={user.role === 'student' ? '/student/notifications' : '/teacher/notifications'}
+                        className="relative w-10 h-10 flex items-center justify-center rounded-xl bg-slate-50 text-slate-500 hover:bg-slate-100 transition-all group"
+                        aria-label="Notifications"
+                    >
+                        <span className="text-xl group-hover:scale-110 transition-transform">🔔</span>
+                    </Link>
+                ) : (
+                    <button type="button" className="relative w-10 h-10 flex items-center justify-center rounded-xl bg-slate-50 text-slate-500 hover:bg-slate-100 transition-all group">
+                        <span className="text-xl group-hover:scale-110 transition-transform">🔔</span>
+                    </button>
+                )}
 
                 <div className="h-8 w-px bg-slate-100 mx-1"></div>
 

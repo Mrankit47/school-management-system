@@ -94,6 +94,7 @@ const TeacherProfile = () => {
     const [photoBusy, setPhotoBusy] = useState(false);
     const [photoError, setPhotoError] = useState('');
     const [idCardBusy, setIdCardBusy] = useState(false);
+    const [fullPhotoOpen, setFullPhotoOpen] = useState(false);
     const fileInputRef = useRef(null);
 
     const [pwOld, setPwOld] = useState('');
@@ -137,6 +138,15 @@ const TeacherProfile = () => {
             .catch(() => setSaveError('Could not load teacher profile.'))
             .finally(() => setLoading(false));
     }, []);
+
+    useEffect(() => {
+        if (!fullPhotoOpen) return;
+        const onKey = (e) => {
+            if (e.key === 'Escape') setFullPhotoOpen(false);
+        };
+        window.addEventListener('keydown', onKey);
+        return () => window.removeEventListener('keydown', onKey);
+    }, [fullPhotoOpen]);
 
     const previewImageSrc = useMemo(() => {
         if (profile?.photo_url) return profile.photo_url;
@@ -412,13 +422,106 @@ const TeacherProfile = () => {
             {saveError ? <div style={{ padding: '10px 12px', borderRadius: 12, border: `1px solid ${colors.danger}`, color: colors.danger, fontWeight: 900, background: '#fff' }}>{saveError}</div> : null}
             {saveSuccess ? <div style={{ padding: '10px 12px', borderRadius: 12, border: '1px solid #bbf7d0', color: '#166534', fontWeight: 900, background: '#ecfdf5', marginBottom: 12 }}>{saveSuccess}</div> : null}
 
+            {fullPhotoOpen && previewImageSrc ? (
+                <div
+                    role="dialog"
+                    aria-modal="true"
+                    aria-label="Full profile photo"
+                    style={{
+                        position: 'fixed',
+                        inset: 0,
+                        zIndex: 10000,
+                        background: 'rgba(15, 23, 42, 0.82)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        padding: 20,
+                    }}
+                    onClick={() => setFullPhotoOpen(false)}
+                >
+                    <div
+                        style={{ position: 'relative', maxWidth: '100%', maxHeight: '100%' }}
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <button
+                            type="button"
+                            onClick={() => setFullPhotoOpen(false)}
+                            style={{
+                                position: 'absolute',
+                                top: -8,
+                                right: -8,
+                                width: 36,
+                                height: 36,
+                                borderRadius: '50%',
+                                border: 'none',
+                                background: '#fff',
+                                boxShadow: '0 2px 12px rgba(0,0,0,0.2)',
+                                fontSize: 20,
+                                lineHeight: 1,
+                                cursor: 'pointer',
+                                fontWeight: 700,
+                                color: '#334155',
+                            }}
+                            aria-label="Close"
+                        >
+                            ×
+                        </button>
+                        <img
+                            src={previewImageSrc}
+                            alt="Teacher profile full size"
+                            style={{
+                                display: 'block',
+                                maxWidth: 'min(920px, 94vw)',
+                                maxHeight: 'min(88vh, 920px)',
+                                width: 'auto',
+                                height: 'auto',
+                                objectFit: 'contain',
+                                borderRadius: 12,
+                                boxShadow: '0 20px 50px rgba(0,0,0,0.35)',
+                            }}
+                        />
+                        <p
+                            style={{
+                                margin: '12px 0 0',
+                                textAlign: 'center',
+                                color: '#e2e8f0',
+                                fontSize: 13,
+                                fontWeight: 600,
+                            }}
+                        >
+                            Click background or press Esc to close
+                        </p>
+                    </div>
+                </div>
+            ) : null}
+
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(12, minmax(0, 1fr))', gap: 12 }}>
                 {/* Header photo */}
                 <div style={{ gridColumn: 'span 12', backgroundColor: colors.card, border: `1px solid ${colors.border}`, borderRadius: 16, padding: 16, boxShadow: colors.shadow }}>
                     <div style={{ display: 'flex', gap: 14, alignItems: 'center', flexWrap: 'wrap' }}>
                         <div style={{ width: 90, height: 90, borderRadius: 22, border: `1px solid ${colors.border}`, backgroundColor: '#f3f4f6', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
                             {previewImageSrc ? (
-                                <img src={previewImageSrc} alt="Teacher profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                <button
+                                    type="button"
+                                    onClick={() => setFullPhotoOpen(true)}
+                                    title="View full photo"
+                                    aria-label="View full profile photo"
+                                    style={{
+                                        border: 'none',
+                                        padding: 0,
+                                        margin: 0,
+                                        width: '100%',
+                                        height: '100%',
+                                        cursor: 'pointer',
+                                        background: 'transparent',
+                                    }}
+                                >
+                                    <img
+                                        src={previewImageSrc}
+                                        alt="Teacher profile"
+                                        style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                                    />
+                                </button>
                             ) : (
                                 <span style={{ fontWeight: 1000, color: colors.primary, fontSize: 24 }}>
                                     {(form.name || 'T').slice(0, 1).toUpperCase()}
@@ -458,23 +561,42 @@ const TeacherProfile = () => {
                                         {photoBusy ? 'Please wait…' : 'Upload photo'}
                                     </button>
                                     {(profile?.has_photo || profile?.photo_url) && (
-                                        <button
-                                            type="button"
-                                            onClick={removeProfilePhoto}
-                                            disabled={photoBusy || idCardBusy}
-                                            style={{
-                                                padding: '8px 14px',
-                                                borderRadius: 10,
-                                                border: `1px solid ${colors.border}`,
-                                                background: '#fff',
-                                                color: colors.muted,
-                                                fontWeight: 900,
-                                                cursor: photoBusy ? 'not-allowed' : 'pointer',
-                                                fontSize: 13,
-                                            }}
-                                        >
-                                            Remove photo
-                                        </button>
+                                        <>
+                                            <button
+                                                type="button"
+                                                onClick={() => setFullPhotoOpen(true)}
+                                                disabled={photoBusy || idCardBusy}
+                                                style={{
+                                                    padding: '8px 14px',
+                                                    borderRadius: 10,
+                                                    border: '1px solid #0ea5e9',
+                                                    background: '#f0f9ff',
+                                                    color: '#0369a1',
+                                                    fontWeight: 900,
+                                                    cursor: photoBusy ? 'not-allowed' : 'pointer',
+                                                    fontSize: 13,
+                                                }}
+                                            >
+                                                View full photo
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={removeProfilePhoto}
+                                                disabled={photoBusy || idCardBusy}
+                                                style={{
+                                                    padding: '8px 14px',
+                                                    borderRadius: 10,
+                                                    border: `1px solid ${colors.border}`,
+                                                    background: '#fff',
+                                                    color: colors.muted,
+                                                    fontWeight: 900,
+                                                    cursor: photoBusy ? 'not-allowed' : 'pointer',
+                                                    fontSize: 13,
+                                                }}
+                                            >
+                                                Remove photo
+                                            </button>
+                                        </>
                                     )}
                                     <button
                                         type="button"

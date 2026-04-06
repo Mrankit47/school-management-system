@@ -1,4 +1,9 @@
+import logging
+
+from django.core.exceptions import ObjectDoesNotExist
+from django.db import DatabaseError
 from django.db.models import Q
+from django.utils import timezone
 from rest_framework import status, views, permissions
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from rest_framework.response import Response
@@ -7,6 +12,9 @@ from .serializers import NotificationSerializer, MessageSerializer
 from students.models import StudentProfile
 from teachers.models import TeacherProfile
 from classes.teacher_access import teacher_accessible_class_sections_queryset, teacher_user_ids_for_student_class_section
+from academics.models import Exam
+
+logger = logging.getLogger(__name__)
 
 
 def _teacher_allowed_student_ids(teacher_profile_id: int, school=None):
@@ -40,10 +48,129 @@ class MyNotificationsView(views.APIView):
     """
     permission_classes = [permissions.IsAuthenticated]
 
+    def _ensure_student_exam_notifications(self, request):
+        if request.user.role != 'student':
+            return
+        try:
+            student_profile = request.user.student_profile
+        except ObjectDoesNotExist:
+            return
+        if not student_profile.class_section_id:
+            return
+
+        today = timezone.localdate()
+        # Include upcoming and in-window exams (not only when today is between start and end).
+        try:
+            exams = (
+                Exam.objects.filter(
+                    class_section_id=student_profile.class_section_id,
+                    end_date__isnull=False,
+                    end_date__gte=today,
+                )
+                .order_by('start_date', 'id')
+            )
+        except Exception:
+            logger.exception('Failed to query exams for notification backfill')
+            return
+
+        for exam in exams:
+            try:
+                if Notification.objects.filter(user=request.user, related_exam_id=exam.pk).exists():
+                    continue
+                s, e = exam.start_date, exam.end_date
+                if s and e:
+                    date_text = f'{s} to {e}'
+                elif s:
+                    date_text = str(s)
+                elif e:
+                    date_text = str(e)
+                else:
+                    date_text = 'TBA'
+                if s and s > today:
+                    title = f'Upcoming exam: {exam.name or "Exam"}'
+                    message = (
+                        f'{exam.exam_type} "{exam.name}" is scheduled ({date_text}). '
+                        f'Open My Exams for the full timetable.'
+                    )
+                else:
+                    title = f'Exam: {exam.name or "Exam"}'
+                    message = (
+                        f"Exam '{exam.name}' ({date_text}). "
+                        f'Please check the timetable in My Exams.'
+                    )
+                title = title[:255]
+                Notification.objects.create(
+                    user=request.user,
+                    target_role=request.user.role,
+                    title=title,
+                    message=message,
+                    is_read=False,
+                    related_exam=exam,
+                )
+            except Exception:
+                logger.warning(
+                    'Skipping notification backfill for exam_id=%s user_id=%s',
+                    getattr(exam, 'pk', None),
+                    request.user.pk,
+                    exc_info=True,
+                )
+
     def get(self, request):
-        notifications = Notification.objects.filter(user=request.user).order_by('-created_at')
-        serializer = NotificationSerializer(notifications, many=True)
-        return Response(serializer.data)
+        try:
+            self._ensure_student_exam_notifications(request)
+            notifications = (
+                Notification.objects.filter(user=request.user)
+                .select_related('related_exam', 'related_announcement')
+                .order_by('-created_at')
+            )
+            serializer = NotificationSerializer(notifications, many=True)
+            return Response(serializer.data)
+        except DatabaseError as exc:
+            logger.exception('Notifications list database error')
+            return Response(
+                {
+                    'detail': (
+                        'Notifications could not be loaded from the database. '
+                        'If you recently upgraded the project, run: python manage.py migrate '
+                        '(especially app `communication`). '
+                        f'Original error: {exc}'
+                    ),
+                },
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
+        except Exception as exc:
+            logger.exception('Notifications list failed')
+            return Response(
+                {'detail': f'Could not load notifications: {exc}'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+
+class NotificationMarkAllReadView(views.APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        updated = Notification.objects.filter(user=request.user, is_read=False).update(is_read=True)
+        return Response({'message': 'All notifications marked as read', 'updated': updated})
+
+
+class NotificationDetailView(views.APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def patch(self, request, notification_id: int):
+        row = Notification.objects.filter(user=request.user, id=notification_id).first()
+        if not row:
+            return Response({'error': 'Notification not found'}, status=status.HTTP_404_NOT_FOUND)
+        row.is_read = bool(request.data.get('is_read', True))
+        row.save(update_fields=['is_read'])
+        return Response(NotificationSerializer(row).data)
+
+    def delete(self, request, notification_id: int):
+        row = Notification.objects.filter(user=request.user, id=notification_id).first()
+        if not row:
+            return Response({'error': 'Notification not found'}, status=status.HTTP_404_NOT_FOUND)
+        row.delete()
+        return Response({'message': 'Notification deleted'})
 
 
 class MessageThreadsView(views.APIView):

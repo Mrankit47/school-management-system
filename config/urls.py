@@ -32,6 +32,7 @@ urlpatterns = [
     path('api/timetable/', include('timetable.urls')),
     path('api/subjects/', include('subjects.urls')),
     path('api/holidays/', include('holidays.urls')),
+    path('api/announcements/', include('announcements.urls')),
     path('api/syllabus/', include('syllabus.urls')),
 
     # Admin Dashboard stats (used by the React admin dashboard cards)

@@ -1,6 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import api from '../../services/api';
-import TeacherCards from './TeacherCards';
 
 const AddTeacher = () => {
     const inputStyle = {
@@ -59,19 +58,14 @@ const AddTeacher = () => {
     // Backend stores `qualification` as a single CharField, so we join with " / " on submit.
     const [qualifications, setQualifications] = useState(['']);
 
-    const [isFormOpen, setIsFormOpen] = useState(false);
     const [teachers, setTeachers] = useState([]);
-    const [teachersLoading, setTeachersLoading] = useState(false);
 
     const fetchTeachers = async () => {
-        setTeachersLoading(true);
         try {
             const res = await api.get('teachers/');
             setTeachers(res.data);
         } catch (e) {
             setTeachers([]);
-        } finally {
-            setTeachersLoading(false);
         }
     };
 
@@ -201,7 +195,6 @@ const AddTeacher = () => {
             await api.post('teachers/admin/create-teacher/', payload);
             setMessage('Teacher created successfully!');
             await fetchTeachers();
-            setIsFormOpen(false);
             setForm({
                 first_name: '',
                 last_name: '',
@@ -242,25 +235,9 @@ const AddTeacher = () => {
             <div style={{ width: '100%' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px' }}>
                     <h1 style={{ margin: 0 }}>Add Teacher</h1>
-                    <button
-                        type="button"
-                        onClick={() => setIsFormOpen(true)}
-                        style={{
-                            backgroundColor: '#1e40af',
-                            color: '#fff',
-                            border: 'none',
-                            cursor: 'pointer',
-                            padding: '10px 14px',
-                            borderRadius: '10px',
-                            fontWeight: 800,
-                        }}
-                    >
-                        + Add
-                    </button>
                 </div>
 
-                {isFormOpen && (
-                    <div style={{ border: '1px solid #e5e7eb', padding: '22px', backgroundColor: '#fff', borderRadius: '16px', marginTop: '18px' }}>
+                <div style={{ border: '1px solid #e5e7eb', padding: '22px', backgroundColor: '#fff', borderRadius: '16px', marginTop: '18px' }}>
                     <form onSubmit={handleSubmit} style={{ display: 'grid', gap: '18px' }}>
                         <div>
                             <h3 style={{ margin: 0, marginBottom: '12px', color: '#111827' }}>Section: Personal Information</h3>
@@ -569,18 +546,6 @@ const AddTeacher = () => {
                         </div>
                     </form>
                 </div>
-                )}
-
-                {!isFormOpen && (
-                    <div style={{ marginTop: '24px' }}>
-                        <h2 style={{ marginBottom: '12px' }}>Teachers</h2>
-                        {teachersLoading ? (
-                            <p>Loading teachers...</p>
-                        ) : (
-                            <TeacherCards teachers={teachers} refreshTeachers={fetchTeachers} />
-                        )}
-                    </div>
-                )}
             </div>
         </div>
     );

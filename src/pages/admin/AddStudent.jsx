@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import api from '../../services/api';
-import StudentCards from './StudentCards';
 
 const AddStudent = () => {
     const [formData, setFormData] = useState({
@@ -22,9 +21,7 @@ const AddStudent = () => {
     const [mainClasses, setMainClasses] = useState([]);
     const [mainSections, setMainSections] = useState([]);
     const [message, setMessage] = useState('');
-    const [isFormOpen, setIsFormOpen] = useState(false);
     const [students, setStudents] = useState([]);
-    const [studentsLoading, setStudentsLoading] = useState(false);
     const parentPhoneDigits = (formData.parent_contact_number || '').replace(/\D/g, '').slice(0, 10);
     const selectedSection = mainSections.find((s) => String(s.id) === String(formData.section_id));
     const rollPreview = selectedSection?.name ? `101${String(selectedSection.name).trim().charAt(0).toUpperCase()}` : 'Auto (e.g. 101A)';
@@ -62,14 +59,11 @@ const AddStudent = () => {
     };
 
     const fetchStudents = async () => {
-        setStudentsLoading(true);
         try {
             const res = await api.get('students/');
             setStudents(res.data);
         } catch (e) {
             setStudents([]);
-        } finally {
-            setStudentsLoading(false);
         }
     };
 
@@ -119,7 +113,6 @@ const AddStudent = () => {
             await api.post('students/admin-create/', payload);
             setMessage('Student created successfully!');
             await fetchStudents();
-            setIsFormOpen(false);
             setFormData({
                 email: '',
                 password: '',
@@ -149,24 +142,8 @@ const AddStudent = () => {
         <div style={{ padding: '20px' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px' }}>
                 <h1 style={{ margin: 0 }}>Add Student</h1>
-                <button
-                    type="button"
-                    onClick={() => setIsFormOpen(true)}
-                    style={{
-                        backgroundColor: '#1e40af',
-                        color: '#fff',
-                        border: 'none',
-                        cursor: 'pointer',
-                        padding: '10px 14px',
-                        borderRadius: '10px',
-                        fontWeight: 700,
-                    }}
-                >
-                    + Add
-                </button>
             </div>
 
-            {isFormOpen && (
                 <div
                     style={{
                         border: '1px solid #e5e7eb',
@@ -425,19 +402,6 @@ const AddStudent = () => {
                 </form>
                 {message && <p style={{ color: message.startsWith('Error') ? '#dc2626' : 'green' }}>{message}</p>}
             </div>
-
-            )}
-
-            {!isFormOpen && (
-                <div style={{ marginTop: '24px' }}>
-                    <h2 style={{ marginBottom: '12px' }}>Students</h2>
-                    {studentsLoading ? (
-                        <p>Loading students...</p>
-                    ) : (
-                        <StudentCards students={students} refreshStudents={fetchStudents} />
-                    )}
-                </div>
-            )}
         </div>
     );
 };

@@ -21,7 +21,17 @@ const Profile = () => {
     const [photoBusy, setPhotoBusy] = useState(false);
     const [photoError, setPhotoError] = useState('');
     const [idCardBusy, setIdCardBusy] = useState(false);
+    const [fullPhotoOpen, setFullPhotoOpen] = useState(false);
     const fileInputRef = useRef(null);
+
+    useEffect(() => {
+        if (!fullPhotoOpen) return;
+        const onKey = (e) => {
+            if (e.key === 'Escape') setFullPhotoOpen(false);
+        };
+        window.addEventListener('keydown', onKey);
+        return () => window.removeEventListener('keydown', onKey);
+    }, [fullPhotoOpen]);
 
     useEffect(() => {
         setLoading(true);
@@ -259,17 +269,32 @@ const Profile = () => {
             <div style={{ ...card, marginBottom: 14 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
                     {profile.photo_url ? (
-                        <img
-                            src={profile.photo_url}
-                            alt=""
+                        <button
+                            type="button"
+                            onClick={() => setFullPhotoOpen(true)}
+                            title="Poora photo dekhen"
+                            aria-label="Poora profile photo dekhen"
                             style={{
-                                width: 72,
-                                height: 72,
-                                borderRadius: '50%',
-                                objectFit: 'cover',
+                                padding: 0,
                                 border: '1px solid #e5e7eb',
+                                borderRadius: '50%',
+                                cursor: 'pointer',
+                                background: 'none',
+                                flexShrink: 0,
+                                overflow: 'hidden',
                             }}
-                        />
+                        >
+                            <img
+                                src={profile.photo_url}
+                                alt=""
+                                style={{
+                                    width: 72,
+                                    height: 72,
+                                    display: 'block',
+                                    objectFit: 'cover',
+                                }}
+                            />
+                        </button>
                     ) : (
                         <div
                             style={{
@@ -321,29 +346,121 @@ const Profile = () => {
                         {photoBusy ? 'Please wait…' : 'Upload photo'}
                     </button>
                     {(profile.has_photo || profile.photo_url) && (
-                        <button
-                            type="button"
-                            onClick={removePhoto}
-                            disabled={photoBusy}
-                            style={{
-                                padding: '8px 14px',
-                                borderRadius: 10,
-                                border: '1px solid #e5e7eb',
-                                background: '#fff',
-                                color: '#64748b',
-                                fontWeight: 900,
-                                cursor: photoBusy ? 'not-allowed' : 'pointer',
-                                fontSize: 13,
-                            }}
-                        >
-                            Remove photo
-                        </button>
+                        <>
+                            <button
+                                type="button"
+                                onClick={() => setFullPhotoOpen(true)}
+                                disabled={photoBusy}
+                                style={{
+                                    padding: '8px 14px',
+                                    borderRadius: 10,
+                                    border: '1px solid #0ea5e9',
+                                    background: '#f0f9ff',
+                                    color: '#0369a1',
+                                    fontWeight: 900,
+                                    cursor: photoBusy ? 'not-allowed' : 'pointer',
+                                    fontSize: 13,
+                                }}
+                            >
+                                View full photo
+                            </button>
+                            <button
+                                type="button"
+                                onClick={removePhoto}
+                                disabled={photoBusy}
+                                style={{
+                                    padding: '8px 14px',
+                                    borderRadius: 10,
+                                    border: '1px solid #e5e7eb',
+                                    background: '#fff',
+                                    color: '#64748b',
+                                    fontWeight: 900,
+                                    cursor: photoBusy ? 'not-allowed' : 'pointer',
+                                    fontSize: 13,
+                                }}
+                            >
+                                Remove photo
+                            </button>
+                        </>
                     )}
                 </div>
                 {photoError ? (
                     <div style={{ marginTop: 8, color: '#b91c1c', fontWeight: 800, fontSize: 13 }}>{photoError}</div>
                 ) : null}
             </div>
+
+            {fullPhotoOpen && profile.photo_url ? (
+                <div
+                    role="dialog"
+                    aria-modal="true"
+                    aria-label="Full profile photo"
+                    style={{
+                        position: 'fixed',
+                        inset: 0,
+                        zIndex: 10000,
+                        background: 'rgba(15, 23, 42, 0.82)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        padding: 20,
+                    }}
+                    onClick={() => setFullPhotoOpen(false)}
+                >
+                    <div
+                        style={{ position: 'relative', maxWidth: '100%', maxHeight: '100%' }}
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <button
+                            type="button"
+                            onClick={() => setFullPhotoOpen(false)}
+                            style={{
+                                position: 'absolute',
+                                top: -8,
+                                right: -8,
+                                width: 36,
+                                height: 36,
+                                borderRadius: '50%',
+                                border: 'none',
+                                background: '#fff',
+                                boxShadow: '0 2px 12px rgba(0,0,0,0.2)',
+                                fontSize: 20,
+                                lineHeight: 1,
+                                cursor: 'pointer',
+                                fontWeight: 700,
+                                color: '#334155',
+                            }}
+                            aria-label="Band karein"
+                        >
+                            ×
+                        </button>
+                        <img
+                            src={profile.photo_url}
+                            alt="Profile — full size"
+                            style={{
+                                display: 'block',
+                                maxWidth: 'min(920px, 94vw)',
+                                maxHeight: 'min(88vh, 920px)',
+                                width: 'auto',
+                                height: 'auto',
+                                objectFit: 'contain',
+                                borderRadius: 12,
+                                boxShadow: '0 20px 50px rgba(0,0,0,0.35)',
+                            }}
+                        />
+                        <p
+                            style={{
+                                margin: '12px 0 0',
+                                textAlign: 'center',
+                                color: '#e2e8f0',
+                                fontSize: 13,
+                                fontWeight: 600,
+                            }}
+                        >
+                            Background par click karke ya Esc dabakar band karein
+                        </p>
+                    </div>
+                </div>
+            ) : null}
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(12, minmax(0,1fr))', gap: 12 }}>
                 <div style={{ ...card, gridColumn: 'span 8' }}>
