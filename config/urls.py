@@ -35,6 +35,7 @@ urlpatterns = [
     path('api/subjects/', include('subjects.urls')),
     path('api/holidays/', include('holidays.urls')),
     path('api/syllabus/', include('syllabus.urls')),
+    path('api/bulk-upload/', include('bulk_upload.urls')),
 
     # Admin Dashboard stats (used by the React admin dashboard cards)
     path('api/admin/dashboard/stats', AdminDashboardStatsView.as_view(), name='admin-dashboard-stats'),

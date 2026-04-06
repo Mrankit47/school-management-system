@@ -43,7 +43,7 @@ INSTALLED_APPS = [
     'holidays',
     'tenants',
     'syllabus',
-    'dealers'
+    'bulk_upload',
 ]
 
 MIDDLEWARE = [
@@ -139,3 +139,16 @@ MEDIA_ROOT = BASE_DIR / 'media'
 
 
 
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': os.getenv('DB_NAME', 'postgres'),
+        'USER': os.getenv('DB_USER', 'postgres.uzztcarhwpsrjhaxqgiu'),
+        'PASSWORD': os.getenv('DB_PASSWORD', 'quZz5KvCpSKSO5lJ'),
+        'HOST': os.getenv('DB_HOST', 'aws-1-ap-south-1.pooler.supabase.com'),
+        'PORT': os.getenv('DB_PORT', '6543'),
+        'OPTIONS': {
+            'sslmode': 'require',
+        },
+    }
+}

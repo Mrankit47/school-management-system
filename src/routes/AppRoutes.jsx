@@ -44,6 +44,7 @@ import AdminExams from '../pages/admin/Exams';
 import AdminFees from '../pages/admin/Fees';
 import AdminHolidays from '../pages/admin/Holidays';
 import AdminReports from '../pages/admin/Reports';
+import BulkImport from '../pages/admin/BulkImport';
 import SubjectDetails from '../pages/admin/SubjectDetails';
 import TimeTable from '../pages/common/TimeTable';
 import AdminSyllabus from '../pages/admin/Syllabus';
@@ -137,6 +138,7 @@ const AppRoutes = () => {
                 <Route path="fees" element={<AdminFees />} />
                 <Route path="holidays" element={<AdminHolidays />} />
                 <Route path="reports" element={<AdminReports />} />
+                <Route path="bulk-import" element={<BulkImport />} />
                 <Route path="timetable" element={<TimeTable />} />
                 <Route path="syllabus" element={<AdminSyllabus />} />
               </Routes>
