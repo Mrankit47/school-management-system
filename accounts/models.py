@@ -21,6 +21,8 @@ class User(AbstractUser):
     # Use the custom manager so `createsuperuser` sets `role='admin'` by default.
     objects = UserManager()
     ROLE_CHOICES = (
+        ('superadmin', 'Superadmin'),
+        ('dealer', 'Dealer'),
         ('admin', 'Admin'),
         ('teacher', 'Teacher'),
         ('student', 'Student'),
@@ -36,6 +38,7 @@ class User(AbstractUser):
 
     def __str__(self):
         return f"{self.username} ({self.role})"
+
 
 class ActivityLog(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='activities')

@@ -48,7 +48,9 @@ INSTALLED_APPS = [
     'subjects',
     'holidays',
     'tenants',
-    'syllabus'
+    'syllabus',
+    'bulk_upload',
+    'dealers',
 ]
 
 MIDDLEWARE = [
@@ -82,19 +84,7 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'config.wsgi.application'
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': os.getenv('DB_NAME', 'postgres'),
-        'USER': os.getenv('DB_USER', 'postgres.uzztcarhwpsrjhaxqgiu'),
-        'PASSWORD': os.getenv('DB_PASSWORD', 'quZz5KvCpSKSO5lJ'),
-        'HOST': os.getenv('DB_HOST', 'aws-1-ap-south-1.pooler.supabase.com'),
-        'PORT': os.getenv('DB_PORT', '6543'),
-        'OPTIONS': {
-            'sslmode': 'require',
-        },
-    }
-}
+
 
 # Authentication
 AUTH_USER_MODEL = 'accounts.User'
@@ -108,7 +98,6 @@ REST_FRAMEWORK = {
     ),
 }
 
-# Database
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
@@ -121,9 +110,7 @@ DATABASES = {
             'sslmode': 'require',
         },
     },
-}    
-
-  
+}
 
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(days=1),
@@ -159,3 +146,16 @@ MEDIA_ROOT = BASE_DIR / 'media'
 
 
 
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': os.getenv('DB_NAME', 'postgres'),
+        'USER': os.getenv('DB_USER', 'postgres.uzztcarhwpsrjhaxqgiu'),
+        'PASSWORD': os.getenv('DB_PASSWORD', 'quZz5KvCpSKSO5lJ'),
+        'HOST': os.getenv('DB_HOST', 'aws-1-ap-south-1.pooler.supabase.com'),
+        'PORT': os.getenv('DB_PORT', '6543'),
+        'OPTIONS': {
+            'sslmode': 'require',
+        },
+    }
+}

@@ -46,6 +46,7 @@ import AdminFees from '../pages/admin/Fees';
 import AdminHolidays from '../pages/admin/Holidays';
 import AdminAnnouncements from '../pages/admin/Announcements';
 import AdminReports from '../pages/admin/Reports';
+import BulkImport from '../pages/admin/BulkImport';
 import SubjectDetails from '../pages/admin/SubjectDetails';
 import TimeTable from '../pages/common/TimeTable';
 import AdminSyllabus from '../pages/admin/Syllabus';
@@ -54,6 +55,10 @@ import SaaSLanding from '../pages/SaaSLanding';
 import SuperAdminLogin from '../pages/superadmin/Login';
 import SuperAdminDashboard from '../pages/superadmin/Dashboard';
 import SuperAdminProfile from '../pages/superadmin/Profile';
+import DealerManagement from '../pages/superadmin/DealerManagement';
+
+import DealerLogin from '../pages/dealer/Login';
+import DealerDashboard from '../pages/dealer/Dashboard';
 
 const AppRoutes = () => {
     return (
@@ -68,7 +73,16 @@ const AppRoutes = () => {
             <Route path="/superadmin/*" element={<ProtectedRoute allowedRoles={['superadmin']}>
               <Routes>
                 <Route path="dashboard" element={<SuperAdminDashboard />} />
+                <Route path="dealers" element={<DealerManagement />} />
                 <Route path="profile" element={<SuperAdminProfile />} />
+              </Routes>
+            </ProtectedRoute>} />
+            
+            {/* Dealer */}
+            <Route path="/dealer-login" element={<DealerLogin />} />
+            <Route path="/dealer/*" element={<ProtectedRoute allowedRoles={['dealer']}>
+              <Routes>
+                <Route path="dashboard" element={<DealerDashboard />} />
               </Routes>
             </ProtectedRoute>} />
             
@@ -129,6 +143,7 @@ const AppRoutes = () => {
                 <Route path="fees" element={<AdminFees />} />
                 <Route path="holidays" element={<AdminHolidays />} />
                 <Route path="reports" element={<AdminReports />} />
+                <Route path="bulk-import" element={<BulkImport />} />
                 <Route path="timetable" element={<TimeTable />} />
                 <Route path="syllabus" element={<AdminSyllabus />} />
               </Routes>
