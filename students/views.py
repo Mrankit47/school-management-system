@@ -441,8 +441,20 @@ class StudentIdCardPdfView(views.APIView):
             return Response({"error": "Student profile not found"}, status=status.HTTP_404_NOT_FOUND)
 
         school_name = getattr(settings, 'SCHOOL_NAME', 'School Management System')
-        pdf_bytes = build_student_id_card_pdf(s, school_name=school_name)
+        pdf_bytes = build_student_id_card_pdf(
+            s,
+            school_name=school_name,
+            school_address=getattr(settings, 'SCHOOL_ADDRESS', ''),
+            school_phone=getattr(settings, 'SCHOOL_PHONE', ''),
+            school_email=getattr(settings, 'SCHOOL_EMAIL', ''),
+            school_website=getattr(settings, 'SCHOOL_WEBSITE', ''),
+        )
         filename = f"id-card-{s.admission_number or s.id}.pdf"
+        disposition = (request.query_params.get('disposition') or 'attachment').lower()
+        if disposition == 'inline':
+            disp = f'inline; filename="{filename}"'
+        else:
+            disp = f'attachment; filename="{filename}"'
         response = HttpResponse(pdf_bytes, content_type='application/pdf')
-        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+        response['Content-Disposition'] = disp
         return response

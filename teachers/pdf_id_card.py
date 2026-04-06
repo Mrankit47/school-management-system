@@ -1,4 +1,4 @@
-"""Teacher ID card PDF — photo only if file exists on profile."""
+"""Teacher ID card PDF — same shell as student: gold header, details left, ID + photo right."""
 from __future__ import annotations
 
 from io import BytesIO
@@ -10,81 +10,146 @@ from reportlab.pdfgen import canvas
 from .models import TeacherProfile
 
 
+def _header_title(school_name: str) -> str:
+    s = (school_name or '').strip()
+    if not s or s == 'School Management System':
+        return 'School Name'
+    return s[:64]
+
+
+def _clip(s: str, n: int) -> str:
+    if not s:
+        return '—'
+    s = str(s).strip()
+    return s if len(s) <= n else s[: n - 1] + '…'
+
+
+def _draw_photo_cover_box(canv, image_path: str, x: float, y: float, box_w: float, box_h: float) -> None:
+    ir = ImageReader(image_path)
+    iw, ih = ir.getSize()
+    if iw <= 0 or ih <= 0:
+        return
+    scale = max(box_w / float(iw), box_h / float(ih))
+    tw, th = iw * scale, ih * scale
+    cx = x + (box_w - tw) / 2
+    cy = y + (box_h - th) / 2
+    canv.saveState()
+    p = canv.beginPath()
+    p.rect(x, y, box_w, box_h)
+    canv.clipPath(p, stroke=0, fill=0)
+    canv.drawImage(ir, cx, cy, width=tw, height=th, mask='auto')
+    canv.restoreState()
+
+
 def build_teacher_id_card_pdf(
     teacher: TeacherProfile,
     *,
     school_name: str,
     role_label: str,
+    school_address: str = '',
+    school_phone: str = '',
+    school_email: str = '',
+    school_website: str = '',
 ) -> bytes:
-    w_pt, h_pt = 90 * mm, 55 * mm
+    W, H = 128 * mm, 74 * mm
+    m = 3.0 * mm
+    header_h = 14 * mm
     buf = BytesIO()
-    c = canvas.Canvas(buf, pagesize=(w_pt, h_pt))
+    c = canvas.Canvas(buf, pagesize=(W, H))
 
-    margin = 4 * mm
-    c.setStrokeColorRGB(0.15, 0.35, 0.65)
-    c.setLineWidth(1.2)
-    c.roundRect(margin, margin, w_pt - 2 * margin, h_pt - 2 * margin, 6, stroke=1, fill=0)
+    navy = (0.10, 0.24, 0.48)
+    gold = (0.99, 0.84, 0.28)
+    body_bg = (0.98, 0.98, 0.97)
 
-    y = h_pt - margin - 5 * mm
-    c.setFillColorRGB(0.1, 0.2, 0.45)
-    c.setFont('Helvetica-Bold', 11)
-    title = (school_name or 'School')[:48]
-    c.drawCentredString(w_pt / 2, y, title)
-    y -= 5 * mm
+    c.setStrokeColorRGB(*navy)
+    c.setLineWidth(1.3)
+    c.roundRect(m, m, W - 2 * m, H - 2 * m, 3.5, stroke=1, fill=0)
 
-    name = (teacher.user.name or teacher.user.username or 'Teacher')[:40]
-    eid = (teacher.employee_id or '—')[:16]
-    spec = (teacher.subject_specialization or '—')[:36]
-    role = (role_label or 'Teacher')[:40]
+    c.setFillColorRGB(*gold)
+    c.rect(m, H - m - header_h, W - 2 * m, header_h, stroke=0, fill=1)
 
-    text_left = margin + 3 * mm
-    photo_w, photo_h = 22 * mm, 28 * mm
-    photo_x = w_pt - margin - 3 * mm - photo_w
-    photo_y = margin + 5 * mm
+    body_top_y = H - m - header_h
+    c.setFillColorRGB(*body_bg)
+    c.rect(m, m, W - 2 * m, body_top_y - m, stroke=0, fill=1)
 
-    has_photo = bool(teacher.photo and teacher.photo.name)
-    if has_photo:
-        try:
-            path = teacher.photo.path
-            c.drawImage(
-                ImageReader(path),
-                photo_x,
-                photo_y,
-                width=photo_w,
-                height=photo_h,
-                preserveAspectRatio=True,
-                mask='auto',
-            )
-        except Exception:
-            has_photo = False
+    title = _header_title(school_name)
+    c.setFillColorRGB(0, 0, 0)
+    c.setFont('Helvetica-Bold', 14)
+    tw = c.stringWidth(title, 'Helvetica-Bold', 14)
+    c.drawString((W - tw) / 2, H - m - header_h + 4.2 * mm, title)
 
+    contact_bits = []
+    if school_phone:
+        contact_bits.append(f'Tel: {_clip(school_phone, 22)}')
+    if school_email:
+        contact_bits.append(_clip(school_email, 28))
+    if school_website:
+        contact_bits.append(_clip(school_website, 28))
+    if contact_bits:
+        c.setFont('Helvetica', 6.5)
+        wy = H - m - header_h + 8 * mm
+        for line in contact_bits[:3]:
+            lw = c.stringWidth(line, 'Helvetica', 6.5)
+            c.drawString(W - m - lw - 1 * mm, wy, line)
+            wy -= 2.6 * mm
+
+    lx = m + 3.5 * mm
+    y = body_top_y - 4 * mm
+    line = 4.2 * mm
+    label_x = lx + 28 * mm
+
+    name = _clip(teacher.user.name or teacher.user.username, 40)
+    eid = _clip(teacher.employee_id, 12)
+    role = _clip(role_label or 'Teacher', 42)
+    spec = _clip(teacher.subject_specialization, 40)
+
+    c.setFillColorRGB(0.05, 0.05, 0.08)
     c.setFont('Helvetica-Bold', 9)
-    c.setFillColorRGB(0.05, 0.05, 0.05)
-    c.drawString(text_left, y, 'TEACHER ID CARD')
-    y -= 4 * mm
+    c.drawString(lx, y, 'TEACHER ID CARD')
+    y -= line + 1 * mm
 
-    c.setFont('Helvetica-Bold', 8)
-    c.drawString(text_left, y, 'Name:')
-    c.setFont('Helvetica', 8)
-    c.drawString(text_left + 18 * mm, y, name)
-    y -= 3.5 * mm
+    def row(lbl, val, lw=28 * mm):
+        nonlocal y
+        c.setFont('Helvetica-Bold', 8.5)
+        c.drawString(lx, y, lbl)
+        c.setFont('Helvetica', 8.5)
+        c.drawString(lx + lw, y, val)
+        y -= line
 
-    c.setFont('Helvetica-Bold', 8)
-    c.drawString(text_left, y, 'Employee ID:')
-    c.setFont('Helvetica', 8)
-    c.drawString(text_left + 22 * mm, y, eid)
-    y -= 3.5 * mm
+    row('Name:', name)
+    row('Employee ID:', eid)
+    row('Role:', role)
+    row('Specialization:', spec)
 
-    c.setFont('Helvetica-Bold', 8)
-    c.drawString(text_left, y, 'Role:')
-    c.setFont('Helvetica', 8)
-    c.drawString(text_left + 18 * mm, y, role)
-    y -= 3.5 * mm
+    photo_w = 31 * mm
+    rx = W - m - photo_w - 4 * mm
+    photo_top_y = body_top_y - 10 * mm
+    py = m + 5 * mm
+    photo_h = max(30 * mm, photo_top_y - py)
+    eid_disp = _clip(teacher.employee_id, 14)
 
-    c.setFont('Helvetica-Bold', 8)
-    c.drawString(text_left, y, 'Specialization:')
-    c.setFont('Helvetica', 8)
-    c.drawString(text_left + 28 * mm, y, spec)
+    c.setFont('Helvetica-Bold', 7)
+    c.drawCentredString(rx + photo_w / 2, body_top_y - 3.6 * mm, 'Employee ID')
+
+    c.setFont('Helvetica-Bold', 11)
+    c.drawCentredString(rx + photo_w / 2, body_top_y - 8.5 * mm, eid_disp)
+
+    if teacher.photo and teacher.photo.name:
+        try:
+            _draw_photo_cover_box(c, teacher.photo.path, rx, py, photo_w, photo_h)
+        except Exception:
+            pass
+
+    c.setStrokeColorRGB(0.75, 0.75, 0.78)
+    c.setLineWidth(0.8)
+    c.rect(rx, py, photo_w, photo_h, stroke=1, fill=0)
+
+    if school_address:
+        c.setFillColorRGB(0.45, 0.45, 0.5)
+        c.setFont('Helvetica', 6.5)
+        fa = _clip(school_address, 72)
+        fw = c.stringWidth(fa, 'Helvetica', 6.5)
+        c.drawString((W - fw) / 2, m + 1.2 * mm, fa)
 
     c.showPage()
     c.save()

@@ -236,7 +236,15 @@ class TeacherIdCardPdfView(views.APIView):
             return Response({'error': 'Teacher profile not found'}, status=status.HTTP_404_NOT_FOUND)
         role_label = _teacher_role_label(profile)
         school_name = getattr(settings, 'SCHOOL_NAME', 'School Management System')
-        pdf_bytes = build_teacher_id_card_pdf(profile, school_name=school_name, role_label=role_label)
+        pdf_bytes = build_teacher_id_card_pdf(
+            profile,
+            school_name=school_name,
+            role_label=role_label,
+            school_address=getattr(settings, 'SCHOOL_ADDRESS', ''),
+            school_phone=getattr(settings, 'SCHOOL_PHONE', ''),
+            school_email=getattr(settings, 'SCHOOL_EMAIL', ''),
+            school_website=getattr(settings, 'SCHOOL_WEBSITE', ''),
+        )
 
         filename = f"teacher-id-card-{profile.employee_id or profile.id}.pdf"
         disposition = (request.query_params.get('disposition') or 'attachment').lower()

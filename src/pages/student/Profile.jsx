@@ -175,13 +175,51 @@ const Profile = () => {
         }
     };
 
+    const fetchStudentIdCardBlob = async (disposition) => {
+        const res = await api.get('students/profile/id-card/', {
+            responseType: 'blob',
+            params: { disposition },
+        });
+        return res.data;
+    };
+
+    const viewIdCardPdf = async () => {
+        setIdCardBusy(true);
+        setPhotoError('');
+        try {
+            const blob = await fetchStudentIdCardBlob('inline');
+            const url = URL.createObjectURL(new Blob([blob], { type: 'application/pdf' }));
+            window.open(url, '_blank', 'noopener,noreferrer');
+            setTimeout(() => URL.revokeObjectURL(url), 120_000);
+        } catch (err) {
+            let msg = err?.response?.data?.error || 'Could not open ID card.';
+            if (err?.response?.data instanceof Blob) {
+                try {
+                    const t = await err.response.data.text();
+                    if (t) {
+                        try {
+                            const j = JSON.parse(t);
+                            msg = j.error || j.detail || msg;
+                        } catch {
+                            msg = t.length < 200 ? t : msg;
+                        }
+                    }
+                } catch {
+                    /* ignore */
+                }
+            }
+            setPhotoError(typeof msg === 'string' ? msg : 'Could not open ID card.');
+        } finally {
+            setIdCardBusy(false);
+        }
+    };
+
     const downloadIdCardPdf = async () => {
         setIdCardBusy(true);
         setPhotoError('');
         try {
-            const res = await api.get('students/profile/id-card/', { responseType: 'blob' });
-            const blob = new Blob([res.data], { type: 'application/pdf' });
-            const url = URL.createObjectURL(blob);
+            const blob = await fetchStudentIdCardBlob('attachment');
+            const url = URL.createObjectURL(new Blob([blob], { type: 'application/pdf' }));
             const a = document.createElement('a');
             a.href = url;
             a.download = `student-id-card-${profile.admission_number || profile.id || 'student'}.pdf`;
@@ -330,6 +368,23 @@ const Profile = () => {
                         <button type="button" onClick={() => navigate('/student/results/exam')} style={{ padding: '10px 12px', borderRadius: 10, border: 'none', background: '#ede9fe', color: '#5b21b6', fontWeight: 900, cursor: 'pointer' }}>View Results</button>
                         <button
                             type="button"
+                            onClick={viewIdCardPdf}
+                            disabled={idCardBusy}
+                            style={{
+                                padding: '10px 12px',
+                                borderRadius: 10,
+                                border: 'none',
+                                background: '#fef3c7',
+                                color: '#a16207',
+                                fontWeight: 900,
+                                cursor: idCardBusy ? 'not-allowed' : 'pointer',
+                                opacity: idCardBusy ? 0.75 : 1,
+                            }}
+                        >
+                            {idCardBusy ? 'Preparing…' : 'View ID Card (PDF)'}
+                        </button>
+                        <button
+                            type="button"
                             onClick={downloadIdCardPdf}
                             disabled={idCardBusy}
                             style={{
@@ -343,7 +398,7 @@ const Profile = () => {
                                 opacity: idCardBusy ? 0.75 : 1,
                             }}
                         >
-                            {idCardBusy ? 'Preparing PDF…' : 'Download ID Card (PDF)'}
+                            {idCardBusy ? 'Preparing…' : 'Download ID Card'}
                         </button>
                     </div>
                 </div>
