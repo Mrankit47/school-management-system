@@ -20,7 +20,9 @@ urlpatterns = [
     path('api/auth/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
 
     # Modular Apps URLs
-    path('api/accounts/', include('accounts.urls')),
+    path('api/auth/', include('accounts.urls')),
+    path('api/schools/', include('tenants.urls')),
+    path('api/dealers/', include('dealers.urls')),
     path('api/students/', include('students.urls')),
     path('api/teachers/', include('teachers.urls')),
     path('api/classes/', include('classes.urls')),

@@ -6,7 +6,7 @@ from .models import User
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ['id', 'username', 'email', 'name', 'role', 'phone']
+        fields = ['id', 'username', 'email', 'name', 'role', 'phone', 'school']
 
 
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
@@ -16,14 +16,23 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
     """
 
     def validate(self, attrs):
+        username = attrs.get('username')
+        if '@' in username:
+            # If an email is provided, find the corresponding user's username
+            user_obj = User.objects.filter(email__iexact=username).first()
+            if user_obj:
+                attrs['username'] = user_obj.username
+
         data = super().validate(attrs)
 
         # Add user info to the response
         user = self.user
         request = self.context.get('request')
         
-        # Superadmins don't belong to any school and bypass school check
-        if not user.is_superuser:
+        # Superadmins and Dealers don't belong to any school and bypass school check
+        is_platform_role = user.is_superuser or user.role == 'dealer'
+        
+        if not is_platform_role:
             if not user.school:
                 raise serializers.ValidationError("This user is not assigned to any school.")
             

@@ -12,8 +12,9 @@ class UserCreateView(views.APIView):
     def post(self, request):
         serializer = UserSerializer(data=request.data)
         if serializer.is_valid():
-            # In a real app, you would handle password hashing properly here
-            user = serializer.save()
+            # Automatically assign the creator's school if not provided
+            school = serializer.validated_data.get('school') or request.user.school
+            user = serializer.save(school=school)
             user.set_password(request.data.get('password'))
             user.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)

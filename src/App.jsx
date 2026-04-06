@@ -13,6 +13,7 @@ const AppContent = () => {
     location.pathname === '/' || 
     location.pathname === '/login' ||
     location.pathname === '/superadmin/login' ||
+    location.pathname === '/dealer-login' ||
     location.pathname.match(/^\/school\/[^/]+\/?$/) ||
     location.pathname.match(/^\/school\/[^/]+\/login\/?$/);
 
