@@ -260,7 +260,7 @@ const AdminFees = () => {
         <div style={{ padding: '20px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '16px' }}>
                 <div>
-                    <h1 style={{ margin: 0 }}>Finance Management</h1>
+                    <h1 style={{ margin: 0, fontSize: '32px', fontWeight: 1000, color: '#0f172a' }}>Finance Management</h1>
                     <p style={{ margin: '8px 0 0', color: '#6b7280', fontSize: '14px' }}>
                         Define fee structure, assign fees, verify student payments, and monitor due records.
                     </p>

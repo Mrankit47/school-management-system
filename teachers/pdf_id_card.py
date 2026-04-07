@@ -123,16 +123,9 @@ def build_teacher_id_card_pdf(
 
     photo_w = 31 * mm
     rx = W - m - photo_w - 4 * mm
-    photo_top_y = body_top_y - 10 * mm
+    photo_top_y = body_top_y - 4 * mm
     py = m + 5 * mm
     photo_h = max(30 * mm, photo_top_y - py)
-    eid_disp = _clip(teacher.employee_id, 14)
-
-    c.setFont('Helvetica-Bold', 7)
-    c.drawCentredString(rx + photo_w / 2, body_top_y - 3.6 * mm, 'Employee ID')
-
-    c.setFont('Helvetica-Bold', 11)
-    c.drawCentredString(rx + photo_w / 2, body_top_y - 8.5 * mm, eid_disp)
 
     if teacher.photo and teacher.photo.name:
         try:

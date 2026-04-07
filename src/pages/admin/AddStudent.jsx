@@ -140,8 +140,38 @@ const AddStudent = () => {
 
     return (
         <div style={{ padding: '20px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px' }}>
-                <h1 style={{ margin: 0 }}>Add Student</h1>
+            <div
+                style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: '16px',
+                    marginBottom: '10px',
+                }}
+            >
+                <div>
+                    <h1
+                        style={{
+                            margin: 0,
+                            fontSize: '32px',
+                            fontWeight: 1000,
+                            color: '#0f172a',
+                            lineHeight: 1.1,
+                        }}
+                    >
+                        Add Student
+                    </h1>
+                    <p
+                        style={{
+                            margin: '8px 0 0',
+                            color: '#64748b',
+                            fontSize: '14px',
+                            fontWeight: 700,
+                        }}
+                    >
+                        Register a new student with admission, guardian, and class details.
+                    </p>
+                </div>
             </div>
 
                 <div
@@ -154,7 +184,9 @@ const AddStudent = () => {
                         marginTop: '18px',
                     }}
                 >
-                    <h3>Quick Addition: New Student</h3>
+                    <h3 style={{ margin: '0 0 12px', color: '#111827', fontSize: '18px', fontWeight: 900 }}>
+                        Section: Student Information
+                    </h3>
                     <form onSubmit={handleSubmit} style={{ display: 'grid', gap: '18px' }}>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                         <div>

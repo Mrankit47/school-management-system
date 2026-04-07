@@ -410,7 +410,7 @@ const Exams = () => {
         <div style={{ padding: '18px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px', flexWrap: 'wrap' }}>
                 <div>
-                    <h1 style={{ margin: 0 }}>Exam Management</h1>
+                    <h1 style={{ margin: 0, fontSize: '32px', fontWeight: 1000, color: '#0f172a' }}>Exam Management</h1>
                     <div style={{ marginTop: '6px', color: '#6b7280', fontWeight: 700, fontSize: '13px' }}>
                         Create exams, add schedule, and publish/unpublish results.
                     </div>

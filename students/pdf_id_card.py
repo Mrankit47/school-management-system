@@ -127,23 +127,18 @@ def build_student_id_card_pdf(
     c.setFillColorRGB(0.05, 0.05, 0.08)
     row('Name:', name)
     row('Father Name:', father)
+    row('Admission No:', adm)
     row('Class:', class_n)
     row('Section:', section_n)
     row('Phone:', phone)
     row('Address:', addr, bold_val=False)
 
-    # --- Right: ID text body ke top par, uske neeche photo (header ke sath overlap nahi)
+    # --- Right: only photo block (admission no moved to left details)
     photo_w = 31 * mm
     rx = W - m - photo_w - 4 * mm
-    photo_top_y = body_top_y - 10 * mm
+    photo_top_y = body_top_y - 4 * mm
     py = m + 5 * mm
     photo_h = max(30 * mm, photo_top_y - py)
-
-    c.setFont('Helvetica-Bold', 7)
-    c.drawCentredString(rx + photo_w / 2, body_top_y - 3.6 * mm, 'Student ID')
-
-    c.setFont('Helvetica-Bold', 11)
-    c.drawCentredString(rx + photo_w / 2, body_top_y - 8.5 * mm, adm)
 
     if student.photo and student.photo.name:
         try:

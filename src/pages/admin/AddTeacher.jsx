@@ -233,8 +233,38 @@ const AddTeacher = () => {
     return (
         <div style={{ padding: '20px' }}>
             <div style={{ width: '100%' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px' }}>
-                    <h1 style={{ margin: 0 }}>Add Teacher</h1>
+                <div
+                    style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        gap: '16px',
+                        marginBottom: '10px',
+                    }}
+                >
+                    <div>
+                        <h1
+                            style={{
+                                margin: 0,
+                                fontSize: '32px',
+                                fontWeight: 1000,
+                                color: '#0f172a',
+                                lineHeight: 1.1,
+                            }}
+                        >
+                            Add Teacher
+                        </h1>
+                        <p
+                            style={{
+                                margin: '8px 0 0',
+                                color: '#64748b',
+                                fontSize: '14px',
+                                fontWeight: 700,
+                            }}
+                        >
+                            Create a new teacher profile with personal and professional details.
+                        </p>
+                    </div>
                 </div>
 
                 <div style={{ border: '1px solid #e5e7eb', padding: '22px', backgroundColor: '#fff', borderRadius: '16px', marginTop: '18px' }}>

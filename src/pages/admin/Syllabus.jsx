@@ -151,7 +151,7 @@ export default function AdminSyllabus() {
         <div style={{ padding: 20, background: colors.bg, minHeight: 'calc(100vh - 60px)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap', marginBottom: 12 }}>
                 <div>
-                    <h1 style={{ margin: 0, fontWeight: 1000, color: colors.text }}>Admin Syllabus Management</h1>
+                    <h1 style={{ margin: 0, fontSize: '32px', fontWeight: 1000, color: colors.text }}>Admin Syllabus Management</h1>
                     <div style={{ marginTop: 4, color: colors.muted, fontWeight: 900, fontSize: 13 }}>Full control over syllabus uploads.</div>
                 </div>
                 <div style={{ minWidth: 260 }}>
@@ -164,7 +164,7 @@ export default function AdminSyllabus() {
 
             <div style={{ background: colors.card, border: `1px solid ${colors.border}`, borderRadius: 16, boxShadow: colors.shadow, padding: 16 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-                    <div style={{ fontWeight: 1000 }}>Total Syllabi</div>
+                    <div style={{ fontWeight: 1000 }}>Total Syllabus Files</div>
                     <div style={{ color: colors.muted, fontWeight: 900, fontSize: 13 }}>{syllabi.length}</div>
                 </div>
 
