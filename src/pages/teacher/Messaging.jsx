@@ -63,11 +63,9 @@ const Messaging = () => {
 
     useEffect(() => {
         setLoading(true);
-        Promise.all([api.get('teachers/profile/'), api.get('classes/sections/')])
+        Promise.all([api.get('teachers/profile/'), api.get('classes/teaching-sections/')])
             .then(async ([profileRes, classRes]) => {
-                const myTeacherId = profileRes.data?.id;
-                const allSections = classRes.data || [];
-                const mine = allSections.filter((c) => c.class_teacher === myTeacherId);
+                const mine = classRes.data || [];
                 setClasses(mine);
                 if (mine.length) setSelectedClassId(String(mine[0].id));
                 await loadThreads({ classId: mine.length ? String(mine[0].id) : '', unreadOnly: false });

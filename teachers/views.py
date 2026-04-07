@@ -1,10 +1,18 @@
+import os
+
+from django.conf import settings
+from django.http import HttpResponse
 from rest_framework import views, status, permissions
+from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.response import Response
 from accounts.models import User
 from .models import TeacherProfile, TeacherDocument
+from .pdf_id_card import build_teacher_id_card_pdf
 from .serializers import TeacherProfileSerializer, TeacherDocumentSerializer
 from core.permissions import IsAdmin, IsTeacher
 from classes.models import ClassSection
+from classes.teacher_access import teacher_accessible_class_sections_queryset
+from subjects.models import TeacherAssignment
 from assignments.models import Assignment as AssignmentModel
 from attendance.models import Attendance as AttendanceModel
 from django.db import transaction
@@ -23,30 +31,46 @@ def _next_employee_id():
         n += 1
     return f"T{n:03d}"
 
+
+def _teacher_role_label(profile: TeacherProfile) -> str:
+    has_class = ClassSection.objects.filter(class_teacher=profile).exists()
+    has_subjects = profile.subjects.exists() or TeacherAssignment.objects.filter(teacher=profile).exists()
+    if has_class and has_subjects:
+        return 'Class Teacher & Subject Teacher'
+    if has_class:
+        return 'Class Teacher'
+    if has_subjects:
+        return 'Subject Teacher'
+    return 'Teacher'
+
+
+def ensure_teacher_profile(user):
+    profile = TeacherProfile.objects.filter(user=user).first()
+    if profile:
+        return profile
+    return TeacherProfile.objects.create(
+        user=user,
+        employee_id=_next_employee_id(),
+        subject_specialization='',
+        status='Active',
+    )
+
+
 class TeacherProfileView(views.APIView):
     permission_classes = [IsTeacher]
 
     def _ensure_teacher_profile(self, user):
-        profile = TeacherProfile.objects.filter(user=user).first()
-        if profile:
-            return profile
-
-        return TeacherProfile.objects.create(
-            user=user,
-            employee_id=_next_employee_id(),
-            subject_specialization='',
-            status='Active',
-        )
+        return ensure_teacher_profile(user)
 
     def get(self, request):
         profile = self._ensure_teacher_profile(request.user)
         if profile:
             data = TeacherProfileSerializer(profile).data
 
-            classes_assigned_qs = (
-                ClassSection.objects.select_related('class_ref', 'section_ref')
-                .filter(class_teacher=profile)
-                .order_by('class_ref__name', 'section_ref__name')
+            school = None if request.user.is_superuser else request.user.school
+            classes_assigned_qs = teacher_accessible_class_sections_queryset(profile, school).select_related(
+                'class_ref',
+                'section_ref',
             )
             classes_assigned = []
             total_students = 0
@@ -75,14 +99,7 @@ class TeacherProfileView(views.APIView):
                     }
                 )
 
-            if classes_assigned and subjects_assigned:
-                role_label = 'Class Teacher & Subject Teacher'
-            elif classes_assigned:
-                role_label = 'Class Teacher'
-            elif subjects_assigned:
-                role_label = 'Subject Teacher'
-            else:
-                role_label = 'Teacher'
+            role_label = _teacher_role_label(profile)
 
             assignments_created = AssignmentModel.objects.filter(created_by=profile).count()
             attendance_records = AttendanceModel.objects.filter(marked_by=profile).count()
@@ -100,6 +117,18 @@ class TeacherProfileView(views.APIView):
                     },
                 }
             )
+
+            photo_url = None
+            has_photo = False
+            if profile.photo and profile.photo.name:
+                try:
+                    photo_url = request.build_absolute_uri(profile.photo.url)
+                    has_photo = True
+                except ValueError:
+                    pass
+            data['photo_url'] = photo_url
+            data['has_photo'] = has_photo
+
             return Response(data)
         return Response({"error": "Teacher profile not found"}, status=status.HTTP_404_NOT_FOUND)
 
@@ -143,6 +172,92 @@ class TeacherProfileView(views.APIView):
         profile.save()
 
         return self.get(request)
+
+
+_ALLOWED_PHOTO_CT = frozenset(
+    {
+        'image/jpeg',
+        'image/jpg',
+        'image/png',
+        'image/webp',
+        'image/gif',
+        'application/octet-stream',
+    }
+)
+
+
+class TeacherProfilePhotoView(views.APIView):
+    permission_classes = [IsTeacher]
+    parser_classes = [MultiPartParser, FormParser]
+
+    def post(self, request):
+        profile = ensure_teacher_profile(request.user)
+
+        f = request.FILES.get('photo')
+        if not f:
+            return Response({'error': 'Send a file in field "photo"'}, status=status.HTTP_400_BAD_REQUEST)
+
+        ext = os.path.splitext(f.name or '')[1].lower()
+        if ext not in ('.jpg', '.jpeg', '.png', '.webp', '.gif'):
+            return Response({'error': 'Allowed types: JPG, PNG, WebP, GIF'}, status=status.HTTP_400_BAD_REQUEST)
+
+        ctype = (getattr(f, 'content_type', None) or '').lower()
+        if ctype and ctype not in _ALLOWED_PHOTO_CT:
+            return Response({'error': 'Invalid image content type'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if getattr(f, 'size', 0) > 4 * 1024 * 1024:
+            return Response({'error': 'Image must be 4MB or smaller'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if profile.photo:
+            profile.photo.delete(save=False)
+        profile.photo = f
+        profile.profile_image_base64 = None
+        profile.save()
+
+        photo_url = request.build_absolute_uri(profile.photo.url)
+        return Response({'message': 'Photo saved', 'photo_url': photo_url, 'has_photo': True})
+
+    def delete(self, request):
+        profile = ensure_teacher_profile(request.user)
+
+        if profile.photo:
+            profile.photo.delete(save=False)
+        profile.photo = None
+        profile.profile_image_base64 = None
+        profile.save(update_fields=['photo', 'profile_image_base64'])
+        return Response({'message': 'Photo removed', 'photo_url': None, 'has_photo': False})
+
+
+class TeacherIdCardPdfView(views.APIView):
+    permission_classes = [IsTeacher]
+
+    def get(self, request):
+        profile = ensure_teacher_profile(request.user)
+        profile = TeacherProfile.objects.select_related('user').filter(pk=profile.pk).first()
+        if not profile:
+            return Response({'error': 'Teacher profile not found'}, status=status.HTTP_404_NOT_FOUND)
+        role_label = _teacher_role_label(profile)
+        school_name = getattr(settings, 'SCHOOL_NAME', 'School Management System')
+        pdf_bytes = build_teacher_id_card_pdf(
+            profile,
+            school_name=school_name,
+            role_label=role_label,
+            school_address=getattr(settings, 'SCHOOL_ADDRESS', ''),
+            school_phone=getattr(settings, 'SCHOOL_PHONE', ''),
+            school_email=getattr(settings, 'SCHOOL_EMAIL', ''),
+            school_website=getattr(settings, 'SCHOOL_WEBSITE', ''),
+        )
+
+        filename = f"teacher-id-card-{profile.employee_id or profile.id}.pdf"
+        disposition = (request.query_params.get('disposition') or 'attachment').lower()
+        if disposition == 'inline':
+            disp = f'inline; filename="{filename}"'
+        else:
+            disp = f'attachment; filename="{filename}"'
+
+        response = HttpResponse(pdf_bytes, content_type='application/pdf')
+        response['Content-Disposition'] = disp
+        return response
 
 
 class TeacherDocumentsView(views.APIView):

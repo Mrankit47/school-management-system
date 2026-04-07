@@ -71,6 +71,7 @@ class AssignmentCreateView(views.APIView):
                 notifications.append(
                     Notification(
                         user=sp.user,
+                        target_role=getattr(sp.user, 'role', None) or 'student',
                         title='New Assignment',
                         message=(
                             f"{assignment.subject}: {assignment.title} | "

@@ -29,6 +29,21 @@ const cardStyle = {
     boxShadow: '0 1px 6px rgba(16,24,40,0.06)',
 };
 
+const MONTH_NAMES = [
+    'January',
+    'February',
+    'March',
+    'April',
+    'May',
+    'June',
+    'July',
+    'August',
+    'September',
+    'October',
+    'November',
+    'December',
+];
+
 function formatDateRange(h) {
     if (!h?.end_date || h.end_date === h.start_date) return h.start_date;
     return `${h.start_date} — ${h.end_date}`;
@@ -308,7 +323,7 @@ const AdminHolidays = () => {
         <div style={{ padding: '20px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '16px', flexWrap: 'wrap' }}>
                 <div>
-                    <h1 style={{ margin: 0 }}>Holidays & Events</h1>
+                    <h1 style={{ margin: 0, fontSize: '32px', fontWeight: 1000, color: '#0f172a' }}>Holidays & Events</h1>
                     <p style={{ margin: '8px 0 0', color: '#6b7280', fontWeight: 800, fontSize: '13px' }}>Manage holidays and see them on a calendar.</p>
                 </div>
 
@@ -393,13 +408,9 @@ const AdminHolidays = () => {
                                     <div style={labelStyle}>Month</div>
                                     <select value={filterMonth} onChange={(e) => setFilterMonth(e.target.value)} style={inputStyle}>
                                         <option value="">All</option>
-                                        {Array.from({ length: 12 }).map((_, idx) => {
+                                        {MONTH_NAMES.map((name, idx) => {
                                             const m = idx + 1;
-                                            return (
-                                                <option key={m} value={String(m)}>
-                                                    {m}
-                                                </option>
-                                            );
+                                            return <option key={m} value={String(m)}>{name}</option>;
                                         })}
                                     </select>
                                 </div>
@@ -534,13 +545,9 @@ const AdminHolidays = () => {
                                 <div style={labelStyle}>Calendar Month</div>
                                 <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
                                     <select value={calMonth} onChange={(e) => setCalMonth(parseInt(e.target.value))} style={{ ...inputStyle, width: '160px' }}>
-                                        {Array.from({ length: 12 }).map((_, idx) => {
+                                        {MONTH_NAMES.map((name, idx) => {
                                             const m = idx + 1;
-                                            return (
-                                                <option key={m} value={m}>
-                                                    {m}
-                                                </option>
-                                            );
+                                            return <option key={m} value={m}>{name}</option>;
                                         })}
                                     </select>
                                     <input type="number" value={calYear} onChange={(e) => setCalYear(parseInt(e.target.value))} style={{ ...inputStyle, width: '160px' }} />

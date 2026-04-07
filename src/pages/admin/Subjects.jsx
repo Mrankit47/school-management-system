@@ -296,7 +296,7 @@ const AdminSubjects = () => {
         <div style={{ padding: '20px' }}>
             <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px' }}>
                 <div>
-                    <h1 style={{ margin: 0 }}>Subjects</h1>
+                    <h1 style={{ margin: 0, fontSize: '32px', fontWeight: 1000, color: '#0f172a' }}>Subjects</h1>
                     <div style={{ color: '#6b7280', fontSize: '13px', marginTop: '6px' }}>
                         Manage subjects class-wise and connect them with teachers.
                     </div>

@@ -51,10 +51,8 @@ const MarkAttendance = () => {
     const isEditable = !!sheet?.is_editable;
 
     const loadTeacherClasses = async () => {
-        const [profileRes, classRes] = await Promise.all([api.get('teachers/profile/'), api.get('classes/sections/')]);
-        const teacherProfile = profileRes.data || null;
-        const allSections = classRes.data || [];
-        const mine = allSections.filter((c) => c.class_teacher === teacherProfile?.id);
+        const res = await api.get('classes/teaching-sections/');
+        const mine = res.data || [];
         setClasses(mine);
         if (mine.length && !selectedClassId) {
             setSelectedClassId(String(mine[0].id));
@@ -149,7 +147,7 @@ const MarkAttendance = () => {
                                     {c.class_name} - {c.section_name}
                                 </option>
                             ))}
-                        </select>
+                </select>
                     </div>
                 </div>
             </div>
@@ -193,15 +191,15 @@ const MarkAttendance = () => {
 
                     <div style={{ marginTop: 12, overflowX: 'auto' }}>
                         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                            <thead>
+                <thead>
                                 <tr style={{ backgroundColor: '#f1f5f9' }}>
                                     <th style={{ padding: 12, textAlign: 'left', color: palette.muted, fontWeight: 1000, fontSize: 12 }}>Student Name</th>
                                     <th style={{ padding: 12, textAlign: 'left', color: palette.muted, fontWeight: 1000, fontSize: 12 }}>Roll No</th>
                                     <th style={{ padding: 12, textAlign: 'left', color: palette.muted, fontWeight: 1000, fontSize: 12 }}>Status</th>
                                     <th style={{ padding: 12, textAlign: 'left', color: palette.muted, fontWeight: 1000, fontSize: 12 }}>Action</th>
                                 </tr>
-                            </thead>
-                            <tbody>
+                </thead>
+                <tbody>
                                 {loading ? (
                                     <tr>
                                         <td colSpan={4} style={{ padding: 14, color: palette.muted, fontWeight: 900 }}>
@@ -242,11 +240,11 @@ const MarkAttendance = () => {
                                     <tr>
                                         <td colSpan={4} style={{ padding: 14, color: palette.muted, fontWeight: 900 }}>
                                             No students found for selected class/date.
-                                        </td>
-                                    </tr>
+                            </td>
+                        </tr>
                                 )}
-                            </tbody>
-                        </table>
+                </tbody>
+            </table>
                     </div>
                 </div>
             </div>

@@ -7,10 +7,15 @@ from datetime import timedelta
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# Display name on fee receipts and reports
+# Display name on fee receipts / reports (ID cards: env set karo ya default placeholder PDF mein)
 SCHOOL_NAME = os.getenv('SCHOOL_NAME', 'School Management System')
+SCHOOL_ADDRESS = os.getenv('SCHOOL_ADDRESS', '').strip()
+SCHOOL_PHONE = os.getenv('SCHOOL_PHONE', '').strip()
+SCHOOL_EMAIL = os.getenv('SCHOOL_EMAIL', '').strip()
+SCHOOL_WEBSITE = os.getenv('SCHOOL_WEBSITE', '').strip()
 
-SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-default-key')
+# Default must be >= 32 chars for PyJWT HMAC-SHA256 recommendation; set SECRET_KEY in env for production.
+SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-dev-only-please-set-env-secret-key-32b')
 DEBUG = os.getenv('DEBUG', 'True') == 'True'
 ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
 
@@ -36,6 +41,7 @@ INSTALLED_APPS = [
     'attendance',
     'academics',
     'assignments',
+    'announcements',
     'communication',
     'fees',
     'timetable',
@@ -44,6 +50,7 @@ INSTALLED_APPS = [
     'tenants',
     'syllabus',
     'bulk_upload',
+    'dealers',
 ]
 
 MIDDLEWARE = [

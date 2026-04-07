@@ -7,10 +7,14 @@ from .views import (
     StudentUpdateView,
     StudentsByClassSectionView,
     StudentProfileView,
+    StudentProfilePhotoView,
+    StudentIdCardPdfView,
 )
 
 urlpatterns = [
     path('', StudentListView.as_view(), name='students-list'),
+    path('profile/photo/', StudentProfilePhotoView.as_view(), name='student-profile-photo'),
+    path('profile/id-card/', StudentIdCardPdfView.as_view(), name='student-profile-id-card'),
     path('profile/', StudentProfileView.as_view(), name='student-profile'),
     path('admin-create/', AdminStudentCreateView.as_view(), name='admin-student-create'),
     path('detail/<int:student_id>/', StudentDetailView.as_view(), name='student-detail'),

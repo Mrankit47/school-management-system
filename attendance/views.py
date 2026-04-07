@@ -16,6 +16,7 @@ from timetable.models import TimeTableEntry
 from .pdf_report import build_student_attendance_report_pdf
 from django.http import HttpResponse
 from classes.models import ClassSection
+from classes.teacher_access import teacher_teaches_class_section
 from students.models import StudentProfile
 from django.utils import timezone
 
@@ -48,7 +49,7 @@ class AttendanceMarkView(views.APIView):
         if not student or not student.class_section:
             return Response({'error': 'Student not found'}, status=status.HTTP_404_NOT_FOUND)
 
-        if student.class_section.class_teacher_id != request.user.teacher_profile.id:
+        if not teacher_teaches_class_section(request.user.teacher_profile, student.class_section):
             return Response({'error': 'Not allowed for this class'}, status=status.HTTP_403_FORBIDDEN)
 
         verification_status = 'approved' if status_value == 'present' else 'rejected'
@@ -100,7 +101,7 @@ class TeacherAttendanceSheetView(views.APIView):
         )
         if not class_section:
             return Response({'error': 'Class section not found'}, status=status.HTTP_404_NOT_FOUND)
-        if class_section.class_teacher_id != request.user.teacher_profile.id:
+        if not teacher_teaches_class_section(request.user.teacher_profile, class_section):
             return Response({'error': 'Not allowed for this class section'}, status=status.HTTP_403_FORBIDDEN)
 
         students = list(
@@ -189,7 +190,7 @@ class TeacherAttendanceBulkSaveView(views.APIView):
         )
         if not class_section:
             return Response({'error': 'Class section not found'}, status=status.HTTP_404_NOT_FOUND)
-        if class_section.class_teacher_id != request.user.teacher_profile.id:
+        if not teacher_teaches_class_section(request.user.teacher_profile, class_section):
             return Response({'error': 'Not allowed for this class section'}, status=status.HTTP_403_FORBIDDEN)
 
         student_ids = set(
@@ -299,6 +300,7 @@ class StudentPunchAttendanceView(views.APIView):
                 teacher_user = class_section.class_teacher.user
                 Notification.objects.create(
                     user=teacher_user,
+                    target_role=teacher_user.role,
                     title='Attendance Verification Pending',
                     message=f"{student_profile.user.name or student_profile.user.username} punched attendance for {target_date.isoformat()}. Please verify (Approve/Reject).",
                     is_read=False,
@@ -340,7 +342,7 @@ class TeacherAttendanceVerificationListView(views.APIView):
         if not class_section:
             return Response({'error': 'Class section not found'}, status=status.HTTP_404_NOT_FOUND)
 
-        if class_section.class_teacher_id != request.user.teacher_profile.id:
+        if not teacher_teaches_class_section(request.user.teacher_profile, class_section):
             return Response({'error': 'Not allowed for this class section'}, status=status.HTTP_403_FORBIDDEN)
 
         students = (
@@ -417,10 +419,10 @@ class TeacherAttendanceVerificationDecisionView(views.APIView):
             return Response({'error': 'Attendance not found'}, status=status.HTTP_404_NOT_FOUND)
 
         class_section = attendance.student.class_section
-        if not class_section or not class_section.class_teacher:
+        if not class_section:
             return Response({'error': 'Student class not found'}, status=status.HTTP_404_NOT_FOUND)
 
-        if class_section.class_teacher_id != request.user.teacher_profile.id:
+        if not teacher_teaches_class_section(request.user.teacher_profile, class_section):
             return Response({'error': 'Not allowed to verify this attendance'}, status=status.HTTP_403_FORBIDDEN)
 
         if attendance.verification_status != 'pending':
@@ -487,8 +489,7 @@ class TeacherClassAttendanceSummaryView(views.APIView):
         if not class_section:
             return Response({'error': 'Class section not found'}, status=status.HTTP_404_NOT_FOUND)
 
-        # Teacher should only access sections assigned to them as class teacher.
-        if class_section.class_teacher_id != request.user.teacher_profile.id:
+        if not teacher_teaches_class_section(request.user.teacher_profile, class_section):
             return Response({'error': 'Not allowed for this class section'}, status=status.HTTP_403_FORBIDDEN)
 
         students = list(

@@ -11,10 +11,12 @@ from .views import (
     ClassSectionListView,
     MainClassListView,
     MainSectionListView,
+    TeacherTeachingSectionsView,
 )
 
 urlpatterns = [
     path('sections/', ClassSectionListView.as_view(), name='class-sections-list'),
+    path('teaching-sections/', TeacherTeachingSectionsView.as_view(), name='class-teaching-sections'),
     path('main-classes/', MainClassListView.as_view(), name='main-classes-list'),
     path('main-sections/', MainSectionListView.as_view(), name='main-sections-list'),
     path('admin-create-class/', AdminMainClassCreateView.as_view(), name='admin-create-class'),

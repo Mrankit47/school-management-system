@@ -226,7 +226,7 @@ const Classes = () => {
         <div style={{ padding: '20px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '16px', flexWrap: 'wrap' }}>
                 <div>
-                    <h1 style={{ margin: 0 }}>Class & Section Management</h1>
+                    <h1 style={{ margin: 0, fontSize: '32px', fontWeight: 1000, color: '#0f172a' }}>Class & Section Management</h1>
                     <div style={{ marginTop: '6px', color: '#6b7280', fontSize: '13px', fontWeight: 700 }}>
                         Organize classes, sections, teachers, and student placement.
                     </div>

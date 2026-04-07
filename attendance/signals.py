@@ -18,4 +18,9 @@ def notify_student_on_attendance(sender, instance, created, **kwargs):
     title = f"Attendance {verification}"
     message = f"Your attendance for {instance.date} was {verification} by teacher verification."
 
-    Notification.objects.create(user=student_user, title=title, message=message)
+    Notification.objects.create(
+        user=student_user,
+        target_role=getattr(student_user, 'role', None) or 'student',
+        title=title,
+        message=message,
+    )

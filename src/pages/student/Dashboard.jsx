@@ -785,38 +785,42 @@ export default function StudentDashboard() {
                                     </svg>
                                 </Icon>
                             }
-                            title="Announcements / Notices"
-                            subtitle="Latest"
+                            title="Notifications"
+                            subtitle="Holidays, exams & school notices (same inbox)"
                         />
                         <div style={{ marginTop: 12, display: 'grid', gap: 10 }}>
                             {latestNotices.length ? (
-                                latestNotices.slice(0, 4).map((n) => {
+                                latestNotices.slice(0, 5).map((n) => {
                                     const isImportant = !n.is_read;
                                     return (
-                                        <div
+                                        <button
                                             key={n.id}
+                                            type="button"
+                                            onClick={() => navigate(`/student/notifications#ntf-${n.id}`)}
                                             style={{
+                                                textAlign: 'left',
                                                 padding: '12px 12px',
                                                 borderRadius: 14,
                                                 border: `1px solid ${isImportant ? '#f59e0b' : themeStyles.cardBorder}`,
                                                 backgroundColor: isImportant ? '#fffbeb' : themeStyles.cardBg,
+                                                cursor: 'pointer',
                                             }}
                                         >
                                             <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, alignItems: 'flex-start' }}>
                                                 <div style={{ fontWeight: 1000, color: themeStyles.text, lineHeight: 1.2 }}>
                                                     {n.title}
-                                                    {isImportant ? <div style={{ marginTop: 6, fontSize: 11, fontWeight: 1000, color: '#b45309' }}>Important</div> : null}
+                                                    {isImportant ? <div style={{ marginTop: 6, fontSize: 11, fontWeight: 1000, color: '#b45309' }}>Unread</div> : null}
                                                 </div>
                                                 <div style={{ color: themeStyles.muted, fontWeight: 900, fontSize: 12, whiteSpace: 'nowrap' }}>{new Date(n.created_at).toLocaleDateString()}</div>
                                             </div>
                                             <div style={{ marginTop: 8, color: themeStyles.muted, fontWeight: 800, fontSize: 13 }}>
                                                 {n.message.length > 90 ? `${n.message.slice(0, 90)}…` : n.message}
                                             </div>
-                                        </div>
+                                        </button>
                                     );
                                 })
                             ) : (
-                                <div style={{ color: themeStyles.muted, fontWeight: 900, padding: 12 }}>No notices available.</div>
+                                <div style={{ color: themeStyles.muted, fontWeight: 900, padding: 12 }}>No notifications yet.</div>
                             )}
                         </div>
                     </Card>
