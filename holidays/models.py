@@ -13,6 +13,7 @@ class Holiday(models.Model):
         (OPTIONAL, 'Optional'),
     )
 
+    school = models.ForeignKey('tenants.School', on_delete=models.CASCADE, null=True, blank=True, related_name='holidays')
     title = models.CharField(max_length=150)
     start_date = models.DateField()
     end_date = models.DateField(blank=True, null=True)

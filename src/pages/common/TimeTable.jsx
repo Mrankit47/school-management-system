@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import api from '../../services/api';
 import authService from '../../services/authService';
-import { 
-    Calendar, 
-    Clock, 
-    MapPin, 
+import {
+    Calendar,
+    Clock,
+    MapPin,
     User as UserIcon,
     ChevronLeft,
     ChevronRight,
@@ -37,7 +37,7 @@ const PERIODS = [
 ];
 
 const TimetableGrid = ({ entries, isAdmin, isEditMode, handleCellClick }) => {
-    const currentDayNum = new Date().getDay(); 
+    const currentDayNum = new Date().getDay();
     const adjustedCurrentDay = currentDayNum === 0 ? 7 : currentDayNum;
 
     const gridData = useMemo(() => {
@@ -58,15 +58,13 @@ const TimetableGrid = ({ entries, isAdmin, isEditMode, handleCellClick }) => {
                             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none">Period</span>
                         </div>
                         {DAYS.map(day => (
-                            <div 
-                                key={day.id} 
-                                className={`p-4 text-center border-r border-slate-100 last:border-0 ${
-                                    day.id === adjustedCurrentDay ? 'bg-school-blue/5' : ''
-                                }`}
+                            <div
+                                key={day.id}
+                                className={`p-4 text-center border-r border-slate-100 last:border-0 ${day.id === adjustedCurrentDay ? 'bg-school-blue/5' : ''
+                                    }`}
                             >
-                                <span className={`text-xs font-bold uppercase tracking-wider ${
-                                    day.id === adjustedCurrentDay ? 'text-school-blue' : 'text-slate-500'
-                                }`}>
+                                <span className={`text-xs font-bold uppercase tracking-wider ${day.id === adjustedCurrentDay ? 'text-school-blue' : 'text-slate-500'
+                                    }`}>
                                     {day.name}
                                 </span>
                             </div>
@@ -101,12 +99,11 @@ const TimetableGrid = ({ entries, isAdmin, isEditMode, handleCellClick }) => {
                                     {DAYS.map(day => {
                                         const entry = gridData[day.id]?.find(e => e.period === period.id);
                                         return (
-                                            <div 
-                                                key={`${day.id}-${period.id}`} 
+                                            <div
+                                                key={`${day.id}-${period.id}`}
                                                 onClick={() => handleCellClick(day.id, period.id)}
-                                                className={`p-2 border-r border-slate-100 last:border-0 relative h-[100px] transition-all ${
-                                                    isEditMode ? 'cursor-pointer hover:bg-blue-50/50' : ''
-                                                } ${day.id === adjustedCurrentDay ? 'bg-school-blue/[0.01]' : ''}`}
+                                                className={`p-2 border-r border-slate-100 last:border-0 relative h-[100px] transition-all ${isEditMode ? 'cursor-pointer hover:bg-blue-50/50' : ''
+                                                    } ${day.id === adjustedCurrentDay ? 'bg-school-blue/[0.01]' : ''}`}
                                             >
                                                 {entry ? (
                                                     <div className="h-full w-full p-2.5 rounded-xl bg-white border border-slate-100 shadow-sm hover:shadow-md transition-all group flex flex-col justify-between">
@@ -161,16 +158,16 @@ const TimeTable = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [isEditMode, setIsEditMode] = useState(false);
-    
+
     // Admin Filters State
     const [selectedSectionId, setSelectedSectionId] = useState('');
     const [filters, setFilters] = useState({ class_name: '', section: '' });
-    
+
     // Modal State
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingEntry, setEditingEntry] = useState(null);
     const [formLoading, setFormLoading] = useState(false);
-    
+
     // Meta Data State
     const [teachers, setTeachers] = useState([]);
     const [sections, setSections] = useState([]);
@@ -179,7 +176,7 @@ const TimeTable = () => {
     const { role } = authService.getCurrentUser();
     const isAdmin = role === 'admin';
     const isTeacher = role === 'teacher';
-    
+
     useEffect(() => {
         if (!isAdmin) {
             fetchTimetable();
@@ -243,13 +240,13 @@ const TimeTable = () => {
 
     const handleCellClick = (dayId, periodId) => {
         if (!isAdmin || !isEditMode || periodId === 'lunch') return;
-        
+
         const existing = entries.find(e => e.day === dayId && e.period === periodId);
         if (existing) {
             openModal(existing);
         } else {
-            openModal({ 
-                day: dayId, 
+            openModal({
+                day: dayId,
                 period: periodId,
                 class_name: filters.class_name,
                 section: filters.section
@@ -307,11 +304,11 @@ const TimeTable = () => {
                 <div className="flex items-center gap-3">
                     {isAdmin && (
                         <div className="flex items-center gap-2">
-                             <div className="relative">
+                            <div className="relative">
                                 <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
                                     <Filter className="w-4 h-4 text-slate-400" />
                                 </div>
-                                <select 
+                                <select
                                     value={selectedSectionId}
                                     onChange={handleAdminFilterChange}
                                     className="pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-600 outline-none focus:border-school-blue focus:ring-4 focus:ring-school-blue/5 transition-all appearance-none min-w-[200px]"
@@ -321,16 +318,15 @@ const TimeTable = () => {
                                         <option key={s.id} value={s.id}>{s.class_name} - {s.section_name}</option>
                                     ))}
                                 </select>
-                             </div>
+                            </div>
 
-                            <button 
+                            <button
                                 onClick={() => setIsEditMode(!isEditMode)}
                                 disabled={!filters.class_name}
-                                className={`flex items-center gap-2 px-4 py-2 rounded-xl border transition-all font-bold text-sm ${
-                                    isEditMode 
-                                    ? 'bg-school-blue text-white border-school-blue shadow-lg shadow-school-blue/20' 
+                                className={`flex items-center gap-2 px-4 py-2 rounded-xl border transition-all font-bold text-sm ${isEditMode
+                                    ? 'bg-school-blue text-white border-school-blue shadow-lg shadow-school-blue/20'
                                     : 'bg-white text-slate-600 border-slate-200 hover:border-school-blue hover:text-school-blue'
-                                } disabled:opacity-50 disabled:cursor-not-allowed`}
+                                    } disabled:opacity-50 disabled:cursor-not-allowed`}
                             >
                                 <Edit2 className="w-4 h-4" />
                                 {isEditMode ? 'Finish Editing' : 'Edit Mode'}
@@ -368,11 +364,11 @@ const TimeTable = () => {
                                 <MapPin className="w-5 h-5 text-school-blue" />
                                 <h2 className="text-xl font-black text-slate-800 uppercase tracking-tight">Class {key}</h2>
                             </div>
-                            <TimetableGrid 
-                                entries={teacherGroups[key]} 
-                                isAdmin={false} 
-                                isEditMode={false} 
-                                handleCellClick={() => {}} 
+                            <TimetableGrid
+                                entries={teacherGroups[key]}
+                                isAdmin={false}
+                                isEditMode={false}
+                                handleCellClick={() => { }}
                             />
                         </div>
                     )) : (
@@ -382,19 +378,19 @@ const TimeTable = () => {
                     )}
                 </div>
             ) : (
-                <TimetableGrid 
-                    entries={entries} 
-                    isAdmin={isAdmin} 
-                    isEditMode={isEditMode} 
-                    handleCellClick={handleCellClick} 
+                <TimetableGrid
+                    entries={entries}
+                    isAdmin={isAdmin}
+                    isEditMode={isEditMode}
+                    handleCellClick={handleCellClick}
                 />
             )}
 
             {/* Admin Edit Modal */}
             {isModalOpen && (
-                <AdminModal 
-                    entry={editingEntry} 
-                    onClose={closeModal} 
+                <AdminModal
+                    entry={editingEntry}
+                    onClose={closeModal}
                     onSuccess={() => { fetchTimetable(); closeModal(); }}
                     onDelete={handleDelete}
                     meta={{ teachers, sections, subjects }}
@@ -443,7 +439,7 @@ const AdminModal = ({ entry, onClose, onSuccess, onDelete, meta }) => {
             console.error('Save error:', err.response?.data);
             const data = err.response?.data;
             let errorMsg = 'Failed to save entry.';
-            
+
             if (data) {
                 if (typeof data === 'string') {
                     errorMsg = data;
@@ -485,9 +481,9 @@ const AdminModal = ({ entry, onClose, onSuccess, onDelete, meta }) => {
                     <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-1.5">
                             <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Day</label>
-                            <select 
-                                value={formData.day} 
-                                onChange={e => setFormData({...formData, day: parseInt(e.target.value)})}
+                            <select
+                                value={formData.day}
+                                onChange={e => setFormData({ ...formData, day: parseInt(e.target.value) })}
                                 className="w-full px-4 py-2.5 bg-slate-50 border border-slate-100 rounded-xl text-sm font-bold text-slate-700 outline-none focus:border-school-blue focus:ring-2 focus:ring-school-blue/10 transition-all"
                             >
                                 {DAYS.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
@@ -495,9 +491,9 @@ const AdminModal = ({ entry, onClose, onSuccess, onDelete, meta }) => {
                         </div>
                         <div className="space-y-1.5">
                             <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Period</label>
-                            <select 
-                                value={formData.period} 
-                                onChange={e => setFormData({...formData, period: parseInt(e.target.value)})}
+                            <select
+                                value={formData.period}
+                                onChange={e => setFormData({ ...formData, period: parseInt(e.target.value) })}
                                 className="w-full px-4 py-2.5 bg-slate-50 border border-slate-100 rounded-xl text-sm font-bold text-slate-700 outline-none focus:border-school-blue focus:ring-2 focus:ring-school-blue/10 transition-all"
                             >
                                 {PERIODS.filter(p => typeof p.id === 'number').map(p => (
@@ -509,7 +505,7 @@ const AdminModal = ({ entry, onClose, onSuccess, onDelete, meta }) => {
 
                     <div className="space-y-1.5">
                         <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Class & Section</label>
-                        <select 
+                        <select
                             onChange={handleSectionChange}
                             value={meta.sections.find(s => s.class_name === formData.class_name && s.section_name === formData.section)?.id || ''}
                             className="w-full px-4 py-2.5 bg-slate-50 border border-slate-100 rounded-xl text-sm font-bold text-slate-700 outline-none focus:border-school-blue focus:ring-2 focus:ring-school-blue/10 transition-all"
@@ -531,10 +527,10 @@ const AdminModal = ({ entry, onClose, onSuccess, onDelete, meta }) => {
                     <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-1.5">
                             <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Subject</label>
-                            <input 
+                            <input
                                 list="subject-options"
                                 value={formData.subject}
-                                onChange={e => setFormData({...formData, subject: e.target.value})}
+                                onChange={e => setFormData({ ...formData, subject: e.target.value })}
                                 className="w-full px-4 py-2.5 bg-slate-50 border border-slate-100 rounded-xl text-sm font-bold text-slate-700 outline-none focus:border-school-blue focus:ring-2 focus:ring-school-blue/10 transition-all"
                                 placeholder="Maths, Science..."
                                 required
@@ -545,10 +541,10 @@ const AdminModal = ({ entry, onClose, onSuccess, onDelete, meta }) => {
                         </div>
                         <div className="space-y-1.5">
                             <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Room</label>
-                            <input 
+                            <input
                                 type="text"
                                 value={formData.room}
-                                onChange={e => setFormData({...formData, room: e.target.value})}
+                                onChange={e => setFormData({ ...formData, room: e.target.value })}
                                 className="w-full px-4 py-2.5 bg-slate-50 border border-slate-100 rounded-xl text-sm font-bold text-slate-700 outline-none focus:border-school-blue focus:ring-2 focus:ring-school-blue/10 transition-all"
                                 placeholder="101, Lab A"
                                 required
@@ -558,9 +554,9 @@ const AdminModal = ({ entry, onClose, onSuccess, onDelete, meta }) => {
 
                     <div className="space-y-1.5">
                         <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Teacher</label>
-                        <select 
-                            value={formData.teacher} 
-                            onChange={e => setFormData({...formData, teacher: e.target.value})}
+                        <select
+                            value={formData.teacher}
+                            onChange={e => setFormData({ ...formData, teacher: e.target.value })}
                             className="w-full px-4 py-2.5 bg-slate-50 border border-slate-100 rounded-xl text-sm font-bold text-slate-700 outline-none focus:border-school-blue focus:ring-2 focus:ring-school-blue/10 transition-all"
                             required
                         >
@@ -571,7 +567,7 @@ const AdminModal = ({ entry, onClose, onSuccess, onDelete, meta }) => {
                     </div>
 
                     <div className="pt-4 flex flex-col gap-3">
-                        <button 
+                        <button
                             type="submit"
                             disabled={loading}
                             className="w-full py-3 bg-school-blue text-white rounded-2xl font-bold flex items-center justify-center gap-2 hover:bg-blue-700 shadow-lg shadow-school-blue/20 transition-all disabled:opacity-50"
@@ -579,9 +575,9 @@ const AdminModal = ({ entry, onClose, onSuccess, onDelete, meta }) => {
                             {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                             {isNew ? 'Create Entry' : 'Save Changes'}
                         </button>
-                        
+
                         {!isNew && (
-                            <button 
+                            <button
                                 type="button"
                                 onClick={() => onDelete(entry.id)}
                                 className="w-full py-3 bg-red-50 text-red-600 rounded-2xl font-bold flex items-center justify-center gap-2 hover:bg-red-100 transition-all"

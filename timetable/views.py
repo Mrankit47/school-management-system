@@ -28,7 +28,12 @@ class TimeTableViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
+        school = getattr(user, 'school', None)
         queryset = TimeTableEntry.objects.all().select_related('teacher')
+
+        # Enforce tenant boundary unless superuser
+        if not user.is_superuser and school:
+            queryset = queryset.filter(school=school)
 
         if user.role == 'admin':
             class_name = self.request.query_params.get('class_name')
@@ -50,4 +55,31 @@ class TimeTableViewSet(viewsets.ModelViewSet):
                 )
             return queryset.none()
         
+        
         return queryset.none()
+
+    def perform_create(self, serializer):
+        from django.core.exceptions import ValidationError as DjangoValidationError
+        from rest_framework.exceptions import ValidationError as DRFValidationError
+        user = self.request.user
+        try:
+            if not getattr(user, 'is_superuser', False):
+                serializer.save(school=getattr(user, 'school', None))
+            else:
+                serializer.save()
+        except DjangoValidationError as e:
+            errors = e.message_dict.copy() if hasattr(e, 'message_dict') else {'non_field_errors': getattr(e, 'messages', str(e))}
+            if '__all__' in errors:
+                errors['non_field_errors'] = errors.pop('__all__')
+            raise DRFValidationError(errors)
+
+    def perform_update(self, serializer):
+        from django.core.exceptions import ValidationError as DjangoValidationError
+        from rest_framework.exceptions import ValidationError as DRFValidationError
+        try:
+            serializer.save()
+        except DjangoValidationError as e:
+            errors = e.message_dict.copy() if hasattr(e, 'message_dict') else {'non_field_errors': getattr(e, 'messages', str(e))}
+            if '__all__' in errors:
+                errors['non_field_errors'] = errors.pop('__all__')
+            raise DRFValidationError(errors)

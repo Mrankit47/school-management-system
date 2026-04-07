@@ -12,8 +12,9 @@ class UserCreateView(views.APIView):
     def post(self, request):
         serializer = UserSerializer(data=request.data)
         if serializer.is_valid():
-            # In a real app, you would handle password hashing properly here
-            user = serializer.save()
+            # Automatically assign the creator's school if not provided
+            school = serializer.validated_data.get('school') or request.user.school
+            user = serializer.save(school=school)
             user.set_password(request.data.get('password'))
             user.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
@@ -73,11 +74,13 @@ class AdminDashboardStatsView(views.APIView):
         from teachers.models import TeacherProfile
         from classes.models import MainClass, MainSection
 
+        school = request.user.school
+
         stats = {
-            "total_students": StudentProfile.objects.count(),
-            "total_teachers": TeacherProfile.objects.count(),
-            "active_classes": MainClass.objects.count(),
-            "total_sections": MainSection.objects.count(),
+            "total_students": StudentProfile.objects.filter(user__school=school).count() if not request.user.is_superuser else StudentProfile.objects.count(),
+            "total_teachers": TeacherProfile.objects.filter(user__school=school).count() if not request.user.is_superuser else TeacherProfile.objects.count(),
+            "active_classes": MainClass.objects.filter(school=school).count() if not request.user.is_superuser else MainClass.objects.count(),
+            "total_sections": MainSection.objects.filter(school=school).count() if not request.user.is_superuser else MainSection.objects.count(),
         }
         return Response(
             {"success": True, "message": "Admin stats generated", "data": stats},

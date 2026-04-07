@@ -183,8 +183,10 @@ def login(data: LoginSchema):
             "user": {
                 "id": user.id,
                 "username": user.username,
-                "role": user.role,
-                "name": user.name or user.username
+                "role": 'superadmin' if getattr(user, 'is_superuser', False) else user.role,
+                "name": user.name or user.username,
+                "school_id": getattr(user.school, 'school_id', None) if getattr(user, 'school', None) else None,
+                "school_name": getattr(user.school, 'name', None) if getattr(user, 'school', None) else None
             }
         }
     raise HTTPException(status_code=401, detail="Invalid credentials")

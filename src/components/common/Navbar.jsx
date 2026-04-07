@@ -18,8 +18,13 @@ const Navbar = () => {
     }, [user.role]);
 
     const handleLogout = () => {
+        const sid = user.school_id;
         logout();
-        navigate('/');
+        if (sid && user.role !== 'superadmin') {
+            navigate(`/school/${sid}`);
+        } else {
+            navigate('/');
+        }
     };
 
     const initials = (user.name || 'U').split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
@@ -30,11 +35,15 @@ const Navbar = () => {
             {/* Left Section: Branding */}
             <div className="flex items-center gap-4 min-w-[200px]">
                 <div className="w-11 h-11 bg-school-navy rounded-2xl flex items-center justify-center text-white text-2xl font-black shadow-xl shadow-school-navy/20 animate-in fade-in zoom-in duration-700">
-                    A
+                    {user.role === 'superadmin' ? 'S' : user.role === 'dealer' ? 'D' : (user.school_name ? user.school_name[0].toUpperCase() : 'S')}
                 </div>
                 <div className="flex flex-col">
-                    <h1 className="text-base font-black text-slate-900 leading-tight tracking-tight uppercase">Atheris Lab</h1>
-                    <p className="text-[9px] font-bold text-school-blue uppercase tracking-[0.2em] opacity-80">School System</p>
+                    <h1 className="text-[13px] sm:text-base font-black text-slate-900 leading-tight tracking-tight uppercase truncate max-w-[150px] sm:max-w-xs">
+                        {user.role === 'superadmin' ? 'SaaS Panel' : user.role === 'dealer' ? 'Dealer Portal' : (user.school_name || 'School Portal')}
+                    </h1>
+                    <p className="text-[9px] font-bold text-school-blue uppercase tracking-[0.2em] opacity-80">
+                        {user.role === 'superadmin' ? 'Global Control' : user.role === 'dealer' ? 'Partner Access' : (user.school_id || 'System')}
+                    </p>
                 </div>
             </div>
 
