@@ -44,6 +44,19 @@ class DealerSchoolViewSet(viewsets.ModelViewSet):
         # Dealer is automatically assigned in serializer.create
         serializer.save()
 
+    @action(detail=True, methods=['get'])
+    def admins(self, request, pk=None):
+        school = self.get_object()
+        admins = school.user_set.filter(role='admin').values('name', 'email', 'username', 'is_active')
+        return Response(admins)
+
+    @action(detail=True, methods=['post'])
+    def toggle_active(self, request, pk=None):
+        school = self.get_object()
+        school.is_active = not school.is_active
+        school.save()
+        return Response({'status': 'success', 'is_active': school.is_active})
+
     def get_serializer_context(self):
         context = super().get_serializer_context()
         context.update({"request": self.request})
