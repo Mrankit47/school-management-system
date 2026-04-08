@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import api from '../../services/api';
 import StudentCards from './StudentCards';
 import TeacherCards from './TeacherCards';
+import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
 
 const AdminDashboard = () => {
     const [recentStudents, setRecentStudents] = useState([]);
@@ -29,6 +30,11 @@ const AdminDashboard = () => {
     const [teachersCount, setTeachersCount] = useState(0);
     const [studentsCount, setStudentsCount] = useState(0);
     const [studentsLoading, setStudentsLoading] = useState(false);
+    const currentYear = new Date().getFullYear();
+    const [selectedYear, setSelectedYear] = useState(currentYear);
+    const [feesCollection, setFeesCollection] = useState([]);
+    const [feesLoading, setFeesLoading] = useState(false);
+    const [totalCollection, setTotalCollection] = useState(0);
     const parentPhoneDigits = (formData.parent_contact_number || '').replace(/\D/g, '').slice(0, 10);
 
     const fetchCounts = async () => {
@@ -55,11 +61,34 @@ const AdminDashboard = () => {
         }
     };
 
+    const fetchFeesCollection = async (year) => {
+        setFeesLoading(true);
+        try {
+            const res = await api.get(`fees/collection/?year=${year}`);
+            setFeesCollection(res?.data?.monthly || []);
+            setTotalCollection(Number(res?.data?.total_collection || 0));
+        } catch (e) {
+            console.error("Error fetching fees collection:", e);
+            setFeesCollection([]);
+            setTotalCollection(0);
+        } finally {
+            setFeesLoading(false);
+        }
+    };
+
     useEffect(() => {
         setStudentsLoading(true);
         Promise.all([fetchCounts(), fetchClassesAndSections()])
             .finally(() => setStudentsLoading(false));
     }, []);
+
+    useEffect(() => {
+        fetchFeesCollection(selectedYear);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [selectedYear]);
+
+    const yearOptions = Array.from({ length: 6 }, (_, i) => currentYear - i);
+    const formatINR = (value) => `₹${Number(value || 0).toLocaleString('en-IN')}`;
 
     // Auto refresh dashboard stats (so delete/update actions reflect immediately).
     useEffect(() => {
@@ -159,34 +188,56 @@ const AdminDashboard = () => {
 
                     {/* Chart & Activity Grid */}
                     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-                        {/* Attendance Chart Mockup */}
+                        {/* Finance Collection Bar Chart */}
                         <div className="lg:col-span-8 bg-white/50 backdrop-blur-md p-8 rounded-[2.5rem] border border-slate-100 shadow-xl shadow-slate-200/30">
-                            <div className="flex items-center justify-between mb-10">
+                            <div className="flex items-start justify-between mb-8 gap-4 flex-wrap">
                                 <div>
-                                    <h3 className="font-poppins font-bold text-school-text text-lg">Attendance Overview</h3>
-                                    <p className="text-xs text-slate-400">Weekly student presence analytics</p>
+                                    <h3 className="font-poppins font-bold text-school-text text-lg">Fees Collection Overview</h3>
+                                    <p className="text-xs text-slate-400">Monthly student fees collection analytics</p>
+                                    <p className="text-sm font-black text-school-navy mt-2">
+                                        Total Collection: {formatINR(totalCollection)}
+                                    </p>
                                 </div>
-                                <div className="flex items-center gap-3 px-4 py-2 bg-slate-50 rounded-xl border border-slate-100">
-                                    <span className="w-2.5 h-2.5 rounded-full bg-school-navy animate-pulse"></span>
-                                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Live Updates</span>
+                                <div className="flex items-center gap-3">
+                                    <select
+                                        value={selectedYear}
+                                        onChange={(e) => setSelectedYear(Number(e.target.value))}
+                                        className="px-4 py-2 bg-white rounded-xl border border-slate-200 text-sm font-bold text-slate-600 outline-none focus:border-school-blue"
+                                    >
+                                        {yearOptions.map((year) => (
+                                            <option key={year} value={year}>{year}</option>
+                                        ))}
+                                    </select>
+                                    <div className="flex items-center gap-3 px-4 py-2 bg-slate-50 rounded-xl border border-slate-100">
+                                        <span className="w-2.5 h-2.5 rounded-full bg-school-navy animate-pulse"></span>
+                                        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Finance</span>
+                                    </div>
                                 </div>
                             </div>
-                            <div className="h-64 flex items-end justify-between gap-4 px-2">
-                                {[85, 92, 78, 95, 88, 70, 92].map((h, i) => (
-                                    <div key={i} className="flex-1 flex flex-col items-center gap-4 group">
-                                        <div className="w-full bg-slate-50 rounded-2xl relative h-full overflow-hidden border border-slate-100/50">
-                                            <div 
-                                                className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-school-navy to-school-blue rounded-2xl transition-all duration-1000 ease-out shadow-lg shadow-school-blue/20"
-                                                style={{ height: `${h}%` }}
-                                            >
-                                                <div className="absolute top-2 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                    <span className="text-[9px] font-black text-white">{h}%</span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <span className="text-[10px] font-black text-slate-400 group-hover:text-school-navy transition-colors">Day {i+1}</span>
-                                    </div>
-                                ))}
+                            <div className="h-72 rounded-2xl border border-slate-100 bg-white/70 p-3">
+                                {feesLoading ? (
+                                    <div className="h-full flex items-center justify-center text-slate-400 font-bold">Loading chart...</div>
+                                ) : (
+                                    <ResponsiveContainer width="100%" height="100%">
+                                        <BarChart data={feesCollection} margin={{ top: 8, right: 12, left: 4, bottom: 8 }}>
+                                            <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                                            <XAxis dataKey="month" tick={{ fill: '#64748b', fontWeight: 700, fontSize: 12 }} />
+                                            <YAxis tickFormatter={(v) => `₹${Math.round(v / 1000)}k`} tick={{ fill: '#64748b', fontWeight: 700, fontSize: 12 }} />
+                                            <Tooltip
+                                                formatter={(value) => [formatINR(value), 'Collection']}
+                                                labelStyle={{ color: '#0f172a', fontWeight: 700 }}
+                                                contentStyle={{ borderRadius: 12, border: '1px solid #e2e8f0' }}
+                                            />
+                                            <Bar
+                                                dataKey="amount"
+                                                fill="#2563eb"
+                                                radius={[8, 8, 0, 0]}
+                                                isAnimationActive={true}
+                                                animationDuration={900}
+                                            />
+                                        </BarChart>
+                                    </ResponsiveContainer>
+                                )}
                             </div>
                         </div>
 

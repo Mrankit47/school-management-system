@@ -4,7 +4,6 @@ from .models import TimeTableEntry
 class TimeTableEntrySerializer(serializers.ModelSerializer):
     teacher_name = serializers.ReadOnlyField(source='teacher.name')
     day_display = serializers.CharField(source='get_day_display', read_only=True)
-    period_display = serializers.CharField(source='get_period_display', read_only=True)
     start_time_display = serializers.SerializerMethodField()
     end_time_display = serializers.SerializerMethodField()
 
@@ -12,8 +11,8 @@ class TimeTableEntrySerializer(serializers.ModelSerializer):
         model = TimeTableEntry
         fields = [
             'id', 'class_name', 'section', 'subject', 'teacher', 
-            'teacher_name', 'day', 'day_display', 'period', 
-            'period_display', 'start_time', 'end_time', 
+            'teacher_name', 'day', 'day_display', 'shift',
+            'period', 'period_number', 'start_time', 'end_time',
             'start_time_display', 'end_time_display', 'room'
         ]
         read_only_fields = ['start_time', 'end_time']

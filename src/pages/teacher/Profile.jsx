@@ -489,7 +489,7 @@ const TeacherProfile = () => {
                                 fontWeight: 600,
                             }}
                         >
-                            Click background or press Esc to close
+                            Click the background or press Esc to close.
                         </p>
                     </div>
                 </div>

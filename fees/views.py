@@ -4,6 +4,8 @@ from io import BytesIO
 
 from django.http import HttpResponse
 from django.utils import timezone
+from django.db.models import Sum
+from django.db.models.functions import ExtractMonth
 from rest_framework import status, views
 from rest_framework.response import Response
 
@@ -449,6 +451,52 @@ class AdminFeesDashboardView(views.APIView):
                 'total_paid': str(total_paid),
                 'total_due': str(total_outstanding),
                 'overdue_records': overdue_count,
+            }
+        )
+
+
+class AdminFeesCollectionView(views.APIView):
+    permission_classes = [IsAdmin]
+
+    def get(self, request):
+        current_year = timezone.now().year
+        raw_year = request.query_params.get('year')
+        try:
+            year = int(raw_year) if raw_year else current_year
+        except (TypeError, ValueError):
+            return Response({"error": "Invalid year"}, status=status.HTTP_400_BAD_REQUEST)
+
+        school = request.user.school
+        qs = Payment.objects.filter(payment_date__year=year)
+        if not request.user.is_superuser:
+            qs = qs.filter(student_fee__student__user__school=school)
+
+        month_rows = (
+            qs.annotate(month=ExtractMonth('payment_date'))
+            .values('month')
+            .annotate(amount=Sum('amount'))
+            .order_by('month')
+        )
+        month_to_amount = {int(r['month']): r['amount'] for r in month_rows if r.get('month')}
+
+        month_labels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+        monthly = []
+        total = Decimal('0.00')
+        for idx, label in enumerate(month_labels, start=1):
+            amount = month_to_amount.get(idx) or Decimal('0.00')
+            total += amount
+            monthly.append(
+                {
+                    'month': label,
+                    'amount': float(amount),
+                }
+            )
+
+        return Response(
+            {
+                'year': year,
+                'total_collection': float(total),
+                'monthly': monthly,
             }
         )
 

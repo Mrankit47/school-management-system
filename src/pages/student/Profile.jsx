@@ -429,7 +429,7 @@ const Profile = () => {
                                 fontWeight: 700,
                                 color: '#334155',
                             }}
-                            aria-label="Band karein"
+                            aria-label="Close"
                         >
                             ×
                         </button>
@@ -456,7 +456,7 @@ const Profile = () => {
                                 fontWeight: 600,
                             }}
                         >
-                            Background par click karke ya Esc dabakar band karein
+                            Click the background or press Esc to close.
                         </p>
                     </div>
                 </div>

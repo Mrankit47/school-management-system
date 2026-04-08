@@ -3,11 +3,8 @@ import api from '../../services/api';
 import authService from '../../services/authService';
 import {
     Calendar,
-    Clock,
     MapPin,
     User as UserIcon,
-    ChevronLeft,
-    ChevronRight,
     Loader2,
     Plus,
     Edit2,
@@ -26,27 +23,44 @@ const DAYS = [
     { id: 6, name: 'Saturday', short: 'Sat' },
 ];
 
-const PERIODS = [
-    { id: 1, time: '08:00 AM - 09:00 AM', start: '08:00', end: '09:00' },
-    { id: 2, time: '09:00 AM - 10:00 AM', start: '09:00', end: '10:00' },
-    { id: 3, time: '10:00 AM - 11:00 AM', start: '10:00', end: '11:00' },
-    { id: 'lunch', time: '11:00 AM - 12:00 PM', name: 'LUNCH BREAK' },
-    { id: 4, time: '12:00 PM - 01:00 PM', start: '12:00', end: '13:00' },
-    { id: 5, time: '01:00 PM - 02:00 PM', start: '13:00', end: '14:00' },
-    { id: 6, time: '02:00 PM - 03:00 PM', start: '14:00', end: '15:00' },
+const SHIFT_OPTIONS = [
+    { id: 'morning', label: 'Morning Shift' },
+    { id: 'afternoon', label: 'Afternoon Shift' },
 ];
 
-const TimetableGrid = ({ entries, isAdmin, isEditMode, handleCellClick }) => {
+const SLOT_LAYOUT = {
+    morning: [
+        { id: 1, time: '08:00 AM - 08:30 AM' },
+        { id: 2, time: '08:30 AM - 09:00 AM' },
+        { id: 3, time: '09:00 AM - 09:30 AM' },
+        { id: 'break', time: '09:30 AM - 10:00 AM', name: 'BREAK' },
+        { id: 4, time: '10:00 AM - 10:30 AM' },
+        { id: 5, time: '10:30 AM - 11:00 AM' },
+        { id: 6, time: '11:00 AM - 11:30 AM' },
+    ],
+    afternoon: [
+        { id: 1, time: '01:00 PM - 01:30 PM' },
+        { id: 2, time: '01:30 PM - 02:00 PM' },
+        { id: 3, time: '02:00 PM - 02:30 PM' },
+        { id: 'break', time: '02:30 PM - 03:00 PM', name: 'BREAK' },
+        { id: 4, time: '03:00 PM - 03:30 PM' },
+        { id: 5, time: '03:30 PM - 04:00 PM' },
+        { id: 6, time: '04:00 PM - 04:30 PM' },
+    ],
+};
+
+const TimetableGrid = ({ entries, isAdmin, isEditMode, handleCellClick, shift }) => {
     const currentDayNum = new Date().getDay();
     const adjustedCurrentDay = currentDayNum === 0 ? 7 : currentDayNum;
+    const periods = SLOT_LAYOUT[shift] || SLOT_LAYOUT.morning;
 
     const gridData = useMemo(() => {
         const data = {};
         DAYS.forEach(day => {
-            data[day.id] = entries.filter(e => e.day === day.id);
+            data[day.id] = entries.filter(e => e.day === day.id && e.shift === shift);
         });
         return data;
-    }, [entries]);
+    }, [entries, shift]);
 
     return (
         <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
@@ -73,12 +87,12 @@ const TimetableGrid = ({ entries, isAdmin, isEditMode, handleCellClick }) => {
 
                     {/* Grid Body */}
                     <div className="relative">
-                        {PERIODS.map((period) => {
-                            if (period.id === 'lunch') {
+                        {periods.map((period) => {
+                            if (period.id === 'break') {
                                 return (
-                                    <div key="lunch" className="grid grid-cols-7 border-b border-slate-100 bg-slate-50/80">
+                                    <div key="break" className="grid grid-cols-7 border-b border-slate-100 bg-slate-50/80">
                                         <div className="p-3 border-r border-slate-100 flex items-center justify-center bg-slate-100/50">
-                                            <span className="text-[10px] font-bold text-slate-400">11:00 AM</span>
+                                            <span className="text-[10px] font-bold text-slate-400">{period.time.split(' - ')[0]}</span>
                                         </div>
                                         <div className="col-span-6 p-3 flex items-center justify-center gap-3">
                                             <div className="h-px bg-slate-200 flex-1"></div>
@@ -97,7 +111,9 @@ const TimetableGrid = ({ entries, isAdmin, isEditMode, handleCellClick }) => {
                                     </div>
 
                                     {DAYS.map(day => {
-                                        const entry = gridData[day.id]?.find(e => e.period === period.id);
+                                        const entry = gridData[day.id]?.find(
+                                            e => (e.period_number || e.period) === period.id
+                                        );
                                         return (
                                             <div
                                                 key={`${day.id}-${period.id}`}
@@ -158,6 +174,7 @@ const TimeTable = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [isEditMode, setIsEditMode] = useState(false);
+    const [selectedShift, setSelectedShift] = useState('morning');
 
     // Admin Filters State
     const [selectedSectionId, setSelectedSectionId] = useState('');
@@ -184,7 +201,7 @@ const TimeTable = () => {
         if (isAdmin) {
             fetchMetaData();
         }
-    }, [isAdmin]);
+    }, [isAdmin, selectedShift]);
 
     useEffect(() => {
         if (isAdmin && filters.class_name && filters.section) {
@@ -192,15 +209,19 @@ const TimeTable = () => {
         } else if (isAdmin) {
             setEntries([]);
         }
-    }, [filters, isAdmin]);
+    }, [filters, isAdmin, selectedShift]);
 
     const fetchTimetable = async () => {
         setLoading(true);
         try {
             let url = 'timetable/';
+            const query = new URLSearchParams();
+            query.set('shift', selectedShift);
             if (isAdmin && filters.class_name && filters.section) {
-                url += `?class_name=${filters.class_name}&section=${filters.section}`;
+                query.set('class_name', filters.class_name);
+                query.set('section', filters.section);
             }
+            url += `?${query.toString()}`;
             const response = await api.get(url);
             setEntries(response.data);
             setError(null);
@@ -239,15 +260,21 @@ const TimeTable = () => {
     };
 
     const handleCellClick = (dayId, periodId) => {
-        if (!isAdmin || !isEditMode || periodId === 'lunch') return;
+        if (!isAdmin || !isEditMode || periodId === 'break') return;
 
-        const existing = entries.find(e => e.day === dayId && e.period === periodId);
+        const existing = entries.find(
+            e =>
+                e.day === dayId &&
+                e.shift === selectedShift &&
+                (e.period_number || e.period) === periodId
+        );
         if (existing) {
             openModal(existing);
         } else {
             openModal({
                 day: dayId,
-                period: periodId,
+                shift: selectedShift,
+                period_number: periodId,
                 class_name: filters.class_name,
                 section: filters.section
             });
@@ -302,6 +329,21 @@ const TimeTable = () => {
                 </div>
 
                 <div className="flex items-center gap-3">
+                    <div className="inline-flex items-center rounded-xl border border-slate-200 bg-white p-1">
+                        {SHIFT_OPTIONS.map(opt => (
+                            <button
+                                key={opt.id}
+                                onClick={() => setSelectedShift(opt.id)}
+                                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${selectedShift === opt.id
+                                    ? 'bg-school-blue text-white'
+                                    : 'text-slate-600 hover:text-school-blue'
+                                    }`}
+                            >
+                                {opt.label}
+                            </button>
+                        ))}
+                    </div>
+
                     {isAdmin && (
                         <div className="flex items-center gap-2">
                             <div className="relative">
@@ -369,6 +411,7 @@ const TimeTable = () => {
                                 isAdmin={false}
                                 isEditMode={false}
                                 handleCellClick={() => { }}
+                                shift={selectedShift}
                             />
                         </div>
                     )) : (
@@ -383,6 +426,7 @@ const TimeTable = () => {
                     isAdmin={isAdmin}
                     isEditMode={isEditMode}
                     handleCellClick={handleCellClick}
+                    shift={selectedShift}
                 />
             )}
 
@@ -394,23 +438,27 @@ const TimeTable = () => {
                     onSuccess={() => { fetchTimetable(); closeModal(); }}
                     onDelete={handleDelete}
                     meta={{ teachers, sections, subjects }}
+                    selectedShift={selectedShift}
                 />
             )}
         </div>
     );
 };
 
-const AdminModal = ({ entry, onClose, onSuccess, onDelete, meta }) => {
+const AdminModal = ({ entry, onClose, onSuccess, onDelete, meta, selectedShift }) => {
     const [loading, setLoading] = useState(false);
+    const initialShift = entry?.shift || selectedShift || 'morning';
     const [formData, setFormData] = useState({
         class_name: entry?.class_name || '',
         section: entry?.section || '',
         subject: entry?.subject || '',
         teacher: entry?.teacher || '',
         day: entry?.day || 1,
-        period: entry?.period || 1,
+        shift: initialShift,
+        period_number: entry?.period_number || entry?.period || 1,
         room: entry?.room || ''
     });
+    const availablePeriods = SLOT_LAYOUT[formData.shift].filter(p => typeof p.id === 'number');
 
     const handleSectionChange = (e) => {
         const sectionId = e.target.value;
@@ -490,17 +538,39 @@ const AdminModal = ({ entry, onClose, onSuccess, onDelete, meta }) => {
                             </select>
                         </div>
                         <div className="space-y-1.5">
-                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Period</label>
+                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Shift</label>
                             <select
-                                value={formData.period}
-                                onChange={e => setFormData({ ...formData, period: parseInt(e.target.value) })}
+                                value={formData.shift}
+                                onChange={e => {
+                                    const shift = e.target.value;
+                                    const maxForShift = 6;
+                                    setFormData({
+                                        ...formData,
+                                        shift,
+                                        period_number: Math.min(formData.period_number, maxForShift),
+                                    });
+                                }}
                                 className="w-full px-4 py-2.5 bg-slate-50 border border-slate-100 rounded-xl text-sm font-bold text-slate-700 outline-none focus:border-school-blue focus:ring-2 focus:ring-school-blue/10 transition-all"
                             >
-                                {PERIODS.filter(p => typeof p.id === 'number').map(p => (
+                                {SHIFT_OPTIONS.map(opt => <option key={opt.id} value={opt.id}>{opt.label}</option>)}
+                            </select>
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-1.5">
+                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Period</label>
+                            <select
+                                value={formData.period_number}
+                                onChange={e => setFormData({ ...formData, period_number: parseInt(e.target.value, 10) })}
+                                className="w-full px-4 py-2.5 bg-slate-50 border border-slate-100 rounded-xl text-sm font-bold text-slate-700 outline-none focus:border-school-blue focus:ring-2 focus:ring-school-blue/10 transition-all"
+                            >
+                                {availablePeriods.map(p => (
                                     <option key={p.id} value={p.id}>Period {p.id} ({p.time.split(' - ')[0]})</option>
                                 ))}
                             </select>
                         </div>
+                        <div />
                     </div>
 
                     <div className="space-y-1.5">

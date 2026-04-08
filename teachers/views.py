@@ -237,14 +237,25 @@ class TeacherIdCardPdfView(views.APIView):
         if not profile:
             return Response({'error': 'Teacher profile not found'}, status=status.HTTP_404_NOT_FOUND)
         role_label = _teacher_role_label(profile)
-        school_name = getattr(settings, 'SCHOOL_NAME', 'School Management System')
+        # Use the logged-in teacher's school branding for multi-school setups.
+        school_obj = getattr(request.user, 'school', None)
+        school_name = (
+            getattr(school_obj, 'name', None)
+            or getattr(settings, 'SCHOOL_NAME', 'School Management System')
+        )
         pdf_bytes = build_teacher_id_card_pdf(
             profile,
             school_name=school_name,
             role_label=role_label,
-            school_address=getattr(settings, 'SCHOOL_ADDRESS', ''),
+            school_address=(
+                getattr(school_obj, 'location', None)
+                or getattr(settings, 'SCHOOL_ADDRESS', '')
+            ),
             school_phone=getattr(settings, 'SCHOOL_PHONE', ''),
-            school_email=getattr(settings, 'SCHOOL_EMAIL', ''),
+            school_email=(
+                getattr(school_obj, 'contact_email', None)
+                or getattr(settings, 'SCHOOL_EMAIL', '')
+            ),
             school_website=getattr(settings, 'SCHOOL_WEBSITE', ''),
         )
 

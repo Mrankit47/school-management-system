@@ -13,6 +13,7 @@ from .views import (
     AdminPaymentCreateView,
     AdminReceiptPDFView,
     AdminFeesDashboardView,
+    AdminFeesCollectionView,
     AdminFeesExportCSVView,
     AdminPaymentReminderView,
 )
@@ -22,6 +23,7 @@ urlpatterns = [
     path('my/pay/', StudentPaymentCreateView.as_view(), name='student-pay-create'),
     path('my/receipt/<int:payment_id>/', StudentReceiptPDFView.as_view(), name='student-receipt-pdf'),
     path('admin/dashboard/', AdminFeesDashboardView.as_view(), name='fees-admin-dashboard'),
+    path('collection/', AdminFeesCollectionView.as_view(), name='fees-collection'),
     path('admin/structures/', FeeStructureListCreateView.as_view(), name='fee-structures'),
     path('admin/structures/<int:pk>/', FeeStructureDetailView.as_view(), name='fee-structure-detail'),
     path('admin/student-fees/', AdminStudentFeeListView.as_view(), name='admin-student-fees'),

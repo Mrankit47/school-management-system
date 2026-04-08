@@ -40,7 +40,6 @@ const Sidebar = () => {
             label: 'General Info',
             icon: 'ℹ️',
             subLinks: [
-                { path: '/student/contact', label: 'Contact' },
                 { path: '/student/notifications', label: 'Notifications' },
                 { path: '/student/syllabus', label: 'Syllabus' },
                 { path: '/student/profile', label: 'Your Profile' },
