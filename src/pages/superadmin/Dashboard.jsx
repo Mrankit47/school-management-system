@@ -367,10 +367,136 @@ export default function SuperAdminDashboard() {
           </div>
         </div>
 
+        {/* Create School Modal */}
+        {isModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-300">
+            <div className="bg-white w-full max-w-2xl rounded-[3rem] shadow-2xl p-12 relative max-h-[90vh] overflow-y-auto no-scrollbar">
+              <button 
+                onClick={() => setIsModalOpen(false)}
+                className="absolute top-8 right-8 text-slate-400 hover:text-slate-900 text-2xl transition-colors"
+              >✕</button>
+              
+              <h2 className="text-3xl font-bold text-slate-900 mb-2 tracking-tight">Register New School</h2>
+              <p className="text-slate-500 mb-10 text-sm font-medium">Create a new isolated tenant environment.</p>
+
+              <form onSubmit={handleCreateSchool} className="space-y-10">
+                <div className="space-y-6">
+                  <p className="text-[10px] font-bold text-blue-600 uppercase tracking-[0.3em] border-b border-blue-50 pb-2">Institutional Profile</p>
+                  <div className="grid grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                       <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">School Name</label>
+                       <input 
+                         type="text" 
+                         required 
+                         className="w-full bg-slate-50 border border-slate-100 rounded-2xl py-3 px-5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:bg-white transition-all font-medium"
+                         placeholder="e.g. Atheris Lab School"
+                         value={formData.name}
+                         onChange={(e) => setFormData({...formData, name: e.target.value})}
+                       />
+                    </div>
+                    <div className="space-y-2">
+                       <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Tenant ID</label>
+                       <input 
+                         type="text" 
+                         required 
+                         className="w-full bg-slate-50 border border-slate-100 rounded-2xl py-3 px-5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:bg-white transition-all font-medium font-mono text-blue-600"
+                         placeholder="e.g. ATHERIS"
+                         value={formData.school_id}
+                         onChange={(e) => setFormData({...formData, school_id: e.target.value.toUpperCase()})}
+                       />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Contact Email</label>
+                    <input 
+                      type="email" 
+                      required 
+                      className="w-full bg-slate-50 border border-slate-100 rounded-2xl py-3 px-5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:bg-white transition-all font-medium"
+                      placeholder="admin@school.com"
+                      value={formData.contact_email}
+                      onChange={(e) => setFormData({...formData, contact_email: e.target.value})}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">About School</label>
+                    <textarea 
+                      className="w-full bg-slate-50 border border-slate-100 rounded-2xl py-3 px-5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:bg-white transition-all font-medium h-24 resize-none"
+                      placeholder="Brief description of the institution..."
+                      value={formData.about}
+                      onChange={(e) => setFormData({...formData, about: e.target.value})}
+                    ></textarea>
+                  </div>
+                </div>
+
+                <div className="space-y-6">
+                  <p className="text-[10px] font-bold text-blue-600 uppercase tracking-[0.3em] border-b border-blue-50 pb-2">Root Admin Account</p>
+                  <div className="grid grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                       <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Admin Full Name</label>
+                       <input 
+                         type="text" 
+                         required 
+                         className="w-full bg-slate-50 border border-slate-100 rounded-2xl py-3 px-5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:bg-white transition-all font-medium"
+                         placeholder="John Doe"
+                         value={formData.admin_name}
+                         onChange={(e) => setFormData({...formData, admin_name: e.target.value})}
+                       />
+                    </div>
+                    <div className="space-y-2">
+                       <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Admin Email</label>
+                       <input 
+                         type="email" 
+                         required 
+                         className="w-full bg-slate-50 border border-slate-100 rounded-2xl py-3 px-5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:bg-white transition-all font-medium"
+                         placeholder="john@example.com"
+                         value={formData.admin_email}
+                         onChange={(e) => setFormData({...formData, admin_email: e.target.value})}
+                       />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                       <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Username</label>
+                       <input 
+                         type="text" 
+                         required 
+                         className="w-full bg-slate-50 border border-slate-100 rounded-2xl py-3 px-5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:bg-white transition-all font-medium"
+                         placeholder="admin_root"
+                         value={formData.admin_username}
+                         onChange={(e) => setFormData({...formData, admin_username: e.target.value})}
+                       />
+                    </div>
+                    <div className="space-y-2">
+                       <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Initial Password</label>
+                       <input 
+                         type="password" 
+                         required 
+                         className="w-full bg-slate-50 border border-slate-100 rounded-2xl py-3 px-5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:bg-white transition-all font-medium"
+                         placeholder="••••••••••••"
+                         value={formData.admin_password}
+                         onChange={(e) => setFormData({...formData, admin_password: e.target.value})}
+                       />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="pt-4">
+                  <button 
+                    type="submit" 
+                    className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-5 rounded-2xl shadow-2xl shadow-blue-600/20 transition-all active:scale-[0.98] text-sm tracking-wide"
+                  >
+                    Initialize Tenant Infrastructure
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
         {/* Create Dealer Modal */}
         {isDealerModalOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-300">
-            <div className="bg-white w-full max-w-2xl rounded-[3rem] shadow-2xl p-12 relative max-h-[90vh] overflow-y-auto">
+            <div className="bg-white w-full max-w-2xl rounded-[3rem] shadow-2xl p-12 relative max-h-[90vh] overflow-y-auto no-scrollbar">
               <button 
                 onClick={() => setIsDealerModalOpen(false)}
                 className="absolute top-8 right-8 text-slate-400 hover:text-slate-900 text-2xl transition-colors"
@@ -474,7 +600,7 @@ export default function SuperAdminDashboard() {
         {/* View Detail Modal (Unified for Institutions and Dealer Managed Schools) */}
         {isViewModalOpen && viewingSchool && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-300">
-            <div className="bg-white w-full max-w-2xl rounded-[3rem] shadow-2xl p-12 relative max-h-[90vh] overflow-y-auto font-inter">
+            <div className="bg-white w-full max-w-2xl rounded-[3rem] shadow-2xl p-12 relative max-h-[90vh] overflow-y-auto no-scrollbar font-inter">
               <button 
                 onClick={() => { setIsViewModalOpen(false); setViewingAdmins([]); setViewingSchool(null); }}
                 className="absolute top-8 right-8 text-slate-400 hover:text-slate-900 text-2xl transition-colors"

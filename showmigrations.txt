@@ -1,31 +1,8 @@
-﻿python : C:\Users\DELL\AppData\Roami
-ng\Python\Python314\site-packages\re
-quests\__init__.py:113: 
-RequestsDependencyWarning: urllib3 
-(2.6.3) or chardet 
-(7.4.0.post2)/charset_normalizer 
-(3.4.4) doesn't match a supported 
-version!
-At line:1 char:1
-+ python manage.py showmigrations > 
-current_status.txt 2>&1
-+ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~~~~~~~~~~~~~~~~~~~~~~
-    + CategoryInfo          : NotSp 
-   ecified: (C:\Users\DELL\A...por  
-  ted version!:String) [], Remote   
- Exception
-    + FullyQualifiedErrorId : Nativ 
-   eCommandError
- 
-  warnings.warn(
 academics
  [X] 0001_initial
  [X] 0002_initial
  [X] 0003_exam_description_exam_end_date_exam_exam_type_and_more
  [X] 0004_subject_subjectteachermapping
- [X] 0005_exam_school_result_school_subject_school_and_more
- [ ] 0006_alter_exam_unique_together_and_more
 accounts
  [X] 0001_initial
  [X] 0002_user_name
@@ -58,7 +35,7 @@ auth
 classes
  [X] 0001_initial
  [X] 0002_classsection_room_number_mainclass_code_and_more
- [X] 0003_classsection_school_mainclass_school_and_more
+ [ ] 0003_classsection_school_mainclass_school_and_more
 communication
  [X] 0001_initial
 contenttypes
@@ -72,7 +49,7 @@ fees
  [X] 0004_remove_feestructure_fee_type
 holidays
  [X] 0001_initial
- [X] 0002_holiday_school
+ [ ] 0002_holiday_school
 sessions
  [X] 0001_initial
 students
@@ -81,8 +58,7 @@ students
 subjects
  [X] 0001_initial
  [X] 0002_teacherassignment
- [X] 0003_alter_teacherassignment_unique_together_and_more
- [ ] 0004_alter_teacherassignment_unique_together_and_more
+ [ ] 0003_subject_school
 teachers
  [X] 0001_initial
  [X] 0002_teacherprofile_dob_teacherprofile_experience_years_and_more
@@ -95,4 +71,4 @@ timetable
  [X] 0003_alter_timetableentry_options_and_more
  [X] 0004_alter_timetableentry_unique_together
  [X] 0005_alter_timetableentry_period
- [X] 0006_timetableentry_school
+ [ ] 0006_timetableentry_school

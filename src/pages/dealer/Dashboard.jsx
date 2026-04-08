@@ -11,17 +11,13 @@ const DealerDashboard = () => {
     const [stats, setStats] = useState({ total_schools: 0 });
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [formData, setFormData] = useState({
-        name: '', 
-        school_id: '', 
-        location: '', 
-        about: '', 
-        contact_email: '',
-        admin_name: '',
-        admin_username: '',
-        admin_email: '',
-        admin_password: ''
+        name: '', school_id: '', location: '', about: '', contact_email: '',
+        admin_name: '', admin_username: '', admin_email: '', admin_password: ''
     });
     const [message, setMessage] = useState('');
+    const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+    const [viewingSchool, setViewingSchool] = useState(null);
+    const [viewingAdmins, setViewingAdmins] = useState([]);
 
     const fetchSchools = async () => {
         try {
@@ -58,13 +54,26 @@ const DealerDashboard = () => {
         }
     };
 
-    const handleDeleteSchool = async (id) => {
-        if (!window.confirm("Are you sure you want to delete this school? This action cannot be undone.")) return;
+    const handleToggleSuspension = async (id) => {
         try {
-            await api.delete(`dealers/schools/${id}/`);
-            fetchSchools();
+            const res = await api.post(`dealers/schools/${id}/toggle_active/`);
+            if (res.data.status === 'success') {
+                fetchSchools();
+            }
         } catch (err) {
-            alert("Error deleting school.");
+            console.error("Error toggling school status:", err);
+            alert("Failed to update school status.");
+        }
+    };
+
+    const handleViewDetails = async (school) => {
+        setViewingSchool(school);
+        setIsViewModalOpen(true);
+        try {
+            const res = await api.get(`dealers/schools/${school.id}/admins/`);
+            setViewingAdmins(res.data);
+        } catch (err) {
+            console.error("Error fetching school admins:", err);
         }
     };
 
@@ -119,16 +128,18 @@ const DealerDashboard = () => {
                 </div>
             </div>
 
-            {/* School Grid */}
-            <div className="space-y-6">
-                <div className="flex items-center justify-between">
-                    <h2 className="text-xl font-bold text-slate-800">Your Registered Schools</h2>
-                    <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">{schools.length} total</span>
+            {/* School List Section */}
+            <div className="bg-white border border-slate-200 rounded-[2.5rem] overflow-hidden shadow-sm">
+                <div className="px-10 py-8 border-b border-slate-100 flex items-center justify-between">
+                    <h2 className="text-xl font-bold text-slate-900">Your Registered Schools</h2>
+                    <div className="text-[10px] font-bold text-slate-400 bg-slate-50 px-4 py-2 rounded-full uppercase tracking-widest">
+                        Total Delegated Institutions: {schools.length}
+                    </div>
                 </div>
 
                 {schools.length === 0 ? (
-                    <div className="bg-slate-50 rounded-[2rem] border-2 border-dashed border-slate-200 p-20 text-center">
-                        <div className="text-4xl mb-4">🏢</div>
+                    <div className="p-20 text-center">
+                        <div className="text-4xl mb-4 text-slate-300">🏢</div>
                         <h3 className="text-lg font-bold text-slate-900">No schools registered yet</h3>
                         <p className="text-sm text-slate-500 mt-2">Start by registering your first institution in your territory.</p>
                         <button 
@@ -139,57 +150,174 @@ const DealerDashboard = () => {
                         </button>
                     </div>
                 ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                        {schools.map(school => (
-                            <div key={school.id} className="bg-white rounded-[2.5rem] border border-slate-100 shadow-xl shadow-slate-200/40 p-6 hover:shadow-2xl hover:-translate-y-1 transition-all duration-300">
-                                <div className="flex items-start justify-between mb-6">
-                                    {school.logo ? (
-                                        <img src={school.logo} alt={school.name} className="w-16 h-16 rounded-2xl shadow-lg" />
-                                    ) : (
-                                        <div className="w-16 h-16 bg-slate-100 rounded-2xl flex items-center justify-center text-slate-400 text-2xl font-bold">
-                                            {school.name[0]}
-                                        </div>
-                                    )}
-                                    <div className="flex gap-2">
-                                        <button className="p-2 hover:bg-slate-50 rounded-xl text-slate-400 transition-colors">✏️</button>
-                                        <button 
-                                            onClick={() => handleDeleteSchool(school.id)}
-                                            className="p-2 hover:bg-red-50 rounded-xl text-red-400 transition-colors"
-                                        >
-                                            🗑️
-                                        </button>
-                                    </div>
-                                </div>
-                                <h3 className="text-lg font-bold text-slate-900 mb-1">{school.name}</h3>
-                                <div className="flex items-center gap-2 mb-4">
-                                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">ID: {school.school_id}</span>
-                                    <span className="w-1 h-1 bg-slate-300 rounded-full"></span>
-                                    <span className="text-[10px] font-bold text-indigo-500 uppercase tracking-widest">{school.location}</span>
-                                </div>
-                                <p className="text-xs text-slate-500 line-clamp-2 mb-6 h-8">{school.about || 'No description provided.'}</p>
-                                <div className="pt-6 border-t border-slate-50 flex items-center justify-between">
-                                    <div className="flex flex-col">
-                                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Created</span>
-                                        <span className="text-[11px] font-bold text-slate-700">{new Date(school.created_at).toLocaleDateString()}</span>
-                                    </div>
-                                    <button 
-                                        onClick={() => navigate(`/school/${school.school_id}`)}
-                                        className="text-xs font-bold text-indigo-600 hover:text-indigo-800 transition-colors"
-                                    >
-                                        View Portal →
-                                    </button>
-                                </div>
-                            </div>
-                        ))}
+                    <div className="overflow-x-auto no-scrollbar">
+                        <table className="w-full text-left">
+                            <thead>
+                                <tr className="bg-slate-50 text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">
+                                    <th className="px-10 py-5">Institution</th>
+                                    <th className="px-10 py-5">Platform ID</th>
+                                    <th className="px-10 py-5">Capacity</th>
+                                    <th className="px-10 py-5">Status</th>
+                                    <th className="px-10 py-5 text-right">Operations</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100">
+                                {schools.map(school => (
+                                    <tr key={school.id} className="hover:bg-slate-50/50 transition-colors">
+                                        <td className="px-10 py-6">
+                                            <div className="flex items-center gap-4">
+                                                <div className="w-12 h-12 bg-slate-100 rounded-xl flex items-center justify-center text-slate-400 font-bold text-lg overflow-hidden border border-slate-200">
+                                                    {school.logo ? <img src={school.logo} alt="" className="w-full h-full object-cover" /> : (school.name?.[0] || '?')}
+                                                </div>
+                                                <div>
+                                                    <p className="text-sm font-bold text-slate-900 leading-none">{school.name}</p>
+                                                    <p className="text-xs text-slate-400 mt-1.5">{school.contact_email}</p>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td className="px-10 py-6">
+                                            <span className="text-xs font-mono font-bold text-blue-600 bg-blue-50 px-3 py-1.5 rounded-lg border border-blue-100">
+                                                {school.school_id}
+                                            </span>
+                                        </td>
+                                        <td className="px-10 py-6">
+                                            <div className="flex items-center gap-6">
+                                                <div>
+                                                    <p className="text-xs font-bold text-slate-900 leading-none">{school.student_count || 0}</p>
+                                                    <p className="text-[10px] text-slate-400 font-bold uppercase mt-1">Students</p>
+                                                </div>
+                                                <div>
+                                                    <p className="text-xs font-bold text-slate-900 leading-none">{school.teacher_count || 0}</p>
+                                                    <p className="text-[10px] text-slate-400 font-bold uppercase mt-1">Teachers</p>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td className="px-10 py-6">
+                                            <div className="flex items-center gap-2">
+                                                <span className={`w-2 h-2 rounded-full ${school.is_active ? 'bg-green-500' : 'bg-red-500'} animate-pulse`}></span>
+                                                <span className={`text-[10px] font-bold uppercase tracking-widest ${school.is_active ? 'text-green-600' : 'text-red-600'}`}>
+                                                    {school.is_active ? 'Online' : 'Suspended'}
+                                                </span>
+                                            </div>
+                                        </td>
+                                        <td className="px-10 py-6 text-right space-x-3">
+                                            <button 
+                                                onClick={() => handleViewDetails(school)}
+                                                className="text-[10px] font-bold uppercase tracking-widest px-4 py-2 rounded-lg border border-blue-100 text-blue-600 hover:bg-blue-50 transition-all"
+                                            >
+                                                View Details
+                                            </button>
+                                            <button 
+                                                onClick={() => handleToggleSuspension(school.id)}
+                                                className={`text-[10px] font-bold uppercase tracking-widest px-4 py-2 rounded-lg border transition-all ${
+                                                    school.is_active 
+                                                    ? 'text-red-500 border-red-100 hover:bg-red-50' 
+                                                    : 'text-green-500 border-green-100 hover:bg-green-50'
+                                                }`}
+                                            >
+                                                {school.is_active ? 'Suspend Gateway' : 'Restore Access'}
+                                            </button>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
                     </div>
                 )}
             </div>
+
+            {/* View Detail Modal (Synchronized with SuperAdmin Style) */}
+            {isViewModalOpen && viewingSchool && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-300">
+                    <div className="bg-white w-full max-w-2xl rounded-[3rem] shadow-2xl p-12 relative max-h-[90vh] overflow-y-auto no-scrollbar font-inter">
+                        <button 
+                            onClick={() => { setIsViewModalOpen(false); setViewingAdmins([]); setViewingSchool(null); }}
+                            className="absolute top-8 right-8 text-slate-400 hover:text-slate-900 text-2xl transition-colors"
+                        >✕</button>
+                        
+                        <div className="flex items-center gap-6 mb-10">
+                            <div className="w-20 h-20 bg-slate-100 rounded-3xl flex items-center justify-center text-slate-400 font-bold text-3xl overflow-hidden border border-slate-200">
+                                {viewingSchool.logo ? <img src={viewingSchool.logo} alt="" className="w-full h-full object-cover" /> : (viewingSchool.name?.[0] || 'D')}
+                            </div>
+                            <div>
+                                <h2 className="text-3xl font-bold text-slate-900 tracking-tight">{viewingSchool.name}</h2>
+                                {viewingSchool.school_id && <p className="text-blue-600 font-mono text-sm font-bold mt-1 tracking-wide">ID: {viewingSchool.school_id}</p>}
+                            </div>
+                        </div>
+
+                        <div className="space-y-10">
+                            {/* Institutional Profile Section */}
+                            <div className="space-y-4">
+                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.3em] border-b border-slate-50 pb-2">Institutional Profile</p>
+                                <div className="grid grid-cols-2 gap-8">
+                                    <div>
+                                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Contact Email</p>
+                                        <p className="text-sm font-semibold text-slate-900">{viewingSchool.contact_email || 'Not Provided'}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Account Status</p>
+                                        <p className={`text-sm font-bold flex items-center gap-2 ${viewingSchool.is_active ? 'text-green-600' : 'text-red-600'}`}>
+                                            <span className="text-lg leading-none">●</span> {viewingSchool.is_active ? 'Active' : 'Suspended'}
+                                        </p>
+                                    </div>
+                                </div>
+                                <div>
+                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">About Institution</p>
+                                    <p className="text-sm text-slate-600 leading-relaxed font-medium">
+                                        {viewingSchool.about || 'No description provided for this tenant institution.'}
+                                    </p>
+                                </div>
+                            </div>
+
+                            {/* Administrative Root Access Section */}
+                            <div className="space-y-4">
+                                <p className="text-[10px] font-bold text-blue-600 uppercase tracking-[0.3em] border-b border-blue-50 pb-2">Administrative Root Access</p>
+                                {viewingAdmins.length > 0 ? (
+                                    <div className="space-y-6">
+                                        {viewingAdmins.map((admin, idx) => (
+                                            <div key={idx} className="bg-slate-50 rounded-2xl p-6 border border-slate-100">
+                                                <div className="grid grid-cols-2 gap-6">
+                                                    <div>
+                                                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Admin Name</p>
+                                                        <p className="text-sm font-bold text-slate-900">{admin.name || admin.username}</p>
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Username</p>
+                                                        <p className="text-sm font-mono font-bold text-blue-600">{admin.username}</p>
+                                                    </div>
+                                                    <div className="col-span-2">
+                                                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Registered Email</p>
+                                                        <p className="text-sm font-bold text-slate-900">{admin.email}</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <div className="p-8 text-center bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+                                        <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Loading administrative data...</p>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        <div className="mt-12">
+                            <button 
+                                onClick={() => { setIsViewModalOpen(false); setViewingAdmins([]); setViewingSchool(null); }}
+                                className="w-full bg-slate-900 text-white font-bold py-4 rounded-2xl text-sm transition-all active:scale-[0.98] shadow-xl shadow-slate-900/10"
+                            >
+                                Close Profile
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Create School Modal */}
             {isFormOpen && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
                     <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={() => setIsFormOpen(false)}></div>
-                    <div className="bg-white w-full max-w-2xl rounded-[3rem] shadow-2xl relative z-10 overflow-hidden animate-in zoom-in-95 duration-300">
+                    <div className="bg-white w-full max-w-2xl rounded-[3rem] shadow-2xl relative z-10 overflow-y-auto max-h-[90vh] no-scrollbar animate-in zoom-in-95 duration-300">
                         <div className="p-8 bg-slate-900 text-white flex justify-between items-start">
                             <div>
                                 <h3 className="text-2xl font-bold">New Institution Registration</h3>
@@ -251,7 +379,7 @@ const DealerDashboard = () => {
                                     placeholder="Brief description of the school..."
                                     value={formData.about}
                                     onChange={(e) => setFormData({ ...formData, about: e.target.value })}
-                                    className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-4 py-3.5 text-sm focus:ring-2 focus:ring-indigo-500/10 outline-none focus:bg-white focus:border-indigo-500/20 transition-all font-medium min-h-[80px]"
+                                    className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-4 py-3.5 text-sm focus:ring-2 focus:ring-indigo-500/10 outline-none focus:bg-white focus:border-indigo-500/20 transition-all font-medium min-h-[80px] resize-none"
                                 />
                             </div>
 
