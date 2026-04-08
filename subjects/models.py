@@ -70,6 +70,11 @@ class SubjectAssignment(models.Model):
 
 
 class TeacherAssignment(models.Model):
+    ROLE_CHOICES = [
+        ('Class Teacher', 'Class Teacher'),
+        ('Subject Teacher', 'Subject Teacher'),
+    ]
+
     teacher = models.ForeignKey(
         'teachers.TeacherProfile',
         on_delete=models.CASCADE,
@@ -80,19 +85,34 @@ class TeacherAssignment(models.Model):
         on_delete=models.CASCADE,
         related_name='teacher_assignments',
     )
+    section = models.ForeignKey(
+        'classes.ClassSection',
+        on_delete=models.CASCADE,
+        related_name='teacher_assignments',
+        null=True,
+        blank=True,
+    )
     subject = models.ForeignKey(
         Subject,
         on_delete=models.CASCADE,
         related_name='teacher_assignments',
     )
+    role = models.CharField(
+        max_length=20,
+        choices=ROLE_CHOICES,
+        default='Subject Teacher'
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        unique_together = ('teacher', 'class_ref', 'subject')
+        unique_together = ('teacher', 'class_ref', 'section', 'subject', 'role')
         ordering = ['class_ref__name', 'subject__name', 'teacher__employee_id']
 
     def __str__(self) -> str:
         teacher_name = self.teacher.user.name or self.teacher.user.username
+        if self.section:
+            section_name = self.section.section_ref.name
+            return f"{teacher_name} -> {self.class_ref.name} ({section_name}) / {self.subject.name}"
         return f"{teacher_name} -> {self.class_ref.name} / {self.subject.name}"
 

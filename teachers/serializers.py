@@ -18,6 +18,7 @@ class TeacherProfileSerializer(serializers.ModelSerializer):
             'qualification',
             'experience_years',
             'joining_date',
+            'role',
             'status',
             'profile_image_base64',
         ]

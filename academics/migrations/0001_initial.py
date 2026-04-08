@@ -11,7 +11,7 @@ class Migration(migrations.Migration):
     dependencies = [
         ('classes', '0003_classsection_school_mainclass_school_and_more'),
         ('students', '0002_studentprofile_blood_group_studentprofile_category_and_more'),
-        ('teachers', '0003_teacherprofiledocument'),
+        ('teachers', '0003_teacher_documents'),
         ('tenants', '0001_initial'),
     ]
 
@@ -34,7 +34,7 @@ class Migration(migrations.Migration):
                 ('school', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='exams', to='tenants.school')),
             ],
             options={
-                'unique_together': {('school', 'name', 'class_section')},
+                'unique_together': {('name', 'class_section')},
             },
         ),
         migrations.CreateModel(
@@ -47,7 +47,7 @@ class Migration(migrations.Migration):
                 ('school', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='academics_subjects_v2', to='tenants.school')),
             ],
             options={
-                'unique_together': {('school', 'name', 'class_ref')},
+                'unique_together': {('name', 'class_ref')},
             },
         ),
         migrations.CreateModel(
@@ -91,7 +91,7 @@ class Migration(migrations.Migration):
                 ('teacher', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='assigned_subjects', to='teachers.teacherprofile')),
             ],
             options={
-                'unique_together': {('school', 'subject', 'class_section')},
+                'unique_together': {('subject', 'class_section')},
             },
         ),
     ]

@@ -4,6 +4,7 @@ import api from '../../services/api';
 const AssignTeacher = () => {
     const [classes, setClasses] = useState([]);
     const [subjects, setSubjects] = useState([]);
+    const [sections, setSections] = useState([]);
     const [teachers, setTeachers] = useState([]);
     const [assignments, setAssignments] = useState([]);
 
@@ -12,8 +13,10 @@ const AssignTeacher = () => {
 
     const [formData, setFormData] = useState({
         class_id: '',
+        section_id: '',
         subject_id: '',
         teacher_id: '',
+        role: 'Subject Teacher',
     });
     const [editingId, setEditingId] = useState(null);
     const [message, setMessage] = useState('');
@@ -63,6 +66,19 @@ const AssignTeacher = () => {
         }
     };
 
+    const fetchSectionsForClass = async (classId) => {
+        if (!classId) {
+            setSections([]);
+            return;
+        }
+        try {
+            const res = await api.get('classes/admin-sections/', { params: { class_id: classId } });
+            setSections(res.data || []);
+        } catch (err) {
+            setSections([]);
+        }
+    };
+
     const fetchSubjectsForClass = async (classId) => {
         if (!classId) {
             setSubjects([]);
@@ -87,7 +103,8 @@ const AssignTeacher = () => {
 
     useEffect(() => {
         fetchSubjectsForClass(formData.class_id);
-        setFormData((prev) => ({ ...prev, subject_id: '' }));
+        fetchSectionsForClass(formData.class_id);
+        setFormData((prev) => ({ ...prev, subject_id: '', section_id: '' }));
     }, [formData.class_id]);
 
     const filteredTeachers = useMemo(() => {
@@ -101,7 +118,7 @@ const AssignTeacher = () => {
     }, [teachers, teacherSearch]);
 
     const resetForm = () => {
-        setFormData({ class_id: '', subject_id: '', teacher_id: '' });
+        setFormData({ class_id: '', section_id: '', subject_id: '', teacher_id: '', role: 'Subject Teacher' });
         setEditingId(null);
         setTeacherSearch('');
     };
@@ -119,8 +136,10 @@ const AssignTeacher = () => {
         try {
             const payload = {
                 class_id: Number(formData.class_id),
+                section: formData.section_id ? Number(formData.section_id) : null,
                 subject_id: Number(formData.subject_id),
                 teacher_id: Number(formData.teacher_id),
+                role: formData.role,
             };
 
             if (editingId) {
@@ -143,11 +162,16 @@ const AssignTeacher = () => {
         setEditingId(row.id);
         setFormData({
             class_id: String(row.class_ref),
+            section_id: row.section ? String(row.section) : '',
             subject_id: String(row.subject),
             teacher_id: String(row.teacher),
+            role: row.role || 'Subject Teacher',
         });
         setTeacherSearch(`${row.teacher_name || ''} ${row.employee_id || ''}`.trim());
-        await fetchSubjectsForClass(row.class_ref);
+        await Promise.all([
+            fetchSubjectsForClass(row.class_ref),
+            fetchSectionsForClass(row.class_ref)
+        ]);
     };
 
     const deleteAssignment = async (id) => {
@@ -202,6 +226,23 @@ const AssignTeacher = () => {
                     </div>
 
                     <div>
+                        <div style={labelStyle}>Section</div>
+                        <select
+                            value={formData.section_id}
+                            onChange={(e) => setFormData({ ...formData, section_id: e.target.value })}
+                            style={inputStyle}
+                            disabled={!formData.class_id}
+                        >
+                            <option value="">-- All Sections --</option>
+                            {sections.map((s) => (
+                                <option key={s.id} value={s.id}>
+                                    {s.section_name}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+
+                    <div>
                         <div style={labelStyle}>Subject</div>
                         <select
                             value={formData.subject_id}
@@ -240,6 +281,19 @@ const AssignTeacher = () => {
                                     {(t.name || 'Teacher')} ({t.employee_id})
                                 </option>
                             ))}
+                        </select>
+                    </div>
+
+                    <div>
+                        <div style={labelStyle}>Assign Role</div>
+                        <select
+                            value={formData.role}
+                            onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+                            style={inputStyle}
+                            required
+                        >
+                            <option value="Subject Teacher">Subject Teacher</option>
+                            <option value="Class Teacher">Class Teacher</option>
                         </select>
                     </div>
 
@@ -306,8 +360,10 @@ const AssignTeacher = () => {
                         <thead>
                             <tr style={{ backgroundColor: '#f8fafc' }}>
                                 <th style={{ padding: '12px 10px', textAlign: 'left' }}>Class</th>
+                                <th style={{ padding: '12px 10px', textAlign: 'left' }}>Section</th>
                                 <th style={{ padding: '12px 10px', textAlign: 'left' }}>Subject</th>
                                 <th style={{ padding: '12px 10px', textAlign: 'left' }}>Teacher</th>
+                                <th style={{ padding: '12px 10px', textAlign: 'left' }}>Role</th>
                                 <th style={{ padding: '12px 10px', textAlign: 'left' }}>Employee ID</th>
                                 <th style={{ padding: '12px 10px', textAlign: 'left' }}>Actions</th>
                             </tr>
@@ -329,8 +385,21 @@ const AssignTeacher = () => {
                                 assignments.map((row) => (
                                     <tr key={row.id} style={{ borderTop: '1px solid #eef2f7' }}>
                                         <td style={{ padding: '12px 10px' }}>{row.class_name}</td>
+                                        <td style={{ padding: '12px 10px' }}>{row.section_name || 'All Sections'}</td>
                                         <td style={{ padding: '12px 10px' }}>{row.subject_name}</td>
                                         <td style={{ padding: '12px 10px' }}>{row.teacher_name}</td>
+                                        <td style={{ padding: '12px 10px' }}>
+                                            <span style={{ 
+                                                padding: '4px 8px', 
+                                                borderRadius: '6px', 
+                                                fontSize: '11px',
+                                                fontWeight: 700,
+                                                backgroundColor: row.role === 'Class Teacher' ? '#ecfdf5' : '#f3f4f6',
+                                                color: row.role === 'Class Teacher' ? '#065f46' : '#374151'
+                                            }}>
+                                                {row.role}
+                                            </span>
+                                        </td>
                                         <td style={{ padding: '12px 10px' }}>{row.employee_id}</td>
                                         <td style={{ padding: '12px 10px' }}>
                                             <div style={{ display: 'flex', gap: '8px' }}>

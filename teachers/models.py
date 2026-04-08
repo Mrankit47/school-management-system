@@ -11,6 +11,11 @@ class TeacherProfile(models.Model):
     qualification = models.CharField(max_length=255, blank=True, null=True)
     experience_years = models.PositiveIntegerField(blank=True, null=True)
     joining_date = models.DateField(blank=True, null=True)
+    role = models.CharField(
+        max_length=20, 
+        choices=[('Class Teacher', 'Class Teacher'), ('Subject Teacher', 'Subject Teacher')],
+        default='Subject Teacher'
+    )
     status = models.CharField(max_length=10, default='Active')
     profile_image_base64 = models.TextField(blank=True, null=True)
     photo = models.ImageField(upload_to='teacher_photos/', blank=True, null=True)
