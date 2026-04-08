@@ -349,6 +349,7 @@ class TeacherAssignmentListCreateView(APIView):
         qs = TeacherAssignment.objects.select_related(
             'teacher__user',
             'class_ref',
+            'section__section_ref',
             'subject',
         ).filter(subject__school=school)
 
@@ -366,10 +367,13 @@ class TeacherAssignmentListCreateView(APIView):
         return Response(serializer.data)
 
     def post(self, request):
+        print("DEBUG POST DATA:", request.data)
         school = request.user.school
         teacher_id = request.data.get('teacher_id')
         class_id = request.data.get('class_id')
+        section_id = request.data.get('section') or request.data.get('section_id')
         subject_id = request.data.get('subject_id')
+        role = request.data.get('role') or 'Subject Teacher'
 
         if not teacher_id or not class_id or not subject_id:
             return Response(
@@ -391,24 +395,44 @@ class TeacherAssignmentListCreateView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        duplicate = TeacherAssignment.objects.filter(
+        if section_id:
+            section_obj = ClassSection.objects.filter(school=school, id=section_id).first()
+            if not section_obj:
+                return Response({"error": "Section not found"}, status=status.HTTP_404_NOT_FOUND)
+            if int(section_obj.class_ref_id) != int(class_id):
+                return Response({"error": "Selected section does not belong to selected class"}, status=status.HTTP_400_BAD_REQUEST)
+
+        duplicateQuery = Q(
             teacher_id=teacher_id,
             class_ref_id=class_id,
             subject_id=subject_id,
-        ).exists()
+        )
+        if section_id:
+            duplicateQuery &= Q(section_id=section_id)
+        else:
+            duplicateQuery &= Q(section__isnull=True)
+
+        duplicate = TeacherAssignment.objects.filter(duplicateQuery).exists()
         if duplicate:
             return Response(
                 {"error": "This teacher is already assigned to this class and subject"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        assignment = TeacherAssignment.objects.create(
-            teacher=teacher,
-            class_ref_id=class_id,
-            subject=subject,
-        )
-        assignment = TeacherAssignment.objects.select_related('teacher__user', 'class_ref', 'subject').get(id=assignment.id)
-        return Response(TeacherAssignmentSerializer(assignment).data, status=status.HTTP_201_CREATED)
+        try:
+            assignment = TeacherAssignment.objects.create(
+                teacher=teacher,
+                class_ref_id=class_id,
+                section_id=section_id or None,
+                subject=subject,
+                role=role,
+            )
+            assignment = TeacherAssignment.objects.select_related('teacher__user', 'class_ref', 'section', 'subject').get(id=assignment.id)
+            return Response(TeacherAssignmentSerializer(assignment).data, status=status.HTTP_201_CREATED)
+        except Exception as e:
+            import traceback
+            print(traceback.format_exc())
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 class TeacherAssignmentDetailView(APIView):
@@ -422,7 +446,9 @@ class TeacherAssignmentDetailView(APIView):
 
         teacher_id = request.data.get('teacher_id', assignment.teacher_id)
         class_id = request.data.get('class_id', assignment.class_ref_id)
+        section_id = request.data.get('section', request.data.get('section_id', assignment.section_id))
         subject_id = request.data.get('subject_id', assignment.subject_id)
+        role = request.data.get('role', assignment.role)
 
         subject = Subject.objects.filter(school=school, id=subject_id).first()
         if not subject:
@@ -438,11 +464,24 @@ class TeacherAssignmentDetailView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        duplicate = TeacherAssignment.objects.filter(
+        if section_id:
+            section_obj = ClassSection.objects.filter(school=school, id=section_id).first()
+            if not section_obj:
+                return Response({"error": "Section not found"}, status=status.HTTP_404_NOT_FOUND)
+            if int(section_obj.class_ref_id) != int(class_id):
+                return Response({"error": "Selected section does not belong to selected class"}, status=status.HTTP_400_BAD_REQUEST)
+
+        duplicateQuery = Q(
             teacher_id=teacher_id,
             class_ref_id=class_id,
             subject_id=subject_id,
-        ).exclude(id=assignment.id).exists()
+        )
+        if section_id:
+            duplicateQuery &= Q(section_id=section_id)
+        else:
+            duplicateQuery &= Q(section__isnull=True)
+
+        duplicate = TeacherAssignment.objects.filter(duplicateQuery).exclude(id=assignment.id).exists()
         if duplicate:
             return Response(
                 {"error": "This teacher is already assigned to this class and subject"},
@@ -451,9 +490,12 @@ class TeacherAssignmentDetailView(APIView):
 
         assignment.teacher_id = teacher_id
         assignment.class_ref_id = class_id
+        assignment.section_id = section_id or None
         assignment.subject_id = subject_id
+        assignment.role = role
         assignment.save()
         assignment.refresh_from_db()
+        assignment = TeacherAssignment.objects.select_related('teacher__user', 'class_ref', 'section', 'subject').get(id=assignment.id)
         return Response(TeacherAssignmentSerializer(assignment).data)
 
     def delete(self, request, assignment_id: int):

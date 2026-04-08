@@ -204,6 +204,7 @@ const ManageTeachers = () => {
                 qualification: editRow.qualification || '',
                 experience_years: editRow.experience_years === '' ? null : editRow.experience_years,
                 joining_date: editRow.joining_date || null,
+                role: editRow.role || 'Subject Teacher',
                 status: editRow.status || 'Active',
             });
             setEditRow(null);
@@ -335,6 +336,7 @@ const ManageTeachers = () => {
                                     <th style={th}>Qualification</th>
                                     <th style={th}>Experience</th>
                                     <th style={th}>Joining Date</th>
+                                    <th style={th}>Role</th>
                                     <th style={th}>Status</th>
                                     <th style={th}>Action</th>
                             </tr>
@@ -355,6 +357,21 @@ const ManageTeachers = () => {
                                         <td style={td}>{t.qualificationLabel}</td>
                                         <td style={td}>{t.experience_years ?? '—'}</td>
                                         <td style={td}>{formatDate(t.joining_date)}</td>
+                                        <td style={td}>
+                                            <span 
+                                                style={{ 
+                                                    padding: '4px 8px', 
+                                                    borderRadius: 6, 
+                                                    fontSize: 12, 
+                                                    fontWeight: 700,
+                                                    backgroundColor: t.role === 'Class Teacher' ? '#eff6ff' : '#f8fafc',
+                                                    color: t.role === 'Class Teacher' ? '#1d4ed8' : '#64748b',
+                                                    border: `1px solid ${t.role === 'Class Teacher' ? '#bfdbfe' : '#e2e8f0'}`
+                                                }}
+                                            >
+                                                {t.role || 'Subject Teacher'}
+                                            </span>
+                                        </td>
                                         <td style={td}>
                                             <span
                                                 style={{
@@ -423,6 +440,7 @@ const ManageTeachers = () => {
                             <div><b>Specialization:</b> {viewRow.specializationLabel}</div>
                             <div><b>Qualification:</b> {viewRow.qualificationLabel}</div>
                             <div><b>Experience:</b> {viewRow.experience_years ?? '—'}</div>
+                            <div><b>Role:</b> {viewRow.role || 'Subject Teacher'}</div>
                             <div><b>Status:</b> {viewRow.statusLabel}</div>
                         </div>
                         <div style={{ marginTop: 16, textAlign: 'right' }}>
@@ -455,6 +473,10 @@ const ManageTeachers = () => {
                             <select value={editRow.status || 'Active'} onChange={(e) => setEditRow((p) => ({ ...p, status: e.target.value }))} style={selectStyle}>
                                 <option value="Active">Active</option>
                                 <option value="Inactive">Inactive</option>
+                            </select>
+                            <select value={editRow.role || 'Subject Teacher'} onChange={(e) => setEditRow((p) => ({ ...p, role: e.target.value }))} style={selectStyle}>
+                                <option value="Subject Teacher">Subject Teacher</option>
+                                <option value="Class Teacher">Class Teacher</option>
                             </select>
                         </div>
                         <div style={{ marginTop: 14, display: 'flex', justifyContent: 'flex-end', gap: 10 }}>

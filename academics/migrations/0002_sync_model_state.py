@@ -34,9 +34,8 @@ class Migration(migrations.Migration):
 
     operations = [
         migrations.SeparateDatabaseAndState(
-            # Keep this migration DB-safe only. State changes are already handled
-            # by academics/migrations/0002_alter_exam_unique_together_and_more.py.
-            state_operations=[],
+            state_operations=[
+            ],
             database_operations=[
                 migrations.RunPython(sync_academics_db, migrations.RunPython.noop),
             ],

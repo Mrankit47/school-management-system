@@ -10,7 +10,7 @@ class Migration(migrations.Migration):
 
     dependencies = [
         ('classes', '0003_classsection_school_mainclass_school_and_more'),
-        ('teachers', '0003_teacherprofiledocument'),
+        ('teachers', '0003_teacher_documents'),
         ('tenants', '0001_initial'),
     ]
 
@@ -31,7 +31,7 @@ class Migration(migrations.Migration):
             ],
             options={
                 'ordering': ['class_ref__name', 'name'],
-                'unique_together': {('school', 'name', 'class_ref')},
+                'unique_together': {('name', 'class_ref')},
             },
         ),
         migrations.CreateModel(
@@ -79,7 +79,7 @@ class Migration(migrations.Migration):
             ],
             options={
                 'ordering': ['class_ref__name', 'subject__name', 'teacher__employee_id'],
-                'unique_together': {('school', 'teacher', 'class_ref', 'subject')},
+                'unique_together': {('teacher', 'class_ref', 'subject')},
             },
         ),
     ]

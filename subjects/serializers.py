@@ -67,6 +67,7 @@ class TeacherAssignmentSerializer(serializers.ModelSerializer):
     teacher_name = serializers.SerializerMethodField()
     employee_id = serializers.CharField(source='teacher.employee_id', read_only=True)
     class_name = serializers.CharField(source='class_ref.name', read_only=True)
+    section_name = serializers.SerializerMethodField()
     subject_name = serializers.CharField(source='subject.name', read_only=True)
 
     class Meta:
@@ -78,12 +79,18 @@ class TeacherAssignmentSerializer(serializers.ModelSerializer):
             'employee_id',
             'class_ref',
             'class_name',
+            'section',
+            'section_name',
             'subject',
             'subject_name',
+            'role',
             'created_at',
             'updated_at',
         ]
 
     def get_teacher_name(self, obj):
         return obj.teacher.user.name or obj.teacher.user.username
+
+    def get_section_name(self, obj):
+        return obj.section.section_ref.name if obj.section and obj.section.section_ref else None
 
