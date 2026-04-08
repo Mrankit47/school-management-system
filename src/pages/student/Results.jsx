@@ -170,7 +170,7 @@ export default function Results() {
         return (
             <div style={{ padding: 20, backgroundColor: colors.bg, minHeight: 'calc(100vh - 60px)' }}>
                 <div style={{ fontWeight: 1000, fontSize: 18 }}>My Exam Results</div>
-                <div style={{ marginTop: 10, color: colors.muted, fontWeight: 900 }}>No published results yet.</div>
+                <div style={{ marginTop: 10, color: colors.muted, fontWeight: 900 }}>No results yet.</div>
             </div>
         );
     }
