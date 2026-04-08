@@ -14,7 +14,14 @@ class PublicSchoolInfoView(APIView):
     permission_classes = [permissions.AllowAny]
 
     def get(self, request, school_id):
-        school = get_object_or_404(School, school_id=school_id, is_active=True)
+        school = get_object_or_404(School, school_id=school_id)
+        
+        if not school.is_active:
+            return Response(
+                {"detail": "This institution's access has been suspended. Please contact the platform administrator for assistance."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+            
         serializer = PublicSchoolSerializer(school)
         return Response(serializer.data)
 

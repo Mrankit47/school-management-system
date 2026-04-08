@@ -370,7 +370,7 @@ export default function SuperAdminDashboard() {
         {/* Create School Modal */}
         {isModalOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-300">
-            <div className="bg-white w-full max-w-2xl rounded-[3rem] shadow-2xl p-12 relative max-h-[90vh] overflow-y-auto">
+            <div className="bg-white w-full max-w-2xl rounded-[3rem] shadow-2xl p-12 relative max-h-[90vh] overflow-y-auto no-scrollbar">
               <button 
                 onClick={() => setIsModalOpen(false)}
                 className="absolute top-8 right-8 text-slate-400 hover:text-slate-900 text-2xl transition-colors"
@@ -496,7 +496,7 @@ export default function SuperAdminDashboard() {
         {/* Create Dealer Modal */}
         {isDealerModalOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-300">
-            <div className="bg-white w-full max-w-2xl rounded-[3rem] shadow-2xl p-12 relative max-h-[90vh] overflow-y-auto">
+            <div className="bg-white w-full max-w-2xl rounded-[3rem] shadow-2xl p-12 relative max-h-[90vh] overflow-y-auto no-scrollbar">
               <button 
                 onClick={() => setIsDealerModalOpen(false)}
                 className="absolute top-8 right-8 text-slate-400 hover:text-slate-900 text-2xl transition-colors"
@@ -600,7 +600,7 @@ export default function SuperAdminDashboard() {
         {/* View Detail Modal (Unified for Institutions and Dealer Managed Schools) */}
         {isViewModalOpen && viewingSchool && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-300">
-            <div className="bg-white w-full max-w-2xl rounded-[3rem] shadow-2xl p-12 relative max-h-[90vh] overflow-y-auto font-inter">
+            <div className="bg-white w-full max-w-2xl rounded-[3rem] shadow-2xl p-12 relative max-h-[90vh] overflow-y-auto no-scrollbar font-inter">
               <button 
                 onClick={() => { setIsViewModalOpen(false); setViewingAdmins([]); setViewingSchool(null); }}
                 className="absolute top-8 right-8 text-slate-400 hover:text-slate-900 text-2xl transition-colors"
