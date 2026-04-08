@@ -113,6 +113,7 @@ def build_student_id_card_pdf(
         class_n = _clip(student.class_section.class_ref.name, 14)
         section_n = _clip(student.class_section.section_ref.name, 8)
     phone = _clip(student.user.phone or student.parent_contact_number or '', 24)
+    blood_group = _clip(student.blood_group or '', 8)
     addr = _clip(student.address or '', 46)
     adm = _clip(student.admission_number, 18)
 
@@ -130,6 +131,7 @@ def build_student_id_card_pdf(
     row('Admission No:', adm)
     row('Class:', class_n)
     row('Section:', section_n)
+    row('Blood Group:', blood_group)
     row('Phone:', phone)
     row('Address:', addr, bold_val=False)
 

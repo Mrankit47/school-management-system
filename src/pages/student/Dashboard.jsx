@@ -109,7 +109,7 @@ function CircularProgress({ percentage }) {
 
 function Sparkline({ points, color = colors.primary }) {
     const width = 260;
-    const height = 86;
+    const height = 110;
     const padding = 10;
     if (!points || points.length < 2) return <div style={{ color: colors.muted, fontWeight: 900, fontSize: 12 }}>No data</div>;
     const ys = points.map((p) => p.y);
@@ -124,10 +124,27 @@ function Sparkline({ points, color = colors.primary }) {
             return `${i === 0 ? 'M' : 'L'} ${x} ${y}`;
         })
         .join(' ');
+    const areaPath = `${linePath} L ${xScale(points.length - 1)} ${height - padding} L ${xScale(0)} ${height - padding} Z`;
 
     return (
         <div style={{ width: '100%', overflowX: 'auto' }}>
             <svg width="100%" viewBox={`0 0 ${width} ${height}`}>
+                {[0.25, 0.5, 0.75].map((ratio) => {
+                    const y = padding + (height - padding * 2) * ratio;
+                    return (
+                        <line
+                            key={ratio}
+                            x1={padding}
+                            y1={y}
+                            x2={width - padding}
+                            y2={y}
+                            stroke="#e5e7eb"
+                            strokeWidth="1"
+                            strokeDasharray="3 3"
+                        />
+                    );
+                })}
+                <path d={areaPath} fill={color} opacity="0.12" />
                 <path d={linePath} fill="none" stroke={color} strokeWidth="3" strokeLinecap="round" />
                 {points.map((p, i) => {
                     const x = xScale(i);
@@ -309,9 +326,13 @@ export default function StudentDashboard() {
     }, [timetable]);
 
     const todayDayName = useMemo(() => dayNames[new Date().getDay()], []);
+    const todayDayNumber = useMemo(() => {
+        const d = new Date().getDay();
+        return d === 0 ? 7 : d; // Sunday->7 (no timetable), Mon->1 ... Sat->6
+    }, []);
     const todayTimetable = useMemo(() => {
-        return (timetable || []).filter((t) => t.day === todayDayName);
-    }, [timetable, todayDayName]);
+        return (timetable || []).filter((t) => Number(t.day) === todayDayNumber);
+    }, [timetable, todayDayNumber]);
 
     const currentClass = useMemo(() => {
         const toMinutes = (timeStr) => {
@@ -537,6 +558,9 @@ export default function StudentDashboard() {
         boxShadow: themeStyles.shadow,
         color: themeStyles.text,
     };
+    const topCardStyle = { ...cardStyle, minHeight: 180 };
+    const midCardStyle = { ...cardStyle, minHeight: 370 };
+    const largeCardStyle = { ...cardStyle, minHeight: 420 };
 
     return (
         <div style={wrapperStyle}>
@@ -597,7 +621,7 @@ export default function StudentDashboard() {
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(12, minmax(0, 1fr))', gap: 12 }}>
                 <div style={{ gridColumn: 'span 4' }}>
-                    <Card style={{ ...cardStyle }}>
+                    <Card style={{ ...topCardStyle }}>
                         <SectionHeader
                             icon={
                                 <Icon>
@@ -637,7 +661,7 @@ export default function StudentDashboard() {
                 </div>
 
                 <div style={{ gridColumn: 'span 4' }}>
-                    <Card style={{ ...cardStyle }}>
+                    <Card style={{ ...topCardStyle }}>
                         <SectionHeader
                             icon={
                                 <Icon>
@@ -665,7 +689,7 @@ export default function StudentDashboard() {
                 </div>
 
                 <div style={{ gridColumn: 'span 4' }}>
-                    <Card style={{ ...cardStyle }}>
+                    <Card style={{ ...topCardStyle, display: 'flex', flexDirection: 'column' }}>
                         <SectionHeader
                             icon={
                                 <Icon>
@@ -691,7 +715,7 @@ export default function StudentDashboard() {
                                 <div style={{ marginTop: 6, fontWeight: 1000, fontSize: 22 }}>{examsCount}</div>
                             </div>
                         </div>
-                        <div style={{ marginTop: 12 }}>
+                        <div style={{ marginTop: 'auto' }}>
                             <button
                                 type="button"
                                 onClick={() => navigate('/student/attendance')}
@@ -716,7 +740,7 @@ export default function StudentDashboard() {
             {/* Main grid */}
             <div style={{ marginTop: 12, display: 'grid', gridTemplateColumns: 'repeat(12, minmax(0, 1fr))', gap: 12 }}>
                 <div style={{ gridColumn: 'span 7' }}>
-                    <Card style={{ ...cardStyle, height: '100%' }}>
+                    <Card style={{ ...largeCardStyle, height: '100%' }}>
                         <SectionHeader
                             icon={
                                 <Icon>
@@ -758,7 +782,7 @@ export default function StudentDashboard() {
                                                         {t.subject || '—'} {isCurrent ? <span style={{ marginLeft: 8, fontSize: 11, color: '#4c1d95', fontWeight: 1000 }}>Ongoing</span> : null}
                                                     </div>
                                                     <div style={{ marginTop: 4, color: themeStyles.muted, fontWeight: 900, fontSize: 12 }}>
-                                                        Teacher: {t.teacher ?? '—'}
+                                                        Teacher: {t.teacher_name || t.teacher || '—'}
                                                     </div>
                                                 </div>
                                                 <div style={{ color: themeStyles.muted, fontWeight: 900, fontSize: 12 }}>
@@ -775,7 +799,7 @@ export default function StudentDashboard() {
                 </div>
 
                 <div style={{ gridColumn: 'span 5' }}>
-                    <Card style={{ ...cardStyle }}>
+                    <Card style={{ ...largeCardStyle }}>
                         <SectionHeader
                             icon={
                                 <Icon>
@@ -827,7 +851,7 @@ export default function StudentDashboard() {
                 </div>
 
                 <div style={{ gridColumn: 'span 7' }}>
-                    <Card style={{ ...cardStyle }}>
+                    <Card style={{ ...midCardStyle }}>
                         <SectionHeader
                             icon={
                                 <Icon>
@@ -912,7 +936,7 @@ export default function StudentDashboard() {
                 </div>
 
                 <div style={{ gridColumn: 'span 5' }}>
-                    <Card style={{ ...cardStyle }}>
+                    <Card style={{ ...midCardStyle }}>
                         <SectionHeader
                             icon={
                                 <Icon>
@@ -972,7 +996,7 @@ export default function StudentDashboard() {
                 </div>
 
                 <div style={{ gridColumn: 'span 7' }}>
-                    <Card style={{ ...cardStyle }}>
+                    <Card style={{ ...midCardStyle }}>
                         <SectionHeader
                             icon={
                                 <Icon>
@@ -1070,7 +1094,7 @@ export default function StudentDashboard() {
                 </div>
 
                 <div style={{ gridColumn: 'span 5' }}>
-                    <Card style={{ ...cardStyle }}>
+                    <Card style={{ ...midCardStyle }}>
                         <SectionHeader
                             icon={
                                 <Icon>

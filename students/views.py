@@ -449,13 +449,26 @@ class StudentIdCardPdfView(views.APIView):
         if not s:
             return Response({"error": "Student profile not found"}, status=status.HTTP_404_NOT_FOUND)
 
-        school_name = getattr(settings, 'SCHOOL_NAME', 'School Management System')
+        # Prefer the student's actual school so multi-school ID cards show correct branding.
+        school_obj = getattr(request.user, 'school', None)
+        if school_obj is None and s.class_section_id:
+            school_obj = getattr(s.class_section, 'school', None)
+        school_name = (
+            getattr(school_obj, 'name', None)
+            or getattr(settings, 'SCHOOL_NAME', 'School Management System')
+        )
         pdf_bytes = build_student_id_card_pdf(
             s,
             school_name=school_name,
-            school_address=getattr(settings, 'SCHOOL_ADDRESS', ''),
+            school_address=(
+                getattr(school_obj, 'location', None)
+                or getattr(settings, 'SCHOOL_ADDRESS', '')
+            ),
             school_phone=getattr(settings, 'SCHOOL_PHONE', ''),
-            school_email=getattr(settings, 'SCHOOL_EMAIL', ''),
+            school_email=(
+                getattr(school_obj, 'contact_email', None)
+                or getattr(settings, 'SCHOOL_EMAIL', '')
+            ),
             school_website=getattr(settings, 'SCHOOL_WEBSITE', ''),
         )
         filename = f"id-card-{s.admission_number or s.id}.pdf"

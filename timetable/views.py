@@ -30,21 +30,29 @@ class TimeTableViewSet(viewsets.ModelViewSet):
         user = self.request.user
         school = getattr(user, 'school', None)
         queryset = TimeTableEntry.objects.all().select_related('teacher')
+        shift = self.request.query_params.get('shift')
+        class_compact = self.request.query_params.get('class')
 
         # Enforce tenant boundary unless superuser
         if not user.is_superuser and school:
             queryset = queryset.filter(school=school)
+        if shift in {TimeTableEntry.SHIFT_MORNING, TimeTableEntry.SHIFT_AFTERNOON}:
+            queryset = queryset.filter(shift=shift)
 
         if user.role == 'admin':
             class_name = self.request.query_params.get('class_name')
             section = self.request.query_params.get('section')
+            if class_compact and '-' in class_compact:
+                left, right = class_compact.split('-', 1)
+                class_name = class_name or left.strip()
+                section = section or right.strip()
             if class_name and section:
                 return queryset.filter(class_name=class_name, section=section)
             # Admin must specify a class/section to see the timetable
             return queryset.none()
         
         if user.role == 'teacher':
-            return queryset.filter(teacher=user).order_by('day', 'period')
+            return queryset.filter(teacher=user).order_by('shift', 'day', 'period_number')
         
         if user.role == 'student':
             student = getattr(user, 'student_profile', None)
