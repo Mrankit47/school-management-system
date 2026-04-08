@@ -6,7 +6,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('teachers', '0005_delete_teacherprofiledocument'),
+        ('teachers', '0003_teacher_documents'),
     ]
 
     operations = [

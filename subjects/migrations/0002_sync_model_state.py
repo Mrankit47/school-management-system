@@ -33,17 +33,6 @@ class Migration(migrations.Migration):
     operations = [
         migrations.SeparateDatabaseAndState(
             state_operations=[
-                migrations.RemoveField(model_name='subjectassignment', name='school'),
-                migrations.RemoveField(model_name='subjectnote', name='school'),
-                migrations.RemoveField(model_name='teacherassignment', name='school'),
-                migrations.AlterUniqueTogether(
-                    name='teacherassignment',
-                    unique_together={('teacher', 'class_ref', 'subject')},
-                ),
-                migrations.AlterUniqueTogether(
-                    name='subject',
-                    unique_together={('class_ref', 'name')},
-                ),
             ],
             database_operations=[
                 migrations.RunPython(sync_subjects_db, migrations.RunPython.noop),

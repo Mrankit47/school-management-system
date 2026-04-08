@@ -48,7 +48,8 @@ const MarkAttendance = () => {
     const [rows, setRows] = useState([]); // local editable rows
     const [saving, setSaving] = useState(false);
 
-    const isEditable = !!sheet?.is_editable;
+    const isEditable = !!sheet?.is_editable && !!sheet?.can_mark;
+    const isSubjectTeacher = !!sheet?.is_editable && sheet?.can_mark === false;
 
     const loadTeacherClasses = async () => {
         const res = await api.get('classes/teaching-sections/');
@@ -98,7 +99,8 @@ const MarkAttendance = () => {
 
     const saveAttendance = async () => {
         if (!isEditable) {
-            alert('Selected date is view-only. You can edit attendance only for today.');
+            const reason = isSubjectTeacher ? 'Only Class Teachers can mark attendance.' : 'Past attendance records are view-only.';
+            alert(`Selected sheet is view-only. ${reason}`);
             return;
         }
         if (!selectedClassId) return;
@@ -184,8 +186,11 @@ const MarkAttendance = () => {
                         </div>
                     </div>
                     {!isEditable ? (
-                        <div style={{ marginTop: 10, border: '1px solid #fde68a', background: '#fffbeb', color: '#a16207', borderRadius: 10, padding: '8px 10px', fontWeight: 900, fontSize: 12 }}>
-                            This is a previous date record. You can view attendance but cannot edit or change it.
+                        <div style={{ marginTop: 10, border: `1px solid ${isSubjectTeacher ? '#93c5fd' : '#fde68a'}`, background: isSubjectTeacher ? '#eff6ff' : '#fffbeb', color: isSubjectTeacher ? '#1e40af' : '#a16207', borderRadius: 10, padding: '8px 10px', fontWeight: 900, fontSize: 12 }}>
+                            {isSubjectTeacher 
+                                ? "You are assigned as a Subject Teacher for this class. Only the Class Teacher can mark or edit attendance."
+                                : "This is a previous date record. You can view attendance but cannot edit or change it."
+                            }
                         </div>
                     ) : null}
 

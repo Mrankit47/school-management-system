@@ -43,6 +43,7 @@ const AddTeacher = () => {
 
         password: '',
         confirm_password: '',
+        role: 'Subject Teacher',
         status: 'Active',
 
         profile_image: null,
@@ -188,6 +189,7 @@ const AddTeacher = () => {
                 qualification: qualificationValue,
                 experience_years: form.experience_years,
                 joining_date: form.joining_date,
+                role: form.role,
                 status: form.status,
                 profile_image_base64: form.profile_image_base64,
             };
@@ -208,6 +210,7 @@ const AddTeacher = () => {
                 joining_date: '',
                 password: '',
                 confirm_password: '',
+                role: 'Subject Teacher',
                 status: 'Active',
                 profile_image: null,
                 profile_image_base64: '',
@@ -519,6 +522,18 @@ const AddTeacher = () => {
                                     >
                                         <option value="Active">Active</option>
                                         <option value="Inactive">Inactive</option>
+                                    </select>
+                                </div>
+
+                                <div>
+                                    <div style={labelStyle}>Role</div>
+                                    <select
+                                        value={form.role}
+                                        onChange={(e) => setForm({ ...form, role: e.target.value })}
+                                        style={inputStyle}
+                                    >
+                                        <option value="Subject Teacher">Subject Teacher</option>
+                                        <option value="Class Teacher">Class Teacher</option>
                                     </select>
                                 </div>
                             </div>
