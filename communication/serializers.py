@@ -2,9 +2,32 @@ from rest_framework import serializers
 from .models import Notification, Message
 
 class NotificationSerializer(serializers.ModelSerializer):
+    announcement_type = serializers.SerializerMethodField()
+
     class Meta:
         model = Notification
-        fields = ['id', 'user', 'title', 'message', 'is_read', 'created_at']
+        fields = [
+            'id',
+            'user',
+            'target_role',
+            'title',
+            'message',
+            'is_read',
+            'related_exam',
+            'related_announcement',
+            'announcement_type',
+            'created_at',
+        ]
+
+    def get_announcement_type(self, obj):
+        rid = getattr(obj, 'related_announcement_id', None)
+        if not rid:
+            return None
+        try:
+            ann = obj.related_announcement
+            return ann.type if ann else None
+        except Exception:
+            return None
 
 
 class MessageSerializer(serializers.ModelSerializer):

@@ -29,6 +29,21 @@ const cardStyle = {
     boxShadow: '0 1px 6px rgba(16,24,40,0.06)',
 };
 
+const MONTH_NAMES = [
+    'January',
+    'February',
+    'March',
+    'April',
+    'May',
+    'June',
+    'July',
+    'August',
+    'September',
+    'October',
+    'November',
+    'December',
+];
+
 function formatDateRange(h) {
     if (!h?.end_date || h.end_date === h.start_date) return h.start_date;
     return `${h.start_date} — ${h.end_date}`;
@@ -211,13 +226,9 @@ const TeacherHolidays = () => {
                                 <div style={labelStyle}>Month</div>
                                 <select value={filterMonth} onChange={(e) => setFilterMonth(e.target.value)} style={inputStyle}>
                                     <option value="">All</option>
-                                    {Array.from({ length: 12 }).map((_, idx) => {
+                                    {MONTH_NAMES.map((name, idx) => {
                                         const m = idx + 1;
-                                        return (
-                                            <option key={m} value={String(m)}>
-                                                {m}
-                                            </option>
-                                        );
+                                        return <option key={m} value={String(m)}>{name}</option>;
                                     })}
                                 </select>
                             </div>
@@ -261,13 +272,9 @@ const TeacherHolidays = () => {
                                 <div style={labelStyle}>Calendar Month</div>
                                 <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
                                     <select value={calMonth} onChange={(e) => setCalMonth(parseInt(e.target.value))} style={{ ...inputStyle, width: '160px' }}>
-                                        {Array.from({ length: 12 }).map((_, idx) => {
+                                        {MONTH_NAMES.map((name, idx) => {
                                             const m = idx + 1;
-                                            return (
-                                                <option key={m} value={m}>
-                                                    {m}
-                                                </option>
-                                            );
+                                            return <option key={m} value={m}>{name}</option>;
                                         })}
                                     </select>
                                     <input type="number" value={calYear} onChange={(e) => setCalYear(parseInt(e.target.value))} style={{ ...inputStyle, width: '160px' }} />

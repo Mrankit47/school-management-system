@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import api from '../../services/api';
 
 const colors = {
@@ -63,15 +63,6 @@ function Field({ label, required, error, children }) {
     );
 }
 
-async function fileToBase64DataUrl(file) {
-    return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result);
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-    });
-}
-
 const TeacherProfile = () => {
     const [loading, setLoading] = useState(true);
     const [profile, setProfile] = useState(null);
@@ -100,7 +91,11 @@ const TeacherProfile = () => {
 
     const [formErrors, setFormErrors] = useState({});
 
-    const [photoFile, setPhotoFile] = useState(null);
+    const [photoBusy, setPhotoBusy] = useState(false);
+    const [photoError, setPhotoError] = useState('');
+    const [idCardBusy, setIdCardBusy] = useState(false);
+    const [fullPhotoOpen, setFullPhotoOpen] = useState(false);
+    const fileInputRef = useRef(null);
 
     const [pwOld, setPwOld] = useState('');
     const [pwNew, setPwNew] = useState('');
@@ -134,7 +129,8 @@ const TeacherProfile = () => {
                         subject_specialization: p.subject_specialization || '',
                         joining_date: p.joining_date || '',
                         status: p.status || 'Active',
-                        profile_image_base64: p.profile_image_base64 || '',
+                        profile_image_base64:
+                            p.has_photo || p.photo_url ? '' : p.profile_image_base64 || '',
                         phone_number: p.phone_number || p.user?.phone || '',
                     });
                 }
@@ -143,13 +139,19 @@ const TeacherProfile = () => {
             .finally(() => setLoading(false));
     }, []);
 
+    useEffect(() => {
+        if (!fullPhotoOpen) return;
+        const onKey = (e) => {
+            if (e.key === 'Escape') setFullPhotoOpen(false);
+        };
+        window.addEventListener('keydown', onKey);
+        return () => window.removeEventListener('keydown', onKey);
+    }, [fullPhotoOpen]);
+
     const previewImageSrc = useMemo(() => {
-        if (photoFile) {
-            const src = toImageSrc(form.profile_image_base64);
-            return src;
-        }
+        if (profile?.photo_url) return profile.photo_url;
         return toImageSrc(form.profile_image_base64);
-    }, [form.profile_image_base64, photoFile]);
+    }, [profile?.photo_url, form.profile_image_base64]);
 
     const validate = () => {
         const next = {};
@@ -183,7 +185,8 @@ const TeacherProfile = () => {
                 joining_date: form.joining_date || null,
                 status: form.status || 'Active',
                 phone_number: form.phone || null,
-                profile_image_base64: form.profile_image_base64 || '',
+                profile_image_base64:
+                    profile?.has_photo || profile?.photo_url ? null : form.profile_image_base64 || null,
             };
 
             await api.patch('teachers/profile/', payload);
@@ -226,17 +229,134 @@ const TeacherProfile = () => {
         }
     };
 
-    const handlePhotoChange = async (file) => {
-        setPhotoFile(file || null);
-        if (!file) {
-            setForm((prev) => ({ ...prev, profile_image_base64: '' }));
-            return;
+    const refreshProfile = async () => {
+        const res = await api.get('teachers/profile/');
+        const p = res.data || null;
+        setProfile(p);
+        if (p) {
+            setForm((prev) => ({
+                ...prev,
+                profile_image_base64:
+                    p.has_photo || p.photo_url ? '' : p.profile_image_base64 || '',
+            }));
         }
+        return p;
+    };
+
+    const pickPhoto = () => {
+        setPhotoError('');
+        fileInputRef.current?.click();
+    };
+
+    const onPhotoSelected = async (e) => {
+        const file = e.target.files?.[0];
+        e.target.value = '';
+        if (!file) return;
+        setPhotoBusy(true);
+        setPhotoError('');
         try {
-            const base64 = await fileToBase64DataUrl(file);
-            setForm((prev) => ({ ...prev, profile_image_base64: base64 }));
-        } catch (e) {
-            setSaveError('Failed to read selected photo.');
+            const fd = new FormData();
+            fd.append('photo', file);
+            await api.post('teachers/profile/photo/', fd);
+            await refreshProfile();
+        } catch (err) {
+            setPhotoError(
+                err?.response?.data?.error ||
+                    err?.response?.data?.detail ||
+                    'Could not upload photo.'
+            );
+        } finally {
+            setPhotoBusy(false);
+        }
+    };
+
+    const removeProfilePhoto = async () => {
+        if (!profile?.has_photo && !profile?.photo_url) return;
+        setPhotoBusy(true);
+        setPhotoError('');
+        try {
+            await api.delete('teachers/profile/photo/');
+            await refreshProfile();
+        } catch (err) {
+            setPhotoError(err?.response?.data?.error || 'Could not remove photo.');
+        } finally {
+            setPhotoBusy(false);
+        }
+    };
+
+    const fetchIdCardPdf = async (disposition) => {
+        const res = await api.get('teachers/profile/id-card/', {
+            responseType: 'blob',
+            params: { disposition },
+        });
+        return res.data;
+    };
+
+    const viewIdCard = async () => {
+        setIdCardBusy(true);
+        setPhotoError('');
+        try {
+            const blob = await fetchIdCardPdf('inline');
+            const url = URL.createObjectURL(new Blob([blob], { type: 'application/pdf' }));
+            window.open(url, '_blank', 'noopener,noreferrer');
+            setTimeout(() => URL.revokeObjectURL(url), 60_000);
+        } catch (err) {
+            let msg = err?.response?.data?.error || 'Could not open ID card.';
+            if (err?.response?.data instanceof Blob) {
+                try {
+                    const t = await err.response.data.text();
+                    if (t) {
+                        try {
+                            const j = JSON.parse(t);
+                            msg = j.error || j.detail || msg;
+                        } catch {
+                            msg = t.length < 200 ? t : msg;
+                        }
+                    }
+                } catch {
+                    /* ignore */
+                }
+            }
+            setPhotoError(typeof msg === 'string' ? msg : 'Could not open ID card.');
+        } finally {
+            setIdCardBusy(false);
+        }
+    };
+
+    const downloadIdCard = async () => {
+        setIdCardBusy(true);
+        setPhotoError('');
+        try {
+            const blob = await fetchIdCardPdf('attachment');
+            const url = URL.createObjectURL(new Blob([blob], { type: 'application/pdf' }));
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `teacher-id-card-${form.employee_id || 'teacher'}.pdf`;
+            a.rel = 'noopener';
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            URL.revokeObjectURL(url);
+        } catch (err) {
+            let msg = err?.response?.data?.error || 'Could not download ID card.';
+            if (err?.response?.data instanceof Blob) {
+                try {
+                    const t = await err.response.data.text();
+                    if (t) {
+                        try {
+                            const j = JSON.parse(t);
+                            msg = j.error || j.detail || msg;
+                        } catch {
+                            msg = t.length < 200 ? t : msg;
+                        }
+                    }
+                } catch {
+                    /* ignore */
+                }
+            }
+            setPhotoError(typeof msg === 'string' ? msg : 'Could not download ID card.');
+        } finally {
+            setIdCardBusy(false);
         }
     };
 
@@ -250,9 +370,7 @@ const TeacherProfile = () => {
         try {
             const formData = new FormData();
             formData.append('file', docFile);
-            const res = await api.post('teachers/profile/documents/', formData, {
-                headers: { 'Content-Type': 'multipart/form-data' },
-            });
+            const res = await api.post('teachers/profile/documents/', formData);
             setDocuments((prev) => [res.data, ...(prev || [])]);
             setDocFile(null);
         } catch (e) {
@@ -304,13 +422,106 @@ const TeacherProfile = () => {
             {saveError ? <div style={{ padding: '10px 12px', borderRadius: 12, border: `1px solid ${colors.danger}`, color: colors.danger, fontWeight: 900, background: '#fff' }}>{saveError}</div> : null}
             {saveSuccess ? <div style={{ padding: '10px 12px', borderRadius: 12, border: '1px solid #bbf7d0', color: '#166534', fontWeight: 900, background: '#ecfdf5', marginBottom: 12 }}>{saveSuccess}</div> : null}
 
+            {fullPhotoOpen && previewImageSrc ? (
+                <div
+                    role="dialog"
+                    aria-modal="true"
+                    aria-label="Full profile photo"
+                    style={{
+                        position: 'fixed',
+                        inset: 0,
+                        zIndex: 10000,
+                        background: 'rgba(15, 23, 42, 0.82)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        padding: 20,
+                    }}
+                    onClick={() => setFullPhotoOpen(false)}
+                >
+                    <div
+                        style={{ position: 'relative', maxWidth: '100%', maxHeight: '100%' }}
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <button
+                            type="button"
+                            onClick={() => setFullPhotoOpen(false)}
+                            style={{
+                                position: 'absolute',
+                                top: -8,
+                                right: -8,
+                                width: 36,
+                                height: 36,
+                                borderRadius: '50%',
+                                border: 'none',
+                                background: '#fff',
+                                boxShadow: '0 2px 12px rgba(0,0,0,0.2)',
+                                fontSize: 20,
+                                lineHeight: 1,
+                                cursor: 'pointer',
+                                fontWeight: 700,
+                                color: '#334155',
+                            }}
+                            aria-label="Close"
+                        >
+                            ×
+                        </button>
+                        <img
+                            src={previewImageSrc}
+                            alt="Teacher profile full size"
+                            style={{
+                                display: 'block',
+                                maxWidth: 'min(920px, 94vw)',
+                                maxHeight: 'min(88vh, 920px)',
+                                width: 'auto',
+                                height: 'auto',
+                                objectFit: 'contain',
+                                borderRadius: 12,
+                                boxShadow: '0 20px 50px rgba(0,0,0,0.35)',
+                            }}
+                        />
+                        <p
+                            style={{
+                                margin: '12px 0 0',
+                                textAlign: 'center',
+                                color: '#e2e8f0',
+                                fontSize: 13,
+                                fontWeight: 600,
+                            }}
+                        >
+                            Click background or press Esc to close
+                        </p>
+                    </div>
+                </div>
+            ) : null}
+
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(12, minmax(0, 1fr))', gap: 12 }}>
                 {/* Header photo */}
                 <div style={{ gridColumn: 'span 12', backgroundColor: colors.card, border: `1px solid ${colors.border}`, borderRadius: 16, padding: 16, boxShadow: colors.shadow }}>
                     <div style={{ display: 'flex', gap: 14, alignItems: 'center', flexWrap: 'wrap' }}>
                         <div style={{ width: 90, height: 90, borderRadius: 22, border: `1px solid ${colors.border}`, backgroundColor: '#f3f4f6', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
                             {previewImageSrc ? (
-                                <img src={previewImageSrc} alt="Teacher profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                <button
+                                    type="button"
+                                    onClick={() => setFullPhotoOpen(true)}
+                                    title="View full photo"
+                                    aria-label="View full profile photo"
+                                    style={{
+                                        border: 'none',
+                                        padding: 0,
+                                        margin: 0,
+                                        width: '100%',
+                                        height: '100%',
+                                        cursor: 'pointer',
+                                        background: 'transparent',
+                                    }}
+                                >
+                                    <img
+                                        src={previewImageSrc}
+                                        alt="Teacher profile"
+                                        style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                                    />
+                                </button>
                             ) : (
                                 <span style={{ fontWeight: 1000, color: colors.primary, fontSize: 24 }}>
                                     {(form.name || 'T').slice(0, 1).toUpperCase()}
@@ -322,14 +533,114 @@ const TeacherProfile = () => {
                             <div style={{ marginTop: 4, color: colors.muted, fontWeight: 900, fontSize: 13 }}>
                                 {profile.role_label || 'Teacher'} • {form.employee_id || '—'}
                             </div>
-                            <div style={{ marginTop: 10, maxWidth: 360 }}>
+                            <input
+                                ref={fileInputRef}
+                                type="file"
+                                accept="image/jpeg,image/png,image/webp,image/gif,.jpg,.jpeg,.png,.webp,.gif"
+                                style={{ display: 'none' }}
+                                onChange={onPhotoSelected}
+                            />
+                            <div style={{ marginTop: 10, maxWidth: 420 }}>
                                 <div style={labelStyle}>Profile Photo</div>
-                                <input
-                                    type="file"
-                                    accept="image/*"
-                                    onChange={(e) => handlePhotoChange(e.target.files?.[0] || null)}
-                                    style={{ ...inputStyle, padding: 10 }}
-                                />
+                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
+                                    <button
+                                        type="button"
+                                        onClick={pickPhoto}
+                                        disabled={photoBusy || idCardBusy}
+                                        style={{
+                                            padding: '8px 14px',
+                                            borderRadius: 10,
+                                            border: `1px solid ${colors.primary}`,
+                                            background: '#eff6ff',
+                                            color: colors.primary,
+                                            fontWeight: 900,
+                                            cursor: photoBusy ? 'not-allowed' : 'pointer',
+                                            fontSize: 13,
+                                        }}
+                                    >
+                                        {photoBusy ? 'Please wait…' : 'Upload photo'}
+                                    </button>
+                                    {(profile?.has_photo || profile?.photo_url) && (
+                                        <>
+                                            <button
+                                                type="button"
+                                                onClick={() => setFullPhotoOpen(true)}
+                                                disabled={photoBusy || idCardBusy}
+                                                style={{
+                                                    padding: '8px 14px',
+                                                    borderRadius: 10,
+                                                    border: '1px solid #0ea5e9',
+                                                    background: '#f0f9ff',
+                                                    color: '#0369a1',
+                                                    fontWeight: 900,
+                                                    cursor: photoBusy ? 'not-allowed' : 'pointer',
+                                                    fontSize: 13,
+                                                }}
+                                            >
+                                                View full photo
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={removeProfilePhoto}
+                                                disabled={photoBusy || idCardBusy}
+                                                style={{
+                                                    padding: '8px 14px',
+                                                    borderRadius: 10,
+                                                    border: `1px solid ${colors.border}`,
+                                                    background: '#fff',
+                                                    color: colors.muted,
+                                                    fontWeight: 900,
+                                                    cursor: photoBusy ? 'not-allowed' : 'pointer',
+                                                    fontSize: 13,
+                                                }}
+                                            >
+                                                Remove photo
+                                            </button>
+                                        </>
+                                    )}
+                                    <button
+                                        type="button"
+                                        onClick={viewIdCard}
+                                        disabled={idCardBusy}
+                                        style={{
+                                            padding: '8px 14px',
+                                            borderRadius: 10,
+                                            border: 'none',
+                                            background: '#ecfdf5',
+                                            color: '#166534',
+                                            fontWeight: 900,
+                                            cursor: idCardBusy ? 'not-allowed' : 'pointer',
+                                            fontSize: 13,
+                                        }}
+                                    >
+                                        {idCardBusy ? '…' : 'View ID card'}
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={downloadIdCard}
+                                        disabled={idCardBusy}
+                                        style={{
+                                            padding: '8px 14px',
+                                            borderRadius: 10,
+                                            border: 'none',
+                                            background: '#fef3c7',
+                                            color: '#a16207',
+                                            fontWeight: 900,
+                                            cursor: idCardBusy ? 'not-allowed' : 'pointer',
+                                            fontSize: 13,
+                                        }}
+                                    >
+                                        {idCardBusy ? '…' : 'Download ID card'}
+                                    </button>
+                                </div>
+                                {photoError ? (
+                                    <div style={{ marginTop: 8, color: colors.danger, fontWeight: 800, fontSize: 12 }}>
+                                        {photoError}
+                                    </div>
+                                ) : null}
+                                <div style={{ marginTop: 6, fontSize: 12, color: colors.muted, fontWeight: 700 }}>
+                                    JPG, PNG, WebP or GIF, up to 4MB. ID card shows your photo only if you upload one.
+                                </div>
                             </div>
                         </div>
                     </div>

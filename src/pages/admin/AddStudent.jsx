@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import api from '../../services/api';
-import StudentCards from './StudentCards';
 
 const AddStudent = () => {
     const [formData, setFormData] = useState({
@@ -22,9 +21,7 @@ const AddStudent = () => {
     const [mainClasses, setMainClasses] = useState([]);
     const [mainSections, setMainSections] = useState([]);
     const [message, setMessage] = useState('');
-    const [isFormOpen, setIsFormOpen] = useState(false);
     const [students, setStudents] = useState([]);
-    const [studentsLoading, setStudentsLoading] = useState(false);
     const parentPhoneDigits = (formData.parent_contact_number || '').replace(/\D/g, '').slice(0, 10);
     const selectedSection = mainSections.find((s) => String(s.id) === String(formData.section_id));
     const rollPreview = selectedSection?.name ? `101${String(selectedSection.name).trim().charAt(0).toUpperCase()}` : 'Auto (e.g. 101A)';
@@ -62,14 +59,11 @@ const AddStudent = () => {
     };
 
     const fetchStudents = async () => {
-        setStudentsLoading(true);
         try {
             const res = await api.get('students/');
             setStudents(res.data);
         } catch (e) {
             setStudents([]);
-        } finally {
-            setStudentsLoading(false);
         }
     };
 
@@ -119,7 +113,6 @@ const AddStudent = () => {
             await api.post('students/admin-create/', payload);
             setMessage('Student created successfully!');
             await fetchStudents();
-            setIsFormOpen(false);
             setFormData({
                 email: '',
                 password: '',
@@ -147,26 +140,40 @@ const AddStudent = () => {
 
     return (
         <div style={{ padding: '20px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px' }}>
-                <h1 style={{ margin: 0 }}>Add Student</h1>
-                <button
-                    type="button"
-                    onClick={() => setIsFormOpen(true)}
-                    style={{
-                        backgroundColor: '#1e40af',
-                        color: '#fff',
-                        border: 'none',
-                        cursor: 'pointer',
-                        padding: '10px 14px',
-                        borderRadius: '10px',
-                        fontWeight: 700,
-                    }}
-                >
-                    + Add
-                </button>
+            <div
+                style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: '16px',
+                    marginBottom: '10px',
+                }}
+            >
+                <div>
+                    <h1
+                        style={{
+                            margin: 0,
+                            fontSize: '32px',
+                            fontWeight: 1000,
+                            color: '#0f172a',
+                            lineHeight: 1.1,
+                        }}
+                    >
+                        Add Student
+                    </h1>
+                    <p
+                        style={{
+                            margin: '8px 0 0',
+                            color: '#64748b',
+                            fontSize: '14px',
+                            fontWeight: 700,
+                        }}
+                    >
+                        Register a new student with admission, guardian, and class details.
+                    </p>
+                </div>
             </div>
 
-            {isFormOpen && (
                 <div
                     style={{
                         border: '1px solid #e5e7eb',
@@ -177,7 +184,9 @@ const AddStudent = () => {
                         marginTop: '18px',
                     }}
                 >
-                    <h3>Quick Addition: New Student</h3>
+                    <h3 style={{ margin: '0 0 12px', color: '#111827', fontSize: '18px', fontWeight: 900 }}>
+                        Section: Student Information
+                    </h3>
                     <form onSubmit={handleSubmit} style={{ display: 'grid', gap: '18px' }}>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                         <div>
@@ -369,14 +378,20 @@ const AddStudent = () => {
 
                     <div>
                         <div style={labelStyle}>Category</div>
-                        <input
-                            type="text"
-                            placeholder="Category"
+                        <select
                             value={formData.category}
                             onChange={(e) => setFormData({ ...formData, category: e.target.value })}
                             style={inputStyle}
                             required
-                        />
+                        >
+                            <option value="">-- Select Category --</option>
+                            <option value="General">General</option>
+                            <option value="OBC">OBC</option>
+                            <option value="SC">SC</option>
+                            <option value="ST">ST</option>
+                            <option value="EWS">EWS</option>
+                            <option value="Other">Other</option>
+                        </select>
                     </div>
 
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
@@ -419,19 +434,6 @@ const AddStudent = () => {
                 </form>
                 {message && <p style={{ color: message.startsWith('Error') ? '#dc2626' : 'green' }}>{message}</p>}
             </div>
-
-            )}
-
-            {!isFormOpen && (
-                <div style={{ marginTop: '24px' }}>
-                    <h2 style={{ marginBottom: '12px' }}>Students</h2>
-                    {studentsLoading ? (
-                        <p>Loading students...</p>
-                    ) : (
-                        <StudentCards students={students} refreshStudents={fetchStudents} />
-                    )}
-                </div>
-            )}
         </div>
     );
 };

@@ -100,7 +100,6 @@ const TeacherDashboard = () => {
     const [searchText, setSearchText] = useState('');
 
     const [profile, setProfile] = useState(null);
-    const [allSections, setAllSections] = useState([]);
     const [myClasses, setMyClasses] = useState([]);
     const [classStudentCount, setClassStudentCount] = useState({});
     const [selectedClassId, setSelectedClassId] = useState('');
@@ -120,25 +119,23 @@ const TeacherDashboard = () => {
         setLoading(true);
         Promise.all([
             api.get('teachers/profile/'),
-            api.get('classes/sections/'),
+            api.get('classes/teaching-sections/'),
             api.get('assignments/'),
             api.get('academics/exams/'),
             api.get('timetable/'),
             api.get('communication/my/'),
             api.get('subjects/', { params: { status: 'Active' } }),
         ])
-            .then(async ([profileRes, sectionsRes, assignRes, examsRes, timetableRes, messageRes, subjectsRes]) => {
+            .then(async ([profileRes, teachingRes, assignRes, examsRes, timetableRes, messageRes, subjectsRes]) => {
                 const teacherProfile = profileRes.data || null;
-                const sections = sectionsRes.data || [];
+                const mine = teachingRes.data || [];
                 setProfile(teacherProfile);
-                setAllSections(sections);
                 setAssignments(assignRes.data || []);
                 setExams(examsRes.data || []);
                 setTimetable(timetableRes.data || []);
                 setMessages(messageRes.data || []);
                 setSubjects(subjectsRes.data || []);
 
-                const mine = sections.filter((s) => s.class_teacher === teacherProfile?.id);
                 setMyClasses(mine);
 
                 if (mine.length > 0) {
@@ -564,7 +561,7 @@ const TeacherDashboard = () => {
                                 </div>
                             </div>
                         ))}
-                        {myClasses.length === 0 ? <div style={{ color: palette.muted, fontWeight: 900 }}>No class assigned as class teacher.</div> : null}
+                        {myClasses.length === 0 ? <div style={{ color: palette.muted, fontWeight: 900 }}>No classes assigned to you (class teacher or subject).</div> : null}
                     </div>
                 </Card>
 

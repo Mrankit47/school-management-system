@@ -2,7 +2,8 @@ from rest_framework import views, permissions, status
 from rest_framework.response import Response
 from django.db import transaction
 
-from core.permissions import IsAdmin
+from core.permissions import IsAdmin, IsTeacher
+from .teacher_access import teacher_accessible_class_sections_queryset
 from students.models import StudentProfile
 from django.db.models import Q
 
@@ -28,6 +29,23 @@ class ClassSectionListView(views.APIView):
         if not request.user.is_superuser:
             qs = qs.filter(school=school)
         
+        serializer = ClassSectionSerializer(qs, many=True)
+        return Response(serializer.data)
+
+
+class TeacherTeachingSectionsView(views.APIView):
+    """
+    Sections the current teacher may access: class teacher OR subject teacher (TeacherAssignment / Subject.teachers).
+    """
+
+    permission_classes = [IsTeacher]
+
+    def get(self, request):
+        profile = getattr(request.user, 'teacher_profile', None)
+        if not profile:
+            return Response([])
+        school = None if request.user.is_superuser else request.user.school
+        qs = teacher_accessible_class_sections_queryset(profile, school)
         serializer = ClassSectionSerializer(qs, many=True)
         return Response(serializer.data)
 

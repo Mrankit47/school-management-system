@@ -166,7 +166,7 @@ const AssignTeacher = () => {
         <div style={{ padding: '20px' }}>
             <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px' }}>
                 <div>
-                    <h1 style={{ margin: 0 }}>Assign Teacher to Class</h1>
+                    <h1 style={{ margin: 0, fontSize: '32px', fontWeight: 1000, color: '#0f172a' }}>Assign Teacher to Class</h1>
                     <div style={{ color: '#6b7280', marginTop: '6px', fontSize: '13px' }}>
                         Link teacher with class and subject in one place.
                     </div>

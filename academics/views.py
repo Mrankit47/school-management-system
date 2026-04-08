@@ -1,8 +1,9 @@
+import logging
 from collections import defaultdict
 from datetime import date
 from decimal import Decimal, InvalidOperation
 
-from django.db import transaction
+from django.db import IntegrityError, transaction
 from django.db.models import Q
 from rest_framework import permissions, status, views
 from rest_framework.response import Response
@@ -13,6 +14,47 @@ from .serializers import ExamScheduleSerializer, ExamSerializer, ResultSerialize
 from .pdf_marksheet import build_student_marksheet_pdf, _pct_to_grade
 from django.conf import settings
 from django.http import HttpResponse
+from communication.models import Notification
+from students.models import StudentProfile
+
+logger = logging.getLogger(__name__)
+
+
+def _exam_class_label(exam):
+    cs = getattr(exam, 'class_section', None)
+    if not cs:
+        return 'your class'
+    try:
+        return f"{cs.class_ref.name} - {cs.section_ref.name}"
+    except Exception:
+        return 'your class'
+
+
+def _notify_class_students(class_section_id, title: str, message: str, related_exam=None):
+    """Never raise — exam/schedule APIs must succeed even if notifications DB is out of date."""
+    try:
+        student_user_ids = list(
+            StudentProfile.objects.filter(class_section_id=class_section_id).values_list('user_id', flat=True)
+        )
+        if not student_user_ids:
+            return 0
+        Notification.objects.bulk_create(
+            [
+                Notification(
+                    user_id=uid,
+                    target_role='student',
+                    title=title,
+                    message=message,
+                    is_read=False,
+                    related_exam=related_exam,
+                )
+                for uid in student_user_ids
+            ]
+        )
+        return len(student_user_ids)
+    except Exception:
+        logger.exception('Failed to create student notifications (migrate communication app?)')
+        return 0
 
 
 class ExamListCreateView(views.APIView):
@@ -38,6 +80,22 @@ class ExamListCreateView(views.APIView):
         serializer = ExamSerializer(data=request.data)
         if serializer.is_valid():
             exam = serializer.save()
+            exam = Exam.objects.select_related('class_section__class_ref', 'class_section__section_ref').get(pk=exam.pk)
+            if exam.start_date and exam.end_date:
+                date_text = f"{exam.start_date} to {exam.end_date}"
+            else:
+                date_text = str(exam.start_date or exam.date or exam.end_date or 'TBA')
+            class_label = _exam_class_label(exam)
+            msg = (
+                f"{exam.exam_type} — \"{exam.name}\" for {class_label}. "
+                f"Dates: {date_text}. Tap View to open My Exams and see the timetable."
+            )
+            _notify_class_students(
+                exam.class_section_id,
+                title=f"New exam: {exam.name}",
+                message=msg,
+                related_exam=exam,
+            )
             return Response(ExamSerializer(exam).data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -48,12 +106,47 @@ class ExamDetailView(views.APIView):
     def patch(self, request, exam_id: int):
         if request.user.role not in ('admin', 'teacher'):
             return Response({'error': 'Not allowed'}, status=status.HTTP_403_FORBIDDEN)
-        exam = Exam.objects.filter(id=exam_id).first()
+        exam = (
+            Exam.objects.select_related('class_section__class_ref', 'class_section__section_ref')
+            .filter(id=exam_id)
+            .first()
+        )
         if not exam:
             return Response({'error': 'Exam not found'}, status=status.HTTP_404_NOT_FOUND)
+        old = {
+            'name': exam.name,
+            'start_date': exam.start_date,
+            'end_date': exam.end_date,
+            'exam_type': exam.exam_type,
+            'class_section_id': exam.class_section_id,
+        }
         serializer = ExamSerializer(exam, data=request.data, partial=True)
         if serializer.is_valid():
             exam = serializer.save()
+            exam = Exam.objects.select_related('class_section__class_ref', 'class_section__section_ref').get(pk=exam.pk)
+            changed = (
+                old['name'] != exam.name
+                or old['start_date'] != exam.start_date
+                or old['end_date'] != exam.end_date
+                or old['exam_type'] != exam.exam_type
+                or old['class_section_id'] != exam.class_section_id
+            )
+            if changed:
+                if exam.start_date and exam.end_date:
+                    date_text = f"{exam.start_date} to {exam.end_date}"
+                else:
+                    date_text = str(exam.start_date or exam.date or exam.end_date or 'TBA')
+                class_label = _exam_class_label(exam)
+                msg = (
+                    f"{exam.exam_type} — \"{exam.name}\" for {class_label} was updated. "
+                    f"Dates: {date_text}. Check My Exams for details."
+                )
+                _notify_class_students(
+                    exam.class_section_id,
+                    title=f"Exam updated: {exam.name}",
+                    message=msg,
+                    related_exam=exam,
+                )
             return Response(ExamSerializer(exam).data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -115,7 +208,26 @@ class ExamScheduleListCreateView(views.APIView):
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
-        row = serializer.save()
+        try:
+            row = serializer.save()
+        except IntegrityError:
+            return Response(
+                {'error': 'This subject is already on the timetable for this exam. Pick another subject or edit the existing row.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        exam = Exam.objects.select_related('class_section__class_ref', 'class_section__section_ref').get(pk=exam.pk)
+        class_label = _exam_class_label(exam)
+        _notify_class_students(
+            exam.class_section_id,
+            title=f"Timetable: {exam.name}",
+            message=(
+                f"{exam.exam_type} | {class_label} | {row.subject} on {row.exam_date} "
+                f"({row.start_time.strftime('%H:%M')}–{row.end_time.strftime('%H:%M')}). "
+                f"See My Exams for full schedule."
+            ),
+            related_exam=exam,
+        )
         return Response(ExamScheduleSerializer(row).data, status=status.HTTP_201_CREATED)
 
 
@@ -153,6 +265,18 @@ class ExamScheduleDetailView(views.APIView):
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
+        exam = row.exam
+        exam = Exam.objects.select_related('class_section__class_ref', 'class_section__section_ref').get(pk=exam.pk)
+        class_label = _exam_class_label(exam)
+        _notify_class_students(
+            exam.class_section_id,
+            title=f"Timetable updated: {exam.name}",
+            message=(
+                f"{exam.exam_type} | {class_label} | {row.subject} on {row.exam_date} "
+                f"({row.start_time.strftime('%H:%M')}–{row.end_time.strftime('%H:%M')})."
+            ),
+            related_exam=exam,
+        )
         return Response(ExamScheduleSerializer(row).data)
 
     def delete(self, request, schedule_id: int):
