@@ -60,15 +60,30 @@ class DealerSchoolSerializer(serializers.ModelSerializer):
     admin_username = serializers.CharField(write_only=True, required=False)
     admin_password = serializers.CharField(write_only=True, required=False)
     admin_phone = serializers.CharField(write_only=True, required=False)
+    student_count = serializers.SerializerMethodField()
+    teacher_count = serializers.SerializerMethodField()
 
     class Meta:
         model = School
         fields = [
             'id', 'name', 'school_id', 'location', 'logo', 'about', 
             'contact_email', 'is_active', 'created_at',
-            'admin_name', 'admin_email', 'admin_username', 'admin_password', 'admin_phone'
+            'admin_name', 'admin_email', 'admin_username', 'admin_password', 'admin_phone',
+            'student_count', 'teacher_count'
         ]
         read_only_fields = ['created_at']
+
+    def get_student_count(self, obj):
+        try:
+            return obj.students.count()
+        except:
+            return 0
+
+    def get_teacher_count(self, obj):
+        try:
+            return obj.user_set.filter(role='teacher').count()
+        except:
+            return 0
 
     def validate_location(self, value):
         dealer = self.context['request'].user.dealer_profile
