@@ -140,21 +140,23 @@ export default function SaaSLanding() {
                 <span className="text-[10px] opacity-50 group-hover:rotate-180 transition-transform">▼</span>
               </button>
               
-              <div className="absolute top-full right-0 mt-2 w-48 bg-white border border-slate-100 rounded-2xl shadow-2xl opacity-0 translate-y-2 pointer-events-none group-hover:opacity-100 group-hover:translate-y-0 group-hover:pointer-events-auto transition-all duration-300 z-[60] overflow-hidden p-2">
-                <button 
-                  onClick={() => navigate('/superadmin/login')}
-                  className="w-full text-left px-4 py-3 text-xs font-bold text-slate-600 hover:bg-slate-50 hover:text-school-navy rounded-xl transition-colors flex items-center gap-3"
-                >
-                  <span className="w-6 h-6 bg-blue-50 rounded-lg flex items-center justify-center text-[10px]">🏢</span>
-                  Superadmin Login
-                </button>
-                <button 
-                  onClick={() => navigate('/dealer-login')}
-                  className="w-full text-left px-4 py-3 text-xs font-bold text-slate-600 hover:bg-slate-50 hover:text-school-navy rounded-xl transition-colors flex items-center gap-3"
-                >
-                  <span className="w-6 h-6 bg-indigo-50 rounded-lg flex items-center justify-center text-[10px]">💼</span>
-                  Dealer Login
-                </button>
+              <div className="absolute top-full right-0 pt-2 w-48 opacity-0 translate-y-2 pointer-events-none group-hover:opacity-100 group-hover:translate-y-0 group-hover:pointer-events-auto transition-all duration-300 z-[60]">
+                <div className="bg-white border border-slate-100 rounded-2xl shadow-2xl overflow-hidden p-2">
+                  <button 
+                    onClick={() => navigate('/superadmin/login')}
+                    className="w-full text-left px-4 py-3 text-xs font-bold text-slate-600 hover:bg-slate-50 hover:text-school-navy rounded-xl transition-colors flex items-center gap-3"
+                  >
+                    <span className="w-6 h-6 bg-blue-50 rounded-lg flex items-center justify-center text-[10px]">🏢</span>
+                    Superadmin Login
+                  </button>
+                  <button 
+                    onClick={() => navigate('/dealer-login')}
+                    className="w-full text-left px-4 py-3 text-xs font-bold text-slate-600 hover:bg-slate-50 hover:text-school-navy rounded-xl transition-colors flex items-center gap-3"
+                  >
+                    <span className="w-6 h-6 bg-indigo-50 rounded-lg flex items-center justify-center text-[10px]">💼</span>
+                    Dealer Login
+                  </button>
+                </div>
               </div>
             </div>
             <form onSubmit={handleSchoolSearch} className="relative group">
