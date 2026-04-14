@@ -34,13 +34,8 @@ def _next_employee_id():
 
 def _teacher_role_label(profile: TeacherProfile) -> str:
     has_class = ClassSection.objects.filter(class_teacher=profile).exists()
-    has_subjects = profile.subjects.exists() or TeacherAssignment.objects.filter(teacher=profile).exists()
-    if has_class and has_subjects:
-        return 'Class Teacher & Subject Teacher'
     if has_class:
         return 'Class Teacher'
-    if has_subjects:
-        return 'Subject Teacher'
     return 'Teacher'
 
 

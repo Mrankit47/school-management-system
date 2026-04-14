@@ -11,31 +11,38 @@ function asList(payload) {
 
 const UploadResult = () => {
     const [exams, setExams] = useState([]);
-    const [students, setStudents] = useState([]);
-    /** ClassSection rows where this teacher is class_teacher (from classes/sections/) */
     const [mySections, setMySections] = useState([]);
-
-    const [allSubjects, setAllSubjects] = useState([]);
-
+    const [students, setStudents] = useState([]);
+    const [teacherSubjects, setTeacherSubjects] = useState([]);
     const [examId, setExamId] = useState('');
-    /** MainClass name for subject filter (e.g. "10", "3") */
-    const [className, setClassName] = useState('');
-    /** Selected ClassSection id for student list */
+    const [examTypeFilter, setExamTypeFilter] = useState('');
     const [selectedSectionId, setSelectedSectionId] = useState('');
-    const [studentId, setStudentId] = useState('');
-
-    const [rowMaxMarks, setRowMaxMarks] = useState({});
-    const [rowMarks, setRowMarks] = useState({});
+    const [selectedStudentId, setSelectedStudentId] = useState('');
+    const [selectedSubject, setSelectedSubject] = useState('');
+    const [studentMarks, setStudentMarks] = useState({});
 
     const [loading, setLoading] = useState(false);
     const [submitting, setSubmitting] = useState(false);
     const [topError, setTopError] = useState('');
-    const [attemptedSubmit, setAttemptedSubmit] = useState(false);
 
-    const filteredSubjects = useMemo(() => {
-        if (!className) return [];
-        return (allSubjects || []).filter((s) => s.class_name === className);
-    }, [allSubjects, className]);
+    const examOptions = useMemo(() => {
+        const allowed = ['Midterm', 'Final', 'Unit Test'];
+        return (exams || []).filter((e) => allowed.includes(e.exam_type) && (!examTypeFilter || e.exam_type === examTypeFilter));
+    }, [exams, examTypeFilter]);
+    const selectedExam = useMemo(
+        () => (exams || []).find((e) => String(e.id) === String(examId)) || null,
+        [exams, examId]
+    );
+
+    useEffect(() => {
+        if (!examOptions.length) {
+            setExamId('');
+            return;
+        }
+        if (!examId || !examOptions.some((e) => String(e.id) === String(examId))) {
+            setExamId(String(examOptions[0].id));
+        }
+    }, [examOptions, examId]);
 
     const parseNumber = (v) => {
         if (v === '' || v === null || v === undefined) return null;
@@ -45,69 +52,23 @@ const UploadResult = () => {
 
     const marksErrors = useMemo(() => {
         const errors = {};
-        (filteredSubjects || []).forEach((s) => {
-            const maxMarksRaw = rowMaxMarks[s.id];
-            const marksRaw = rowMarks[s.id];
-
-            const maxMarks = parseNumber(maxMarksRaw);
-            const marks = parseNumber(marksRaw);
-
-            if (maxMarks === null) {
-                errors[s.id] = { ...(errors[s.id] || {}), maxMarks: 'Max marks required' };
-                return;
-            }
+        students.filter((s) => String(s.id) === String(selectedStudentId)).forEach((s) => {
+            const marks = parseNumber(studentMarks[s.id]);
             if (marks === null) {
-                errors[s.id] = { ...(errors[s.id] || {}), marks: 'Marks obtained required' };
-                return;
-            }
-
-            if (maxMarks < 0) {
-                errors[s.id] = { ...(errors[s.id] || {}), maxMarks: 'Max marks cannot be negative' };
+                errors[s.id] = 'Marks are required';
                 return;
             }
             if (marks < 0) {
-                errors[s.id] = { ...(errors[s.id] || {}), marks: 'Marks cannot be negative' };
+                errors[s.id] = 'Marks cannot be negative';
                 return;
             }
-            if (marks > maxMarks) {
-                errors[s.id] = { ...(errors[s.id] || {}), marks: 'Marks cannot be greater than max marks' };
+            const examMax = parseNumber(selectedExam?.total_marks);
+            if (examMax !== null && marks > examMax) {
+                errors[s.id] = `Marks cannot exceed exam total (${examMax})`;
             }
         });
         return errors;
-    }, [filteredSubjects, rowMaxMarks, rowMarks]);
-
-    const totals = useMemo(() => {
-        let totalObtained = 0;
-        let totalMax = 0;
-        let validRows = 0;
-        let invalidRows = 0;
-
-        (filteredSubjects || []).forEach((s) => {
-            const maxMarks = parseNumber(rowMaxMarks[s.id]);
-            const marks = parseNumber(rowMarks[s.id]);
-
-            if (maxMarks === null || marks === null) return;
-            validRows += 1;
-            totalObtained += marks;
-            totalMax += maxMarks;
-            if (marks > maxMarks) invalidRows += 1;
-        });
-
-        const percentage = totalMax > 0 ? (totalObtained / totalMax) * 100 : 0;
-        return { totalObtained, totalMax, percentage, validRows, invalidRows };
-    }, [filteredSubjects, rowMaxMarks, rowMarks]);
-
-    const gradeInfo = useMemo(() => {
-        const pct = totals.percentage || 0;
-        const pass = pct >= 33;
-        let grade = 'F';
-        if (pct >= 90) grade = 'A';
-        else if (pct >= 75) grade = 'B';
-        else if (pct >= 60) grade = 'C';
-        else if (pct >= 33) grade = 'D';
-
-        return { pass, grade, pct };
-    }, [totals.percentage]);
+    }, [students, studentMarks, selectedStudentId, selectedExam]);
 
     useEffect(() => {
         let cancelled = false;
@@ -115,29 +76,37 @@ const UploadResult = () => {
             setLoading(true);
             setTopError('');
             try {
-                const [secRes, examsRes, subRes] = await Promise.all([
-                    api.get('classes/teaching-sections/'),
-                    api.get('academics/exams/'),
-                    api.get('subjects/', { params: { status: 'Active' } }),
-                ]);
+                const secRes = await api.get('classes/teaching-sections/');
                 if (cancelled) return;
-
-                setAllSubjects(asList(subRes.data));
-
                 const teachingSections = asList(secRes.data);
-                const allExams = asList(examsRes.data);
-
                 const mine = teachingSections.map((c) => ({
                     id: c.id,
                     class_name: c.class_name,
                     section_name: c.section_name,
                 }));
                 setMySections(mine);
-
-                // Exams: show full list again (like before). Filtering to "only my class" hid every exam when class_teacher id did not match strictly.
-                setExams(allExams);
             } catch {
-                if (!cancelled) setTopError('Failed to load meta data');
+                // Fallback: at least allow section list from generic endpoint.
+                try {
+                    const altSec = await api.get('classes/sections/');
+                    if (!cancelled) {
+                        const rows = asList(altSec.data).map((c) => ({
+                            id: c.id,
+                            class_name: c.class_name,
+                            section_name: c.section_name,
+                        }));
+                        setMySections(rows);
+                    }
+                } catch {
+                    if (!cancelled) setTopError('Failed to load class data');
+                }
+            }
+
+            try {
+                const examsRes = await api.get('academics/exams/');
+                if (!cancelled) setExams(asList(examsRes.data));
+            } catch {
+                if (!cancelled) setTopError((prev) => prev || 'Failed to load exam data');
             } finally {
                 if (!cancelled) setLoading(false);
             }
@@ -147,7 +116,6 @@ const UploadResult = () => {
         };
     }, []);
 
-    // When exam is selected: sync class section + marks rows (do not clear section when no exam — teacher may pick class first).
     useEffect(() => {
         if (!examId) {
             return;
@@ -155,18 +123,13 @@ const UploadResult = () => {
         const ex = exams.find((e) => e.id === parseInt(examId, 10));
         if (!ex) return;
 
-        setAttemptedSubmit(false);
-        setStudentId('');
-        setRowMaxMarks({});
-        setRowMarks({});
+        setStudentMarks({});
+        setSelectedStudentId('');
 
         const sid = ex.class_section;
         setSelectedSectionId(sid != null ? String(sid) : '');
-        const sec = mySections.find((s) => Number(s.id) === Number(sid));
-        setClassName(sec?.class_name || ex.class_name || '');
     }, [examId, exams, mySections]);
 
-    // Load students for selected class section (backend allows only class teacher for this class).
     useEffect(() => {
         if (!selectedSectionId) {
             setStudents([]);
@@ -199,28 +162,33 @@ const UploadResult = () => {
     }, [selectedSectionId]);
 
     useEffect(() => {
-        // Initialize rows when filtered subjects change
-        if (!filteredSubjects.length) {
-            setRowMaxMarks({});
-            setRowMarks({});
+        if (!selectedSectionId) {
+            setTeacherSubjects([]);
+            setSelectedSubject('');
             return;
         }
-
-        const nextMax = { ...rowMaxMarks };
-        const nextMarks = { ...rowMarks };
-        filteredSubjects.forEach((s) => {
-            if (nextMax[s.id] === undefined) nextMax[s.id] = '';
-            if (nextMarks[s.id] === undefined) nextMarks[s.id] = '';
-        });
-
-        setRowMaxMarks(nextMax);
-        setRowMarks(nextMarks);
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [filteredSubjects]);
+        api.get(`academics/class-sections/${selectedSectionId}/teacher-subjects/`)
+            .then((res) => {
+                const rows = asList(res.data);
+                const uniqueByName = Array.from(
+                    new Map(rows.map((r) => [String(r.name || '').toLowerCase(), r])).values()
+                );
+                setTeacherSubjects(uniqueByName);
+                if (uniqueByName.length > 0 && !uniqueByName.some((r) => r.name === selectedSubject)) {
+                    // Auto pick first assigned subject so table row always shows a subject.
+                    setSelectedSubject(uniqueByName[0].name);
+                } else if (uniqueByName.length === 0) {
+                    setSelectedSubject('');
+                }
+            })
+            .catch(() => {
+                setTeacherSubjects([]);
+                setSelectedSubject('');
+            });
+    }, [selectedSectionId]);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        setAttemptedSubmit(true);
         setTopError('');
 
         if (!examId) {
@@ -236,39 +204,36 @@ const UploadResult = () => {
             setTopError('Selected class must match the exam’s class.');
             return;
         }
-        if (!className) {
-            setTopError('Select Class');
+        if (!selectedSubject) {
+            setTopError('Select Subject');
             return;
         }
-        if (!studentId) {
+        if (!selectedStudentId) {
             setTopError('Select Student');
             return;
         }
-        if (!filteredSubjects.length) {
-            setTopError('No active subjects found for this class');
+        if (!students.length) {
+            setTopError('No students found for selected class');
             return;
         }
 
         const errorsExist = Object.keys(marksErrors || {}).length > 0;
         if (errorsExist) {
-            setTopError('Please fix marks entry errors');
+            setTopError('');
             return;
         }
 
-        const resultsPayload = filteredSubjects.map((s) => {
-            const maxMarks = rowMaxMarks[s.id];
-            const marks = rowMarks[s.id];
-            return {
-                subject: s.name,
-                marks,
-                max_marks: maxMarks,
-            };
-        });
-
         const payload = {
             exam: examId,
-            student: studentId,
-            results: resultsPayload,
+            class_section: selectedSectionId,
+            subject: selectedSubject,
+            max_marks: parseNumber(selectedExam?.total_marks) || 0,
+            entries: [
+                {
+                    student: selectedStudentId,
+                    marks: parseNumber(studentMarks[selectedStudentId]) || 0,
+                },
+            ],
         };
 
         setSubmitting(true);
@@ -303,7 +268,7 @@ const UploadResult = () => {
                     <div>
                         <h1 style={{ margin: 0, fontSize: '22px' }}>Upload Student Results</h1>
                         <div style={{ marginTop: '6px', color: '#6b7280', fontSize: '13px', fontWeight: 700 }}>
-                            Exam -&gt; Class -&gt; Student, then enter marks for all subjects.
+                            Select exam type, class, and assigned subject, then enter raw subject marks student-wise.
                         </div>
                     </div>
                     {topError && (
@@ -320,27 +285,29 @@ const UploadResult = () => {
                                 Exam Details
                             </div>
                             <select
-                                value={examId}
+                                value={examTypeFilter}
                                 onChange={(e) => {
-                                    setExamId(e.target.value);
-                                    setTopError('');
+                                    setExamTypeFilter(e.target.value);
+                                    setExamId('');
                                 }}
+                                style={{ width: '100%', padding: '10px 12px', border: '1px solid #e5e7eb', borderRadius: '12px', fontSize: '13px', outline: 'none', backgroundColor: '#fff', marginBottom: '8px' }}
+                            >
+                                <option value="">-- Select Exam Type --</option>
+                                <option value="Midterm">Midterm</option>
+                                <option value="Final">Final</option>
+                                <option value="Unit Test">Unit Test</option>
+                            </select>
+                            <select
+                                value={examId}
+                                onChange={(e) => setExamId(e.target.value)}
                                 required
-                                style={{ ...{
-                                    width: '100%',
-                                    padding: '10px 12px',
-                                    border: '1px solid #e5e7eb',
-                                    borderRadius: '12px',
-                                    fontSize: '13px',
-                                    outline: 'none',
-                                    backgroundColor: '#fff',
-                                } }}
-                                disabled={loading || submitting}
+                                style={{ width: '100%', padding: '10px 12px', border: '1px solid #e5e7eb', borderRadius: '12px', fontSize: '13px', outline: 'none', backgroundColor: '#fff' }}
+                                disabled={loading || submitting || examOptions.length === 0}
                             >
                                 <option value="">-- Select Exam --</option>
-                                {exams.map((e) => (
-                                    <option key={e.id} value={e.id}>
-                                        {e.name} ({e.class_section_display || `${e.class_name}${e.section_name ? ` - ${e.section_name}` : ''}`})
+                                {examOptions.map((e) => (
+                                    <option key={e.id} value={String(e.id)}>
+                                        {e.name} ({e.class_section_display || `${e.class_name}-${e.section_name}`})
                                     </option>
                                 ))}
                             </select>
@@ -355,10 +322,8 @@ const UploadResult = () => {
                                 onChange={(e) => {
                                     const sid = e.target.value;
                                     setSelectedSectionId(sid);
-                                    setStudentId('');
+                                    setSelectedStudentId('');
                                     setTopError('');
-                                    const sec = mySections.find((s) => String(s.id) === sid);
-                                    setClassName(sec?.class_name || '');
                                     if (examId) {
                                         const ex = exams.find((x) => x.id === parseInt(examId, 10));
                                         if (ex && String(ex.class_section) !== sid) {
@@ -378,14 +343,13 @@ const UploadResult = () => {
                                 ))}
                             </select>
                         </div>
-
                         <div>
                             <div style={{ fontSize: '12px', color: '#6b7280', fontWeight: 800, marginBottom: '6px', textTransform: 'uppercase' }}>
                                 Select Student
                             </div>
                             <select
-                                value={studentId}
-                                onChange={(e) => setStudentId(e.target.value)}
+                                value={selectedStudentId}
+                                onChange={(e) => setSelectedStudentId(e.target.value)}
                                 required
                                 style={{ width: '100%', padding: '10px 12px', border: '1px solid #e5e7eb', borderRadius: '12px', fontSize: '13px', outline: 'none', backgroundColor: '#fff' }}
                                 disabled={!selectedSectionId || loading || submitting || students.length === 0}
@@ -399,7 +363,25 @@ const UploadResult = () => {
                             </select>
                         </div>
                     </div>
-
+                    <div>
+                        <div style={{ fontSize: '12px', color: '#6b7280', fontWeight: 800, marginBottom: '6px', textTransform: 'uppercase' }}>
+                            Select Subject
+                        </div>
+                        <select
+                            value={selectedSubject}
+                            onChange={(e) => setSelectedSubject(e.target.value)}
+                            required
+                            style={{ width: '320px', padding: '10px 12px', border: '1px solid #e5e7eb', borderRadius: '12px', fontSize: '13px', outline: 'none', backgroundColor: '#fff' }}
+                            disabled={!selectedSectionId || loading || submitting || teacherSubjects.length === 0}
+                        >
+                            <option value="">-- Select Subject --</option>
+                            {teacherSubjects.map((s) => (
+                                <option key={s.id} value={s.name}>
+                                    {s.name}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
                     <div style={{ borderTop: '1px solid #eef2f7', paddingTop: '16px' }}>
                         <div style={{ fontSize: '13px', color: '#6b7280', fontWeight: 900, textTransform: 'uppercase', marginBottom: '10px' }}>
                             Marks Entry
@@ -409,94 +391,56 @@ const UploadResult = () => {
                             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                                 <thead>
                                     <tr style={{ backgroundColor: '#f2f4f7' }}>
+                                        <th style={{ padding: '12px 10px', textAlign: 'left' }}>Student</th>
                                         <th style={{ padding: '12px 10px', textAlign: 'left' }}>Subject</th>
-                                        <th style={{ padding: '12px 10px', textAlign: 'left' }}>Max Marks</th>
-                                        <th style={{ padding: '12px 10px', textAlign: 'left' }}>Marks Obtained</th>
+                                        <th style={{ padding: '12px 10px', textAlign: 'left' }}>Marks</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {filteredSubjects.map((s) => {
-                                        const maxErr = attemptedSubmit ? marksErrors?.[s.id]?.maxMarks : undefined;
-                                        const marksErr = attemptedSubmit ? marksErrors?.[s.id]?.marks : undefined;
-
+                                    {students.filter((s) => String(s.id) === String(selectedStudentId)).map((s) => {
+                                        const marksErr = marksErrors?.[s.id];
                                         return (
                                             <tr key={s.id} style={{ borderTop: '1px solid #eef2f7' }}>
-                                                <td style={{ padding: '12px 10px', fontWeight: 900 }}>
-                                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                                                        <div>{s.name}</div>
-                                                        {s.teachers?.length ? (
-                                                            <div style={{ color: '#6b7280', fontSize: '12px', fontWeight: 800 }}>
-                                                                {s.teachers.map((t) => t.name).filter(Boolean).join(', ')}
-                                                            </div>
-                                                        ) : null}
+                                                <td style={{ padding: '12px 10px', fontWeight: 900 }}>{s.name}</td>
+                                                <td style={{ padding: '12px 10px', fontWeight: 800 }}>
+                                                    {selectedSubject || '—'}
+                                                </td>
+                                            <td style={{ padding: '12px 10px', width: '220px' }}>
+                                                <input
+                                                    type="number"
+                                                    value={studentMarks[s.id] ?? ''}
+                                                    min="0"
+                                                    onChange={(e) => {
+                                                        const v = e.target.value;
+                                                        setStudentMarks((prev) => ({ ...prev, [s.id]: v }));
+                                                    }}
+                                                    style={{ width: '100%', padding: '10px 12px', border: `1px solid ${marksErr ? '#fca5a5' : '#e5e7eb'}`, borderRadius: '10px', fontSize: '13px', outline: 'none', backgroundColor: '#fff' }}
+                                                />
+                                                {marksErr ? (
+                                                    <div style={{ marginTop: '6px', color: '#b91c1c', fontSize: '12px', fontWeight: 900 }}>
+                                                        {marksErr}
                                                     </div>
-                                                </td>
-                                                <td style={{ padding: '12px 10px', width: '170px' }}>
-                                                    <input
-                                                        type="number"
-                                                        value={rowMaxMarks[s.id] ?? ''}
-                                                        min="0"
-                                                        onChange={(e) => {
-                                                            const v = e.target.value;
-                                                            setRowMaxMarks((prev) => ({ ...prev, [s.id]: v }));
-                                                        }}
-                                                        style={{ width: '100%', padding: '10px 12px', border: `1px solid ${maxErr ? '#fca5a5' : '#e5e7eb'}`, borderRadius: '10px', fontSize: '13px', outline: 'none', backgroundColor: '#fff' }}
-                                                    />
-                                                    {maxErr ? (
-                                                        <div style={{ marginTop: '6px', color: '#b91c1c', fontSize: '12px', fontWeight: 900 }}>
-                                                            {maxErr}
-                                                        </div>
-                                                    ) : null}
-                                                </td>
-                                                <td style={{ padding: '12px 10px', width: '190px' }}>
-                                                    <input
-                                                        type="number"
-                                                        value={rowMarks[s.id] ?? ''}
-                                                        min="0"
-                                                        onChange={(e) => {
-                                                            const v = e.target.value;
-                                                            setRowMarks((prev) => ({ ...prev, [s.id]: v }));
-                                                        }}
-                                                        style={{ width: '100%', padding: '10px 12px', border: `1px solid ${marksErr ? '#fca5a5' : '#e5e7eb'}`, borderRadius: '10px', fontSize: '13px', outline: 'none', backgroundColor: '#fff' }}
-                                                    />
-                                                    {marksErr ? (
-                                                        <div style={{ marginTop: '6px', color: '#b91c1c', fontSize: '12px', fontWeight: 900 }}>
-                                                            {marksErr}
-                                                        </div>
-                                                    ) : null}
-                                                </td>
+                                                ) : null}
+                                            </td>
                                             </tr>
                                         );
                                     })}
-                                    {filteredSubjects.length === 0 ? (
+                                    {students.length === 0 ? (
                                         <tr>
                                             <td colSpan={3} style={{ padding: '16px 10px', color: '#6b7280', fontWeight: 900 }}>
-                                                No subjects available for this class.
+                                                No students available for this class.
+                                            </td>
+                                        </tr>
+                                    ) : null}
+                                    {!selectedStudentId ? (
+                                        <tr>
+                                            <td colSpan={3} style={{ padding: '16px 10px', color: '#6b7280', fontWeight: 900 }}>
+                                                Select student from dropdown to enter marks.
                                             </td>
                                         </tr>
                                     ) : null}
                                 </tbody>
                             </table>
-                        </div>
-
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px', marginTop: '14px' }}>
-                            <div style={{ border: '1px solid #eef2f7', borderRadius: '14px', padding: '12px', backgroundColor: '#fff' }}>
-                                <div style={{ fontSize: '12px', color: '#6b7280', fontWeight: 900, textTransform: 'uppercase' }}>Total Obtained</div>
-                                <div style={{ marginTop: '6px', fontSize: '18px', fontWeight: 1000, color: '#111827' }}>{totals.totalObtained || 0}</div>
-                            </div>
-                            <div style={{ border: '1px solid #eef2f7', borderRadius: '14px', padding: '12px', backgroundColor: '#fff' }}>
-                                <div style={{ fontSize: '12px', color: '#6b7280', fontWeight: 900, textTransform: 'uppercase' }}>Total Max</div>
-                                <div style={{ marginTop: '6px', fontSize: '18px', fontWeight: 1000, color: '#111827' }}>{totals.totalMax || 0}</div>
-                            </div>
-                            <div style={{ border: '1px solid #eef2f7', borderRadius: '14px', padding: '12px', backgroundColor: '#fff' }}>
-                                <div style={{ fontSize: '12px', color: '#6b7280', fontWeight: 900, textTransform: 'uppercase' }}>Percentage</div>
-                                <div style={{ marginTop: '6px', fontSize: '18px', fontWeight: 1000, color: '#111827' }}>
-                                    {totals.totalMax > 0 ? `${totals.percentage.toFixed(2)}%` : '0%'}
-                                </div>
-                                <div style={{ marginTop: '6px', fontSize: '12px', fontWeight: 900, color: gradeInfo.pass ? '#166534' : '#991b1b' }}>
-                                    {gradeInfo.pass ? `Pass • Grade ${gradeInfo.grade}` : `Fail • Grade ${gradeInfo.grade}`}
-                                </div>
-                            </div>
                         </div>
                     </div>
 

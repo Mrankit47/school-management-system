@@ -33,7 +33,8 @@ const Sidebar = () => {
             icon: '💰',
             subLinks: [
                 { path: '/student/fees', label: 'Fees Receipt' },
-                { path: '/student/ledger', label: 'Student Ledgers' }
+                { path: '/student/ledger', label: 'Student Ledgers' },
+                { path: '/student/finance-cards', label: 'Class Fee Cards' }
             ]
         },
         {
@@ -90,7 +91,14 @@ const Sidebar = () => {
                 { path: '/admin/timetable', label: 'Time Table' },
             ]
         },
-        { path: '/admin/fees', label: 'Finance', icon: '💰' },
+        {
+            label: 'Finance',
+            icon: '💰',
+            subLinks: [
+                { path: '/admin/fees', label: 'Fee Management' },
+                { path: '/admin/finance-cards', label: 'Fee Cards' },
+            ]
+        },
     ];
 
     const links = role === 'student' ? studentLinks : (role === 'teacher' ? teacherLinks : adminLinks);

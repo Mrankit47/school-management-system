@@ -1,5 +1,25 @@
 from rest_framework import serializers
-from .models import FeeStructure, StudentFee, Payment
+from .models import ClassFeeCard, FeeStructure, StudentFee, Payment
+
+
+class ClassFeeCardSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ClassFeeCard
+        fields = [
+            'id',
+            'class_name',
+            'registration_fee',
+            'admission_fee',
+            'tuition_fee',
+            'computer_fee',
+            'annual_charges',
+            'science_fee',
+            'sports_fee',
+            'total_fee',
+            'created_at',
+            'updated_at',
+        ]
+        read_only_fields = ['total_fee', 'created_at', 'updated_at']
 
 
 class FeeStructureSerializer(serializers.ModelSerializer):

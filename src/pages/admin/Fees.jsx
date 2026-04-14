@@ -195,9 +195,9 @@ const AdminFees = () => {
     };
 
     const deleteStructure = async (id) => {
-        if (!window.confirm('Delete this fee structure?')) return;
+        if (!window.confirm('Delete this fee structure? This will also remove linked student fee records for this class.')) return;
         try {
-            await api.delete(`fees/admin/structures/${id}/`);
+            await api.delete(`fees/admin/structures/${id}/?force=1`);
             showMsg('Deleted');
             await loadAll();
         } catch (err) {
