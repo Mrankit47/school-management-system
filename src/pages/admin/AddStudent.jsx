@@ -12,8 +12,11 @@ const AddStudent = () => {
         dob: '',
         gender: '',
         blood_group: '',
-        parent_guardian_name: '',
-        parent_contact_number: '',
+        father_name: '',
+        mother_name: '',
+        father_contact: '',
+        mother_contact: '',
+        bus_no: '',
         address: '',
         date_of_admission: '',
         category: '',
@@ -22,7 +25,8 @@ const AddStudent = () => {
     const [mainSections, setMainSections] = useState([]);
     const [message, setMessage] = useState('');
     const [students, setStudents] = useState([]);
-    const parentPhoneDigits = (formData.parent_contact_number || '').replace(/\D/g, '').slice(0, 10);
+    const fatherPhoneDigits = (formData.father_contact || '').replace(/\D/g, '').slice(0, 10);
+    const motherPhoneDigits = (formData.mother_contact || '').replace(/\D/g, '').slice(0, 10);
     const selectedSection = mainSections.find((s) => String(s.id) === String(formData.section_id));
     const rollPreview = selectedSection?.name ? `101${String(selectedSection.name).trim().charAt(0).toUpperCase()}` : 'Auto (e.g. 101A)';
     const admissionPreview = (() => {
@@ -84,8 +88,12 @@ const AddStudent = () => {
             setMessage('Error: Password and confirm password do not match.');
             return;
         }
-        if (parentPhoneDigits.length !== 10) {
-            setMessage('Error: Parent contact number must be exactly 10 digits.');
+        if (formData.father_contact && fatherPhoneDigits.length !== 10) {
+            setMessage('Error: Father contact number must be exactly 10 digits.');
+            return;
+        }
+        if (formData.mother_contact && motherPhoneDigits.length !== 10) {
+            setMessage('Error: Mother contact number must be exactly 10 digits.');
             return;
         }
         try {
@@ -109,7 +117,8 @@ const AddStudent = () => {
             payload.username = emailLocal ? emailLocal : (generatedFromName && generatedFromName !== '.' ? generatedFromName : 'student');
 
             payload.name = `${formData.first_name} ${formData.last_name}`.trim();
-            payload.parent_contact_number = `+91${parentPhoneDigits}`;
+            if (formData.father_contact) payload.father_contact = `+91${fatherPhoneDigits}`;
+            if (formData.mother_contact) payload.mother_contact = `+91${motherPhoneDigits}`;
             await api.post('students/admin-create/', payload);
             setMessage('Student created successfully!');
             await fetchStudents();
@@ -127,8 +136,11 @@ const AddStudent = () => {
                 dob: '',
                 gender: '',
                 blood_group: '',
-                parent_guardian_name: '',
-                parent_contact_number: '',
+                father_name: '',
+                mother_name: '',
+                father_contact: '',
+                mother_contact: '',
+                bus_no: '',
                 address: '',
                 date_of_admission: '',
                 category: '',
@@ -316,41 +328,91 @@ const AddStudent = () => {
                         </div>
                     </div>
 
-                    <div>
-                        <div style={labelStyle}>Parent/Guardian Name</div>
-                        <input
-                            type="text"
-                            placeholder="Parent/Guardian Name"
-                            value={formData.parent_guardian_name}
-                            onChange={(e) => setFormData({ ...formData, parent_guardian_name: e.target.value })}
-                            style={inputStyle}
-                            required
-                        />
-                    </div>
-
-                    <div>
-                        <div style={labelStyle}>Parent Contact Number</div>
-                        <div style={{ display: 'grid', gridTemplateColumns: '70px 1fr', gap: '8px' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                        <div>
+                            <div style={labelStyle}>Father's Name</div>
                             <input
                                 type="text"
-                                value="+91"
-                                disabled
-                                style={{ ...inputStyle, textAlign: 'center', backgroundColor: '#f9fafb', color: '#6b7280' }}
-                            />
-                            <input
-                                type="tel"
-                                inputMode="numeric"
-                                pattern="[0-9]{10}"
-                                placeholder="10-digit number"
-                                value={parentPhoneDigits}
-                                onChange={(e) => {
-                                    const digits = (e.target.value || '').replace(/\D/g, '').slice(0, 10);
-                                    setFormData({ ...formData, parent_contact_number: digits });
-                                }}
+                                placeholder="Father's Name"
+                                value={formData.father_name}
+                                onChange={(e) => setFormData({ ...formData, father_name: e.target.value })}
                                 style={inputStyle}
                                 required
                             />
                         </div>
+                        <div>
+                            <div style={labelStyle}>Mother's Name</div>
+                            <input
+                                type="text"
+                                placeholder="Mother's Name"
+                                value={formData.mother_name}
+                                onChange={(e) => setFormData({ ...formData, mother_name: e.target.value })}
+                                style={inputStyle}
+                                required
+                            />
+                        </div>
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                        <div>
+                            <div style={labelStyle}>Father's Contact Number</div>
+                            <div style={{ display: 'grid', gridTemplateColumns: '70px 1fr', gap: '8px' }}>
+                                <input
+                                    type="text"
+                                    value="+91"
+                                    disabled
+                                    style={{ ...inputStyle, textAlign: 'center', backgroundColor: '#f9fafb', color: '#6b7280' }}
+                                />
+                                <input
+                                    type="tel"
+                                    inputMode="numeric"
+                                    pattern="[0-9]{10}"
+                                    placeholder="10-digit number"
+                                    value={fatherPhoneDigits}
+                                    onChange={(e) => {
+                                        const digits = (e.target.value || '').replace(/\D/g, '').slice(0, 10);
+                                        setFormData({ ...formData, father_contact: digits });
+                                    }}
+                                    style={inputStyle}
+                                    required
+                                />
+                            </div>
+                        </div>
+                        <div>
+                            <div style={labelStyle}>Mother's Contact Number</div>
+                            <div style={{ display: 'grid', gridTemplateColumns: '70px 1fr', gap: '8px' }}>
+                                <input
+                                    type="text"
+                                    value="+91"
+                                    disabled
+                                    style={{ ...inputStyle, textAlign: 'center', backgroundColor: '#f9fafb', color: '#6b7280' }}
+                                />
+                                <input
+                                    type="tel"
+                                    inputMode="numeric"
+                                    pattern="[0-9]{10}"
+                                    placeholder="10-digit number"
+                                    value={motherPhoneDigits}
+                                    onChange={(e) => {
+                                        const digits = (e.target.value || '').replace(/\D/g, '').slice(0, 10);
+                                        setFormData({ ...formData, mother_contact: digits });
+                                    }}
+                                    style={inputStyle}
+                                    required
+                                />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <div style={labelStyle}>Bus No.</div>
+                        <input
+                            type="text"
+                            placeholder="Enter Bus Number (Optional)"
+                            value={formData.bus_no}
+                            onChange={(e) => setFormData({ ...formData, bus_no: e.target.value })}
+                            style={inputStyle}
+                        />
                     </div>
 
                     <div>

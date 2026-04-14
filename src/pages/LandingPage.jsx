@@ -152,8 +152,8 @@ const roles = [
         <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
       </svg>
     ),
-    role: 'Student',
-    desc: 'Access your results, timetable, assignments, attendance records, and notifications in one secure place.',
+    role: 'Parent',
+    desc: 'Access results, timetable, assignments, attendance records, and notifications for your child in one place.',
   },
 ];
 
@@ -314,7 +314,7 @@ export default function LandingPage() {
                 {[
                   { label: 'As Admin', role: 'admin' },
                   { label: 'As Teacher', role: 'teacher' },
-                  { label: 'As Student', role: 'student' },
+                  { label: 'As Parent', role: 'student' },
                 ].map((opt) => (
                   <button
                     key={opt.role}
@@ -347,7 +347,7 @@ export default function LandingPage() {
               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-1">Login Portals</p>
               <button onClick={() => navigate(`/school/${school.school_id}/login?role=admin`)} className="flex items-center justify-between px-4 py-2 bg-slate-50 rounded-xl text-sm font-bold text-school-navy">Admin Portal <span>→</span></button>
               <button onClick={() => navigate(`/school/${school.school_id}/login?role=teacher`)} className="flex items-center justify-between px-4 py-2 bg-slate-50 rounded-xl text-sm font-bold text-school-blue">Teacher Portal <span>→</span></button>
-              <button onClick={() => navigate(`/school/${school.school_id}/login?role=student`)} className="flex items-center justify-between px-4 py-2 bg-slate-50 rounded-xl text-sm font-bold text-school-sky">Student Portal <span>→</span></button>
+              <button onClick={() => navigate(`/school/${school.school_id}/login?role=student`)} className="flex items-center justify-between px-4 py-2 bg-slate-50 rounded-xl text-sm font-bold text-school-sky">Parent Portal <span>→</span></button>
             </div>
           </div>
         )}
@@ -562,7 +562,7 @@ export default function LandingPage() {
             <div>
               <p className="text-xs font-semibold uppercase tracking-wider text-school-body mb-4">Portals</p>
               <ul className="space-y-2">
-                {['Admin', 'Teacher', 'Student'].map(r => (
+                {['Admin', 'Teacher', 'Parent'].map(r => (
                   <li key={r}>
                     <button onClick={() => navigate(`/school/${school.school_id}/login?role=${r.toLowerCase()}`)} className="text-sm text-school-body hover:text-school-navy transition-colors">
                       {r} Login

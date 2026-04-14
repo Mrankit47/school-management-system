@@ -26,7 +26,7 @@ const Login = () => {
 
     // Get the expected role from URL (e.g., /school/:id/login?role=admin)
     const expectedRole = searchParams.get('role') || 'student'; 
-    const roleTitle = expectedRole.charAt(0).toUpperCase() + expectedRole.slice(1);
+    const roleTitle = expectedRole === 'student' ? 'Parent' : expectedRole.charAt(0).toUpperCase() + expectedRole.slice(1);
 
     const handleLogin = async (e) => {
         e.preventDefault();

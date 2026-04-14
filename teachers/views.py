@@ -463,8 +463,9 @@ class AdminTeacherCreateView(views.APIView):
     def post(self, request):
         data = request.data
         try:
-            # Check if email already exists
-            if User.objects.filter(email=data.get('email')).exists():
+            # Check if email already exists (only if provided)
+            email = data.get('email', '').strip() or None
+            if email and User.objects.filter(email=email).exists():
                 return Response({"error": "A user with this email already exists."}, status=status.HTTP_400_BAD_REQUEST)
 
             # Check if username already exists
@@ -485,7 +486,7 @@ class AdminTeacherCreateView(views.APIView):
 
             user = User.objects.create_user(
                 username=data['username'],
-                email=data['email'],
+                email=email,
                 password=data['password'],
                 name=data.get('name', ''),
                 role='teacher',

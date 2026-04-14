@@ -77,7 +77,7 @@ const features = [
   },
   {
     title: 'RBAC Security',
-    desc: 'Granular permissions for Superadmins, School Admins, Teachers, and Students.',
+    desc: 'Granular permissions for Superadmins, School Admins, Teachers, and Parents.',
     icon: '🛡️'
   },
   {
