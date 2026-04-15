@@ -50,6 +50,7 @@ import BulkImport from '../pages/admin/BulkImport';
 import SubjectDetails from '../pages/admin/SubjectDetails';
 import TimeTable from '../pages/common/TimeTable';
 import AdminSyllabus from '../pages/admin/Syllabus';
+import GalleryUpload from '../pages/admin/GalleryUpload';
 
 import SaaSLanding from '../pages/SaaSLanding';
 import SuperAdminLogin from '../pages/superadmin/Login';
@@ -146,6 +147,7 @@ const AppRoutes = () => {
                 <Route path="bulk-import" element={<BulkImport />} />
                 <Route path="timetable" element={<TimeTable />} />
                 <Route path="syllabus" element={<AdminSyllabus />} />
+                <Route path="gallery/upload" element={<GalleryUpload />} />
               </Routes>
             </ProtectedRoute>} />
 

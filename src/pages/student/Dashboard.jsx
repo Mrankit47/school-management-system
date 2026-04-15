@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 import useAuthStore from '../../store/authStore';
+import ImageSlider from '../../components/common/ImageSlider';
 
 const colors = {
     bg: '#f9fafb',
@@ -617,6 +618,11 @@ export default function StudentDashboard() {
                         Logout
                     </button>
                 </div>
+            </div>
+
+            {/* School Gallery Slider */}
+            <div className="h-[450px] mb-6">
+                <ImageSlider />
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(12, minmax(0, 1fr))', gap: 12 }}>

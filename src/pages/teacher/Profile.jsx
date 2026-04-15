@@ -615,23 +615,6 @@ const TeacherProfile = () => {
                                     >
                                         {idCardBusy ? '…' : 'View ID card'}
                                     </button>
-                                    <button
-                                        type="button"
-                                        onClick={downloadIdCard}
-                                        disabled={idCardBusy}
-                                        style={{
-                                            padding: '8px 14px',
-                                            borderRadius: 10,
-                                            border: 'none',
-                                            background: '#fef3c7',
-                                            color: '#a16207',
-                                            fontWeight: 900,
-                                            cursor: idCardBusy ? 'not-allowed' : 'pointer',
-                                            fontSize: 13,
-                                        }}
-                                    >
-                                        {idCardBusy ? '…' : 'Download ID card'}
-                                    </button>
                                 </div>
                                 {photoError ? (
                                     <div style={{ marginTop: 8, color: colors.danger, fontWeight: 800, fontSize: 12 }}>

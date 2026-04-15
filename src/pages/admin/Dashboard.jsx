@@ -2,7 +2,8 @@ import React, { useEffect, useState } from 'react';
 import api from '../../services/api';
 import StudentCards from './StudentCards';
 import TeacherCards from './TeacherCards';
-import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
+import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Cell } from 'recharts';
+import ImageSlider from '../../components/common/ImageSlider';
 
 const AdminDashboard = () => {
     const [recentStudents, setRecentStudents] = useState([]);
@@ -15,8 +16,11 @@ const AdminDashboard = () => {
         dob: '',
         gender: '',
         blood_group: '',
-        parent_guardian_name: '',
-        parent_contact_number: '',
+        father_name: '',
+        mother_name: '',
+        father_contact: '',
+        mother_contact: '',
+        bus_no: '',
         address: '',
         date_of_admission: '',
         category: '',
@@ -30,12 +34,6 @@ const AdminDashboard = () => {
     const [teachersCount, setTeachersCount] = useState(0);
     const [studentsCount, setStudentsCount] = useState(0);
     const [studentsLoading, setStudentsLoading] = useState(false);
-    const currentYear = new Date().getFullYear();
-    const [selectedYear, setSelectedYear] = useState(currentYear);
-    const [feesCollection, setFeesCollection] = useState([]);
-    const [feesLoading, setFeesLoading] = useState(false);
-    const [totalCollection, setTotalCollection] = useState(0);
-    const parentPhoneDigits = (formData.parent_contact_number || '').replace(/\D/g, '').slice(0, 10);
 
     const fetchCounts = async () => {
         try {
@@ -61,34 +59,20 @@ const AdminDashboard = () => {
         }
     };
 
-    const fetchFeesCollection = async (year) => {
-        setFeesLoading(true);
-        try {
-            const res = await api.get(`fees/collection/?year=${year}`);
-            setFeesCollection(res?.data?.monthly || []);
-            setTotalCollection(Number(res?.data?.total_collection || 0));
-        } catch (e) {
-            console.error("Error fetching fees collection:", e);
-            setFeesCollection([]);
-            setTotalCollection(0);
-        } finally {
-            setFeesLoading(false);
-        }
-    };
-
     useEffect(() => {
         setStudentsLoading(true);
         Promise.all([fetchCounts(), fetchClassesAndSections()])
             .finally(() => setStudentsLoading(false));
     }, []);
 
-    useEffect(() => {
-        fetchFeesCollection(selectedYear);
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [selectedYear]);
+    const formatValue = (value) => Number(value || 0).toLocaleString('en-IN');
 
-    const yearOptions = Array.from({ length: 6 }, (_, i) => currentYear - i);
-    const formatINR = (value) => `₹${Number(value || 0).toLocaleString('en-IN')}`;
+    const statsChartData = [
+        { name: 'Students', count: studentsCount, color: '#3b82f6' },
+        { name: 'Teachers', count: teachersCount, color: '#6366f1' },
+        { name: 'Classes', count: mainClasses.length, color: '#10b981' },
+        { name: 'Sections', count: mainSections.length, color: '#f59e0b' },
+    ];
 
     // Auto refresh dashboard stats (so delete/update actions reflect immediately).
     useEffect(() => {
@@ -116,10 +100,6 @@ const AdminDashboard = () => {
             setMessage('Error: Password and confirm password do not match.');
             return;
         }
-        if (parentPhoneDigits.length !== 10) {
-            setMessage('Error: Parent contact number must be exactly 10 digits.');
-            return;
-        }
         try {
             const payload = { ...formData };
             const first = (formData.first_name || '').trim();
@@ -129,6 +109,12 @@ const AdminDashboard = () => {
             payload.username = emailLocal || 'student';
             payload.name = `${first} ${last}`.trim();
 
+            const f_digits = (formData.father_contact || '').replace(/\D/g, '').slice(0, 10);
+            const m_digits = (formData.mother_contact || '').replace(/\D/g, '').slice(0, 10);
+            
+            payload.father_contact = f_digits ? `+91${f_digits}` : '';
+            payload.mother_contact = m_digits ? `+91${m_digits}` : '';
+
             await api.post('students/admin-create/', payload);
             setMessage('Student created successfully!');
             await fetchCounts();
@@ -136,8 +122,8 @@ const AdminDashboard = () => {
             setFormData({
                 email: '', password: '', first_name: '', last_name: '', name: '',
                 admission_number: '', class_id: '', section_id: '', dob: '',
-                gender: '', blood_group: '', parent_guardian_name: '',
-                parent_contact_number: '', address: '', date_of_admission: '', category: '',
+                gender: '', blood_group: '', father_name: '', mother_name: '',
+                father_contact: '', mother_contact: '', bus_no: '', address: '', date_of_admission: '', category: '',
             });
             setTimeout(() => setMessage(''), 3000);
         } catch (err) {
@@ -188,57 +174,9 @@ const AdminDashboard = () => {
 
                     {/* Chart & Activity Grid */}
                     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-                        {/* Finance Collection Bar Chart */}
-                        <div className="lg:col-span-8 bg-white/50 backdrop-blur-md p-8 rounded-[2.5rem] border border-slate-100 shadow-xl shadow-slate-200/30">
-                            <div className="flex items-start justify-between mb-8 gap-4 flex-wrap">
-                                <div>
-                                    <h3 className="font-poppins font-bold text-school-text text-lg">Fees Collection Overview</h3>
-                                    <p className="text-xs text-slate-400">Monthly student fees collection analytics</p>
-                                    <p className="text-sm font-black text-school-navy mt-2">
-                                        Total Collection: {formatINR(totalCollection)}
-                                    </p>
-                                </div>
-                                <div className="flex items-center gap-3">
-                                    <select
-                                        value={selectedYear}
-                                        onChange={(e) => setSelectedYear(Number(e.target.value))}
-                                        className="px-4 py-2 bg-white rounded-xl border border-slate-200 text-sm font-bold text-slate-600 outline-none focus:border-school-blue"
-                                    >
-                                        {yearOptions.map((year) => (
-                                            <option key={year} value={year}>{year}</option>
-                                        ))}
-                                    </select>
-                                    <div className="flex items-center gap-3 px-4 py-2 bg-slate-50 rounded-xl border border-slate-100">
-                                        <span className="w-2.5 h-2.5 rounded-full bg-school-navy animate-pulse"></span>
-                                        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Finance</span>
-                                    </div>
-                                </div>
-                            </div>
-                            <div className="h-72 rounded-2xl border border-slate-100 bg-white/70 p-3">
-                                {feesLoading ? (
-                                    <div className="h-full flex items-center justify-center text-slate-400 font-bold">Loading chart...</div>
-                                ) : (
-                                    <ResponsiveContainer width="100%" height="100%">
-                                        <BarChart data={feesCollection} margin={{ top: 8, right: 12, left: 4, bottom: 8 }}>
-                                            <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                                            <XAxis dataKey="month" tick={{ fill: '#64748b', fontWeight: 700, fontSize: 12 }} />
-                                            <YAxis tickFormatter={(v) => `₹${Math.round(v / 1000)}k`} tick={{ fill: '#64748b', fontWeight: 700, fontSize: 12 }} />
-                                            <Tooltip
-                                                formatter={(value) => [formatINR(value), 'Collection']}
-                                                labelStyle={{ color: '#0f172a', fontWeight: 700 }}
-                                                contentStyle={{ borderRadius: 12, border: '1px solid #e2e8f0' }}
-                                            />
-                                            <Bar
-                                                dataKey="amount"
-                                                fill="#2563eb"
-                                                radius={[8, 8, 0, 0]}
-                                                isAnimationActive={true}
-                                                animationDuration={900}
-                                            />
-                                        </BarChart>
-                                    </ResponsiveContainer>
-                                )}
-                            </div>
+                        {/* School Gallery Slider Section */}
+                        <div className="lg:col-span-8 h-[500px]">
+                            <ImageSlider />
                         </div>
 
                         {/* Recent Activity / Calendar Placeholder (Light Theme) */}
@@ -446,6 +384,16 @@ const AdminDashboard = () => {
                                         {mainSections.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                                     </select>
                                 </div>
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">Bus No (Optional)</label>
+                                    <input
+                                        type="text"
+                                        placeholder="e.g. BUS-01"
+                                        value={formData.bus_no}
+                                        onChange={(e) => setFormData({ ...formData, bus_no: e.target.value })}
+                                        className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-school-navy/5 outline-none focus:bg-white focus:border-school-navy/20 transition-all"
+                                    />
+                                </div>
                             </div>
                             <div className="space-y-2">
                                 <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">Admission Date</label>
@@ -469,23 +417,45 @@ const AdminDashboard = () => {
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div className="space-y-2">
-                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">Guardian Name</label>
+                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">Father's Name</label>
                                     <input
                                         type="text"
-                                        placeholder="Full name of parent/guardian"
-                                        value={formData.parent_guardian_name}
-                                        onChange={(e) => setFormData({ ...formData, parent_guardian_name: e.target.value })}
+                                        placeholder="Full name of father"
+                                        value={formData.father_name}
+                                        onChange={(e) => setFormData({ ...formData, father_name: e.target.value })}
                                         className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-school-navy/5 outline-none focus:bg-white focus:border-school-navy/20 transition-all"
                                         required
                                     />
                                 </div>
                                 <div className="space-y-2">
-                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">Contact Number</label>
+                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">Father's Contact</label>
                                     <input
                                         type="tel"
-                                        placeholder="Contact phone number"
-                                        value={formData.parent_contact_number}
-                                        onChange={(e) => setFormData({ ...formData, parent_contact_number: e.target.value })}
+                                        placeholder="Father's phone number"
+                                        value={formData.father_contact}
+                                        onChange={(e) => setFormData({ ...formData, father_contact: e.target.value })}
+                                        className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-school-navy/5 outline-none focus:bg-white focus:border-school-navy/20 transition-all font-medium"
+                                        required
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">Mother's Name</label>
+                                    <input
+                                        type="text"
+                                        placeholder="Full name of mother"
+                                        value={formData.mother_name}
+                                        onChange={(e) => setFormData({ ...formData, mother_name: e.target.value })}
+                                        className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-school-navy/5 outline-none focus:bg-white focus:border-school-navy/20 transition-all"
+                                        required
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">Mother's Contact</label>
+                                    <input
+                                        type="tel"
+                                        placeholder="Mother's phone number"
+                                        value={formData.mother_contact}
+                                        onChange={(e) => setFormData({ ...formData, mother_contact: e.target.value })}
                                         className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-school-navy/5 outline-none focus:bg-white focus:border-school-navy/20 transition-all font-medium"
                                         required
                                     />

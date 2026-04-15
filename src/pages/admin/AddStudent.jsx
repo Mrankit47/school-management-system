@@ -88,12 +88,8 @@ const AddStudent = () => {
             setMessage('Error: Password and confirm password do not match.');
             return;
         }
-        if (formData.father_contact && fatherPhoneDigits.length !== 10) {
-            setMessage('Error: Father contact number must be exactly 10 digits.');
-            return;
-        }
-        if (formData.mother_contact && motherPhoneDigits.length !== 10) {
-            setMessage('Error: Mother contact number must be exactly 10 digits.');
+        if (fatherPhoneDigits.length !== 10) {
+            setMessage('Error: Father\'s contact number must be exactly 10 digits.');
             return;
         }
         try {
@@ -117,8 +113,8 @@ const AddStudent = () => {
             payload.username = emailLocal ? emailLocal : (generatedFromName && generatedFromName !== '.' ? generatedFromName : 'student');
 
             payload.name = `${formData.first_name} ${formData.last_name}`.trim();
-            if (formData.father_contact) payload.father_contact = `+91${fatherPhoneDigits}`;
-            if (formData.mother_contact) payload.mother_contact = `+91${motherPhoneDigits}`;
+            payload.father_contact = fatherPhoneDigits ? `+91${fatherPhoneDigits}` : '';
+            payload.mother_contact = motherPhoneDigits ? `+91${motherPhoneDigits}` : '';
             await api.post('students/admin-create/', payload);
             setMessage('Student created successfully!');
             await fetchStudents();
@@ -330,7 +326,7 @@ const AddStudent = () => {
 
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                         <div>
-                            <div style={labelStyle}>Father's Name</div>
+                            <div style={labelStyle}>Father's Name <span style={{ color: '#dc2626' }}>*</span></div>
                             <input
                                 type="text"
                                 placeholder="Father's Name"
@@ -348,14 +344,13 @@ const AddStudent = () => {
                                 value={formData.mother_name}
                                 onChange={(e) => setFormData({ ...formData, mother_name: e.target.value })}
                                 style={inputStyle}
-                                required
                             />
                         </div>
                     </div>
 
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                         <div>
-                            <div style={labelStyle}>Father's Contact Number</div>
+                            <div style={labelStyle}>Father's Contact <span style={{ color: '#dc2626' }}>*</span></div>
                             <div style={{ display: 'grid', gridTemplateColumns: '70px 1fr', gap: '8px' }}>
                                 <input
                                     type="text"
@@ -379,7 +374,7 @@ const AddStudent = () => {
                             </div>
                         </div>
                         <div>
-                            <div style={labelStyle}>Mother's Contact Number</div>
+                            <div style={labelStyle}>Mother's Contact</div>
                             <div style={{ display: 'grid', gridTemplateColumns: '70px 1fr', gap: '8px' }}>
                                 <input
                                     type="text"
@@ -398,17 +393,16 @@ const AddStudent = () => {
                                         setFormData({ ...formData, mother_contact: digits });
                                     }}
                                     style={inputStyle}
-                                    required
                                 />
                             </div>
                         </div>
                     </div>
 
                     <div>
-                        <div style={labelStyle}>Bus No.</div>
+                        <div style={labelStyle}>Bus No. (Optional)</div>
                         <input
                             type="text"
-                            placeholder="Enter Bus Number (Optional)"
+                            placeholder="e.g. Bus 5"
                             value={formData.bus_no}
                             onChange={(e) => setFormData({ ...formData, bus_no: e.target.value })}
                             style={inputStyle}

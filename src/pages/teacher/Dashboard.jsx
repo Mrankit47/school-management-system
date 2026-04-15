@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 import useAuthStore from '../../store/authStore';
+import ImageSlider from '../../components/common/ImageSlider';
 
 const palette = {
     bg: '#f8fafc',
@@ -370,6 +371,11 @@ const TeacherDashboard = () => {
                     </div>
                 </div>
             </Card>
+
+            {/* School Gallery Slider */}
+            <div className="h-[400px] mb-6">
+                <ImageSlider />
+            </div>
 
             {/* Sidebar Menu (quick navigation strip) */}
             <Card style={{ marginBottom: 12 }}>

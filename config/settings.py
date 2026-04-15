@@ -47,6 +47,7 @@ INSTALLED_APPS = [
     'bulk_upload',
     'announcements',
     'leaves',
+    'gallery',
 ]
 
 MIDDLEWARE = [
