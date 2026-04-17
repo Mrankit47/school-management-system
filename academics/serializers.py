@@ -5,6 +5,8 @@ class ExamSerializer(serializers.ModelSerializer):
     class_name = serializers.CharField(source='class_section.class_ref.name', read_only=True)
     section_name = serializers.CharField(source='class_section.section_ref.name', read_only=True)
     class_section_display = serializers.SerializerMethodField()
+    type = serializers.CharField(source='exam_type', required=False)
+    is_published = serializers.BooleanField(source='result_published', required=False)
 
     class Meta:
         model = Exam
@@ -15,6 +17,7 @@ class ExamSerializer(serializers.ModelSerializer):
             'class_name',
             'section_name',
             'class_section_display',
+            'type',
             'exam_type',
             'start_date',
             'end_date',
@@ -23,6 +26,7 @@ class ExamSerializer(serializers.ModelSerializer):
             'status',
             'description',
             'date',
+            'is_published',
             'result_published',
         ]
 
@@ -44,6 +48,7 @@ class ResultSerializer(serializers.ModelSerializer):
     percentage = serializers.SerializerMethodField()
     grade = serializers.SerializerMethodField()
     result_status = serializers.SerializerMethodField()
+    status = serializers.SerializerMethodField()
 
     class Meta:
         model = Result
@@ -60,6 +65,7 @@ class ResultSerializer(serializers.ModelSerializer):
             'percentage',
             'grade',
             'result_status',
+            'status',
         ]
 
     def get_percentage(self, obj):
@@ -89,3 +95,8 @@ class ResultSerializer(serializers.ModelSerializer):
         # Uses exam-level passing marks when available.
         pass_mark = float(obj.exam.passing_marks or 0)
         return 'Pass' if float(obj.marks) >= pass_mark else 'Fail'
+
+    def get_status(self, obj):
+        if obj.absent:
+            return 'Submitted'
+        return 'Submitted' if obj.marks is not None else 'Pending'

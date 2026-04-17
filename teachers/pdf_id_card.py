@@ -102,6 +102,7 @@ def build_teacher_id_card_pdf(
     eid = _clip(teacher.employee_id, 12)
     role = _clip(role_label or 'Teacher', 42)
     spec = _clip(teacher.subject_specialization, 40)
+    phone = _clip(teacher.phone_number or teacher.user.phone or '', 20)
 
     c.setFillColorRGB(0.05, 0.05, 0.08)
     c.setFont('Helvetica-Bold', 9)
@@ -119,6 +120,7 @@ def build_teacher_id_card_pdf(
     row('Name:', name)
     row('Employee ID:', eid)
     row('Role:', role)
+    row('Phone:', phone)
     row('Specialization:', spec)
 
     photo_w = 31 * mm

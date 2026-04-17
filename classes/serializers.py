@@ -18,6 +18,7 @@ class ClassSectionSerializer(serializers.ModelSerializer):
     section_id = serializers.IntegerField(source='section_ref_id', read_only=True)
     class_code = serializers.CharField(source='class_ref.code', read_only=True)
     class_teacher_name = serializers.SerializerMethodField()
+    shift_name = serializers.ReadOnlyField(source='assigned_shift.name')
     room_number = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     student_count = serializers.SerializerMethodField()
 
@@ -32,6 +33,8 @@ class ClassSectionSerializer(serializers.ModelSerializer):
             'section_name',
             'class_teacher',
             'class_teacher_name',
+            'assigned_shift',
+            'shift_name',
             'room_number',
             'student_count',
         ]

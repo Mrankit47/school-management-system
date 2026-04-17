@@ -16,8 +16,33 @@ from django.conf import settings
 from django.http import HttpResponse
 from communication.models import Notification
 from students.models import StudentProfile
+from subjects.models import Subject, TeacherAssignment
+from classes.models import ClassSection
 
 logger = logging.getLogger(__name__)
+
+
+def _teacher_can_upload_subject_for_exam(user, exam, subject_name: str) -> bool:
+    if user.role != 'teacher':
+        return True
+    teacher_profile = getattr(user, 'teacher_profile', None)
+    if not teacher_profile:
+        return False
+    subject = Subject.objects.filter(
+        class_ref_id=exam.class_section.class_ref_id,
+        name=subject_name,
+        status='Active',
+    ).first()
+    if not subject:
+        return False
+    # Accept explicit teacher assignment OR many-to-many subject teacher link.
+    if TeacherAssignment.objects.filter(
+        teacher=teacher_profile,
+        class_ref_id=exam.class_section.class_ref_id,
+        subject=subject,
+    ).filter(Q(section_id=exam.class_section_id) | Q(section__isnull=True)).exists():
+        return True
+    return subject.teachers.filter(id=teacher_profile.id).exists()
 
 
 def _exam_class_label(exam):
@@ -294,6 +319,74 @@ class ResultUploadView(views.APIView):
 
     def post(self, request):
         payload = request.data
+        # New subject-wise upload mode:
+        # {exam, class_section, subject, max_marks, entries:[{student, marks, absent}]}
+        if isinstance(payload, dict) and isinstance(payload.get('entries'), list):
+            exam_id = payload.get('exam')
+            class_section_id = payload.get('class_section')
+            subject = (payload.get('subject') or '').strip()
+            max_marks_raw = payload.get('max_marks')
+            entries = payload.get('entries') or []
+            if not exam_id or not class_section_id or not subject:
+                return Response(
+                    {"error": "exam, class_section and subject are required"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            exam = Exam.objects.select_related('class_section').filter(id=exam_id).first()
+            if not exam:
+                return Response({"error": "Exam not found"}, status=status.HTTP_404_NOT_FOUND)
+            if str(exam.class_section_id) != str(class_section_id):
+                return Response({"error": "Selected class does not match exam class"}, status=status.HTTP_400_BAD_REQUEST)
+            if request.user.role == 'teacher' and not _teacher_can_upload_subject_for_exam(request.user, exam, subject):
+                return Response({"error": "You can upload marks only for your assigned subject"}, status=status.HTTP_403_FORBIDDEN)
+            try:
+                max_marks = Decimal(str(max_marks_raw))
+            except (InvalidOperation, TypeError, ValueError):
+                return Response({"error": "max_marks must be a number"}, status=status.HTTP_400_BAD_REQUEST)
+            if max_marks <= 0:
+                return Response({"error": "max_marks must be greater than zero"}, status=status.HTTP_400_BAD_REQUEST)
+            class_students = list(StudentProfile.objects.filter(class_section_id=class_section_id).values_list('id', flat=True))
+            if not class_students:
+                return Response({"error": "No students found for selected class"}, status=status.HTTP_400_BAD_REQUEST)
+            incoming_student_ids = [int(e.get('student')) for e in entries if e.get('student')]
+            missing_ids = sorted(set(class_students) - set(incoming_student_ids))
+            if missing_ids:
+                return Response(
+                    {"error": "Marks must be entered for all students in the class", "missing_student_ids": missing_ids},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            errors = []
+            parsed = []
+            for idx, entry in enumerate(entries):
+                try:
+                    student_id = int(entry.get('student'))
+                except (TypeError, ValueError):
+                    errors.append({"index": idx, "error": "student is required"})
+                    continue
+                absent = bool(entry.get('absent'))
+                marks = None
+                if not absent:
+                    try:
+                        marks = Decimal(str(entry.get('marks')))
+                    except (InvalidOperation, TypeError, ValueError):
+                        errors.append({"index": idx, "student": student_id, "error": "marks must be a number"})
+                        continue
+                    if marks < 0 or marks > max_marks:
+                        errors.append({"index": idx, "student": student_id, "error": f"marks must be between 0 and {max_marks}"})
+                        continue
+                parsed.append((student_id, marks, absent))
+            if errors:
+                return Response({"errors": errors}, status=status.HTTP_400_BAD_REQUEST)
+            with transaction.atomic():
+                for student_id, marks, absent in parsed:
+                    Result.objects.update_or_create(
+                        student_id=student_id,
+                        exam_id=exam_id,
+                        subject=subject,
+                        defaults={"marks": marks, "max_marks": max_marks, "absent": absent},
+                    )
+            return Response({"message": "Subject marks uploaded successfully"}, status=status.HTTP_201_CREATED)
+
         if isinstance(payload, dict) and isinstance(payload.get('results'), list):
             exam_id = payload.get('exam')
             student_id = payload.get('student')
@@ -303,6 +396,9 @@ class ResultUploadView(views.APIView):
                 return Response({"error": "exam and student are required"}, status=status.HTTP_400_BAD_REQUEST)
             if not results:
                 return Response({"error": "results list is required"}, status=status.HTTP_400_BAD_REQUEST)
+            exam = Exam.objects.select_related('class_section').filter(id=exam_id).first()
+            if not exam:
+                return Response({"error": "Exam not found"}, status=status.HTTP_404_NOT_FOUND)
 
             errors = []
             parsed_rows = []
@@ -315,6 +411,9 @@ class ResultUploadView(views.APIView):
 
                 if not subject:
                     errors.append({"index": idx, "error": "subject is required"})
+                    continue
+                if request.user.role == 'teacher' and not _teacher_can_upload_subject_for_exam(request.user, exam, subject):
+                    errors.append({"index": idx, "subject": subject, "error": "Not assigned for this subject"})
                     continue
 
                 try:
@@ -426,28 +525,167 @@ class ExamResultDashboardView(views.APIView):
 
 
 class PublishResultView(views.APIView):
-    permission_classes = [IsAdmin | IsTeacher]
+    permission_classes = [IsAdmin]
 
     def post(self, request, exam_id: int):
         exam = Exam.objects.filter(id=exam_id).first()
         if not exam:
             return Response({'error': 'Exam not found'}, status=status.HTTP_404_NOT_FOUND)
+        was_published = bool(exam.result_published)
         publish = request.data.get('publish')
         if publish is None:
             publish = True
-        exam.result_published = bool(publish)
+        publish = bool(publish)
+        if publish:
+            status_rows = _compute_exam_subject_status(exam)
+            if any(r['status'] != 'Submitted' for r in status_rows):
+                return Response(
+                    {'error': 'All subjects must be submitted before publishing', 'subjects': status_rows},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+        exam.result_published = publish
         exam.save(update_fields=['result_published'])
+        if exam.result_published and not was_published:
+            _notify_class_students(
+                exam.class_section_id,
+                title='Result Published',
+                message='Your exam result has been published. Please check your result.',
+                related_exam=exam,
+            )
         return Response({'message': 'Result publish status updated', 'result_published': exam.result_published})
+
+    def put(self, request, exam_id: int):
+        return self.post(request, exam_id)
+
+
+def _compute_exam_subject_status(exam: Exam):
+    scheduled_subjects = [s.subject for s in ExamSchedule.objects.filter(exam=exam)]
+    if not scheduled_subjects:
+        # fallback when schedule not created: infer from class subjects
+        scheduled_subjects = list(
+            Subject.objects.filter(class_ref_id=exam.class_section.class_ref_id, status='Active').values_list('name', flat=True)
+        )
+    rows = []
+    total_students = StudentProfile.objects.filter(class_section_id=exam.class_section_id).count()
+    for subject_name in scheduled_subjects:
+        submitted_count = (
+            Result.objects.filter(exam=exam, subject=subject_name).values('student_id').distinct().count()
+        )
+        rows.append(
+            {
+                "subject": subject_name,
+                "status": "Submitted" if total_students > 0 and submitted_count >= total_students else "Pending",
+                "submitted_students": submitted_count,
+                "total_students": total_students,
+            }
+        )
+    return rows
+
+
+class ExamSubjectStatusView(views.APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request, exam_id: int):
+        exam = Exam.objects.select_related('class_section__class_ref').filter(id=exam_id).first()
+        if not exam:
+            return Response({'error': 'Exam not found'}, status=status.HTTP_404_NOT_FOUND)
+        rows = _compute_exam_subject_status(exam)
+        return Response(
+            {
+                "exam_id": exam.id,
+                "exam_name": exam.name,
+                "exam_type": exam.exam_type,
+                "class_name": exam.class_section.class_ref.name,
+                "is_published": exam.result_published,
+                "subjects": rows,
+                "all_submitted": all(r["status"] == "Submitted" for r in rows) if rows else False,
+            }
+        )
+
+
+class TeacherExamSubjectsView(views.APIView):
+    permission_classes = [IsTeacher | IsAdmin]
+
+    def get(self, request, exam_id: int):
+        exam = Exam.objects.select_related('class_section__class_ref').filter(id=exam_id).first()
+        if not exam:
+            return Response({'error': 'Exam not found'}, status=status.HTTP_404_NOT_FOUND)
+        class_ref_id = exam.class_section.class_ref_id
+        if request.user.role == 'admin':
+            subjects = list(
+                Subject.objects.filter(class_ref_id=class_ref_id, status='Active').values('id', 'name').order_by('name')
+            )
+            return Response(subjects)
+
+        teacher_profile = getattr(request.user, 'teacher_profile', None)
+        if not teacher_profile:
+            return Response([], status=status.HTTP_200_OK)
+        subject_ids = set(
+            TeacherAssignment.objects.filter(
+                teacher=teacher_profile,
+                class_ref_id=class_ref_id,
+            )
+            .filter(Q(section_id=exam.class_section_id) | Q(section__isnull=True))
+            .values_list('subject_id', flat=True)
+        )
+        if not subject_ids:
+            subject_ids = set(
+                Subject.objects.filter(
+                    class_ref_id=class_ref_id,
+                    teachers=teacher_profile,
+                    status='Active',
+                ).values_list('id', flat=True)
+            )
+        subjects = list(Subject.objects.filter(id__in=subject_ids).values('id', 'name').order_by('name'))
+        return Response(subjects)
+
+
+class ClassSectionTeacherSubjectsView(views.APIView):
+    permission_classes = [IsTeacher | IsAdmin]
+
+    def get(self, request, class_section_id: int):
+        cs = ClassSection.objects.select_related('class_ref').filter(id=class_section_id).first()
+        if not cs:
+            return Response({'error': 'Class section not found'}, status=status.HTTP_404_NOT_FOUND)
+        class_ref_id = cs.class_ref_id
+        if request.user.role == 'admin':
+            subjects = list(
+                Subject.objects.filter(class_ref_id=class_ref_id, status='Active').values('id', 'name').order_by('name')
+            )
+            return Response(subjects)
+
+        teacher_profile = getattr(request.user, 'teacher_profile', None)
+        if not teacher_profile:
+            return Response([], status=status.HTTP_200_OK)
+        subject_ids = set(
+            TeacherAssignment.objects.filter(
+                teacher=teacher_profile,
+                class_ref_id=class_ref_id,
+            )
+            .filter(Q(section_id=class_section_id) | Q(section__isnull=True))
+            .values_list('subject_id', flat=True)
+        )
+        if not subject_ids:
+            subject_ids = set(
+                Subject.objects.filter(
+                    class_ref_id=class_ref_id,
+                    teachers=teacher_profile,
+                    status='Active',
+                ).values_list('id', flat=True)
+            )
+        subjects = list(Subject.objects.filter(id__in=subject_ids).values('id', 'name').order_by('name'))
+        return Response(subjects)
 
 
 class MyResultsView(views.APIView):
     permission_classes = [IsStudent]
 
     def get(self, request):
-        # Student can only view results when exam is published.
+        # Student results are visible only after admin publishes the exam.
         results = (
             Result.objects.select_related('exam')
-            .filter(student__user=request.user, exam__result_published=True)
+            .filter(student__user=request.user)
+            .filter(exam__result_published=True)
             .order_by('-exam__start_date', 'subject')
         )
         serializer = ResultSerializer(results, many=True)
@@ -468,7 +706,8 @@ class MyResultMarksheetPDFView(views.APIView):
 
         student_results = (
             Result.objects.select_related('exam')
-            .filter(student__user=request.user, exam_id=exam_id, exam__result_published=True)
+            .filter(student__user=request.user, exam_id=exam_id)
+            .filter(exam__result_published=True)
             .order_by('subject')
         )
 

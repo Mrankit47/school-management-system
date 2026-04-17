@@ -34,13 +34,8 @@ def _next_employee_id():
 
 def _teacher_role_label(profile: TeacherProfile) -> str:
     has_class = ClassSection.objects.filter(class_teacher=profile).exists()
-    has_subjects = profile.subjects.exists() or TeacherAssignment.objects.filter(teacher=profile).exists()
-    if has_class and has_subjects:
-        return 'Class Teacher & Subject Teacher'
     if has_class:
         return 'Class Teacher'
-    if has_subjects:
-        return 'Subject Teacher'
     return 'Teacher'
 
 
@@ -260,14 +255,9 @@ class TeacherIdCardPdfView(views.APIView):
         )
 
         filename = f"teacher-id-card-{profile.employee_id or profile.id}.pdf"
-        disposition = (request.query_params.get('disposition') or 'attachment').lower()
-        if disposition == 'inline':
-            disp = f'inline; filename="{filename}"'
-        else:
-            disp = f'attachment; filename="{filename}"'
-
         response = HttpResponse(pdf_bytes, content_type='application/pdf')
-        response['Content-Disposition'] = disp
+        # Teachers are allowed to view only, not download.
+        response['Content-Disposition'] = f'inline; filename="{filename}"'
         return response
 
 

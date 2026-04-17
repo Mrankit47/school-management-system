@@ -13,14 +13,14 @@ class Syllabus(models.Model):
         related_name='syllabi',
     )
     uploaded_by = models.ForeignKey(
-        'teachers.TeacherProfile',
+        'accounts.User',
         on_delete=models.CASCADE,
         related_name='uploaded_syllabi',
     )
 
     title = models.CharField(max_length=255)
     description = models.TextField(blank=True, null=True)
-    pdf = models.FileField(upload_to='syllabus_pdfs/')
+    file = models.FileField(upload_to='syllabus_files/')
 
     uploaded_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
