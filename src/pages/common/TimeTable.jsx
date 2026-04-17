@@ -23,44 +23,40 @@ const DAYS = [
     { id: 6, name: 'Saturday', short: 'Sat' },
 ];
 
-const SHIFT_OPTIONS = [
-    { id: 'morning', label: 'Morning Shift' },
-    { id: 'afternoon', label: 'Afternoon Shift' },
-];
-
-const SLOT_LAYOUT = {
-    morning: [
-        { id: 1, time: '08:00 AM - 08:30 AM' },
-        { id: 2, time: '08:30 AM - 09:00 AM' },
-        { id: 3, time: '09:00 AM - 09:30 AM' },
-        { id: 'break', time: '09:30 AM - 10:00 AM', name: 'BREAK' },
-        { id: 4, time: '10:00 AM - 10:30 AM' },
-        { id: 5, time: '10:30 AM - 11:00 AM' },
-        { id: 6, time: '11:00 AM - 11:30 AM' },
-    ],
-    afternoon: [
-        { id: 1, time: '01:00 PM - 01:30 PM' },
-        { id: 2, time: '01:30 PM - 02:00 PM' },
-        { id: 3, time: '02:00 PM - 02:30 PM' },
-        { id: 'break', time: '02:30 PM - 03:00 PM', name: 'BREAK' },
-        { id: 4, time: '03:00 PM - 03:30 PM' },
-        { id: 5, time: '03:30 PM - 04:00 PM' },
-        { id: 6, time: '04:00 PM - 04:30 PM' },
-    ],
+// Helper to generate periods for a shift
+const getPeriodsForShift = (shift) => {
+    if (!shift) return [];
+    // Standard layout: 8 periods of 45 mins each starting from shift.start_time
+    // But for now, we'll just return numeric IDs 1-8 and let UI display time slots
+    return [1, 2, 3, 4, 5, 6, 7, 8].map(id => ({
+        id,
+        name: `Period ${id}`,
+        // Logic to calculate estimated time based on ID and shift.start_time
+    }));
 };
 
 const TimetableGrid = ({ entries, isAdmin, isEditMode, handleCellClick, shift }) => {
     const currentDayNum = new Date().getDay();
     const adjustedCurrentDay = currentDayNum === 0 ? 7 : currentDayNum;
-    const periods = SLOT_LAYOUT[shift] || SLOT_LAYOUT.morning;
+    
+    // Default fallback periods if no shift selected
+    const periods = [1, 2, 3, 4, 5, 6, 7, 8];
 
     const gridData = useMemo(() => {
         const data = {};
         DAYS.forEach(day => {
-            data[day.id] = entries.filter(e => e.day === day.id && e.shift === shift);
+            data[day.id] = entries.filter(e => e.day === day.id && (e.shift_ref === shift?.id || e.shift === shift?.name.toLowerCase()));
         });
         return data;
     }, [entries, shift]);
+
+    if (!shift) {
+        return (
+            <div className="bg-white rounded-3xl border border-dashed border-slate-200 p-12 text-center">
+                <p className="text-slate-500 font-medium">Loading schedule requirements...</p>
+            </div>
+        );
+    }
 
     return (
         <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
@@ -87,64 +83,70 @@ const TimetableGrid = ({ entries, isAdmin, isEditMode, handleCellClick, shift })
 
                     {/* Grid Body */}
                     <div className="relative">
-                        {periods.map((period) => {
-                            if (period.id === 'break') {
-                                return (
-                                    <div key="break" className="grid grid-cols-7 border-b border-slate-100 bg-slate-50/80">
-                                        <div className="p-3 border-r border-slate-100 flex items-center justify-center bg-slate-100/50">
-                                            <span className="text-[10px] font-bold text-slate-400">{period.time.split(' - ')[0]}</span>
-                                        </div>
-                                        <div className="col-span-6 p-3 flex items-center justify-center gap-3">
-                                            <div className="h-px bg-slate-200 flex-1"></div>
-                                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">{period.name} ({period.time})</span>
-                                            <div className="h-px bg-slate-200 flex-1"></div>
-                                        </div>
-                                    </div>
-                                );
-                            }
-
+                        {periods.map((pNum) => {
                             return (
-                                <div key={period.id} className="grid grid-cols-7 border-b border-slate-100 last:border-0">
+                                <div key={pNum} className="grid grid-cols-7 border-b border-slate-100 last:border-0">
                                     <div className="p-4 flex flex-col items-center justify-center border-r border-slate-100 bg-slate-50/30">
-                                        <span className="text-[10px] font-black text-slate-400">P{period.id}</span>
-                                        <span className="text-[9px] font-bold text-slate-500 mt-1 whitespace-nowrap">{period.time.split(' - ')[0]}</span>
+                                        <span className="text-[10px] font-black text-slate-400">P{pNum}</span>
                                     </div>
 
                                     {DAYS.map(day => {
                                         const entry = gridData[day.id]?.find(
-                                            e => (e.period_number || e.period) === period.id
+                                            e => (e.period_number || e.period) === pNum
                                         );
                                         return (
                                             <div
-                                                key={`${day.id}-${period.id}`}
-                                                onClick={() => handleCellClick(day.id, period.id)}
-                                                className={`p-2 border-r border-slate-100 last:border-0 relative h-[100px] transition-all ${isEditMode ? 'cursor-pointer hover:bg-blue-50/50' : ''
+                                                key={`${day.id}-${pNum}`}
+                                                onClick={() => handleCellClick(day.id, pNum)}
+                                                className={`p-2 border-r border-slate-100 last:border-0 relative h-[140px] transition-all ${isEditMode ? 'cursor-pointer hover:bg-blue-50/50' : ''
                                                     } ${day.id === adjustedCurrentDay ? 'bg-school-blue/[0.01]' : ''}`}
                                             >
                                                 {entry ? (
-                                                    <div className="h-full w-full p-2.5 rounded-xl bg-white border border-slate-100 shadow-sm hover:shadow-md transition-all group flex flex-col justify-between">
-                                                        <div className="flex flex-col gap-0.5">
-                                                            <span className="text-[9px] font-black text-school-blue uppercase tracking-tight truncate">
-                                                                {entry.subject}
-                                                            </span>
-                                                            <span className="text-[10px] font-bold text-slate-700 truncate">
+                                                    <div className="h-full w-full p-3 rounded-2xl bg-white border border-slate-100 shadow-sm hover:shadow-lg hover:border-school-blue/20 transition-all group flex flex-col justify-between relative overflow-hidden">
+                                                        {/* Top Section: Subject and Main Time */}
+                                                        <div>
+                                                            <div className="flex items-start justify-between mb-1.5 gap-2">
+                                                                <span className="px-1.5 py-0.5 rounded-lg bg-school-blue/5 text-[10px] font-black text-school-blue uppercase tracking-wider truncate max-w-[70%]">
+                                                                    {entry.subject}
+                                                                </span>
+                                                                <div className="flex flex-col items-end">
+                                                                    <span className="text-[10px] font-bold text-slate-700 leading-none">
+                                                                        {entry.start_time_display?.split(' ')[0]}
+                                                                    </span>
+                                                                    <span className="text-[7px] font-black text-slate-300 uppercase mt-0.5">START</span>
+                                                                </div>
+                                                            </div>
+                                                            <h4 className="text-xs font-black text-slate-800 tracking-tight">
                                                                 {entry.class_name}-{entry.section}
-                                                            </span>
+                                                            </h4>
                                                         </div>
-                                                        <div className="flex flex-col gap-1 mt-1 pt-1 border-t border-slate-50">
-                                                            <div className="flex items-center gap-1.5 text-[9px] text-slate-500 font-medium">
-                                                                <UserIcon className="w-2.5 h-2.5 text-slate-400" />
-                                                                <span className="truncate">{entry.teacher_name}</span>
+
+                                                        {/* Bottom Section: Teacher, Room and Duration */}
+                                                        <div className="space-y-2 pt-2 border-t border-slate-50">
+                                                            <div className="flex items-center gap-2">
+                                                                <div className="w-5 h-5 rounded-full bg-slate-50 flex items-center justify-center">
+                                                                    <UserIcon className="w-2.5 h-2.5 text-slate-400" />
+                                                                </div>
+                                                                <span className="text-[10px] font-bold text-slate-600 truncate">{entry.teacher_name}</span>
                                                             </div>
-                                                            <div className="flex items-center gap-1.5 text-[9px] text-slate-500 font-medium">
-                                                                <MapPin className="w-2.5 h-2.5 text-slate-400" />
-                                                                <span>RM: {entry.room}</span>
+                                                            
+                                                            <div className="flex items-center justify-between gap-1">
+                                                                <div className="flex items-center gap-2 bg-slate-50/50 px-1.5 py-0.5 rounded-md border border-slate-100/50">
+                                                                    <MapPin className="w-2.5 h-2.5 text-slate-400" />
+                                                                    <span className="text-[9px] font-bold text-slate-500 uppercase tracking-tighter">RM {entry.room}</span>
+                                                                </div>
+                                                                <div className="flex flex-col items-end">
+                                                                    <span className="text-[9px] font-black text-slate-400">
+                                                                        {entry.start_time_display}
+                                                                    </span>
+                                                                </div>
                                                             </div>
                                                         </div>
+
                                                         {isEditMode && isAdmin && (
-                                                            <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                                <div className="p-1 bg-school-blue text-white rounded-md shadow-sm">
-                                                                    <Edit2 className="w-2 h-2" />
+                                                            <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-all transform translate-y-1 group-hover:translate-y-0">
+                                                                <div className="p-1.5 bg-school-blue text-white rounded-lg shadow-xl shadow-school-blue/30 scale-90">
+                                                                    <Edit2 className="w-3 h-3" />
                                                                 </div>
                                                             </div>
                                                         )}
@@ -174,7 +176,13 @@ const TimeTable = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [isEditMode, setIsEditMode] = useState(false);
-    const [selectedShift, setSelectedShift] = useState('morning');
+    const [shifts, setShifts] = useState([]);
+    const [selectedShiftId, setSelectedShiftId] = useState('');
+    const [selectedTeacherId, setSelectedTeacherId] = useState('');
+    const [isShiftModalOpen, setIsShiftModalOpen] = useState(false);
+
+    // Filtered selectedShift object
+    const selectedShift = useMemo(() => shifts.find(sh => sh.id === parseInt(selectedShiftId)), [shifts, selectedShiftId]);
 
     // Admin Filters State
     const [selectedSectionId, setSelectedSectionId] = useState('');
@@ -183,66 +191,86 @@ const TimeTable = () => {
     // Modal State
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingEntry, setEditingEntry] = useState(null);
-    const [formLoading, setFormLoading] = useState(false);
 
     // Meta Data State
     const [teachers, setTeachers] = useState([]);
     const [sections, setSections] = useState([]);
     const [subjects, setSubjects] = useState([]);
 
-    const { role } = authService.getCurrentUser();
+    const { role, user_id } = authService.getCurrentUser();
     const isAdmin = role === 'admin';
     const isTeacher = role === 'teacher';
+    const isStudent = role === 'student';
 
     useEffect(() => {
-        if (!isAdmin) {
-            fetchTimetable();
-        }
-        if (isAdmin) {
-            fetchMetaData();
-        }
-    }, [isAdmin, selectedShift]);
+        const init = async () => {
+            setLoading(true);
+            await fetchMetaData();
+            if (isStudent || isTeacher) {
+                await fetchTimetable();
+            }
+            setLoading(false);
+        };
+        init();
+    }, []);
 
     useEffect(() => {
-        if (isAdmin && filters.class_name && filters.section) {
+        if (isAdmin && (filters.class_name || selectedTeacherId)) {
             fetchTimetable();
-        } else if (isAdmin) {
-            setEntries([]);
         }
-    }, [filters, isAdmin, selectedShift]);
+    }, [filters, selectedShiftId, selectedTeacherId]);
 
     const fetchTimetable = async () => {
-        setLoading(true);
         try {
             let url = 'timetable/';
             const query = new URLSearchParams();
-            query.set('shift', selectedShift);
+            if (selectedShiftId) query.set('shift_id', selectedShiftId);
+            if (selectedTeacherId) query.set('teacher_id', selectedTeacherId);
+            
             if (isAdmin && filters.class_name && filters.section) {
                 query.set('class_name', filters.class_name);
                 query.set('section', filters.section);
             }
             url += `?${query.toString()}`;
             const response = await api.get(url);
-            setEntries(response.data);
+            setEntries(response.data || []);
             setError(null);
         } catch (err) {
             console.error('Error fetching timetable:', err);
             setError('Failed to load timetable.');
-        } finally {
-            setLoading(false);
         }
     };
-
     const fetchMetaData = async () => {
         try {
-            const [tRes, sRes, subRes] = await Promise.all([
-                api.get('teachers/'),
-                api.get('classes/admin-sections/'),
-                api.get('subjects/')
-            ]);
-            setTeachers(tRes.data || []);
-            setSections(sRes.data || []);
-            setSubjects(subRes.data || []);
+            const promises = [
+                api.get('timetable/shifts/'),
+                api.get('timetable/user-shift/')
+            ];
+
+            if (isAdmin) {
+                promises.push(api.get('teachers/'));
+                promises.push(api.get('classes/admin-sections/'));
+                promises.push(api.get('subjects/'));
+            }
+
+            const results = await Promise.all(promises);
+            const [shRes, usRes] = results;
+            
+            setShifts(shRes.data || []);
+
+            if (isAdmin) {
+                setTeachers(results[2]?.data || []);
+                setSections(results[3]?.data || []);
+                setSubjects(results[4]?.data || []);
+            }
+            
+            // Auto-select shift
+            if (usRes.data?.shift_id) {
+                const sId = usRes.data.shift_id.toString();
+                setSelectedShiftId(sId);
+            } else if (shRes.data?.length > 0 && !selectedShiftId) {
+                setSelectedShiftId(shRes.data[0].id.toString());
+            }
         } catch (err) {
             console.error('Error fetching meta data:', err);
         }
@@ -259,22 +287,22 @@ const TimeTable = () => {
         }
     };
 
-    const handleCellClick = (dayId, periodId) => {
-        if (!isAdmin || !isEditMode || periodId === 'break') return;
+    const handleCellClick = (dayId, pNum) => {
+        if (!isAdmin || !isEditMode || !selectedShiftId) return;
 
         const existing = entries.find(
             e =>
                 e.day === dayId &&
-                e.shift === selectedShift &&
-                (e.period_number || e.period) === periodId
+                e.shift_ref === parseInt(selectedShiftId) &&
+                (e.period_number || e.period) === pNum
         );
         if (existing) {
             openModal(existing);
         } else {
             openModal({
                 day: dayId,
-                shift: selectedShift,
-                period_number: periodId,
+                shift_ref: parseInt(selectedShiftId),
+                period_number: pNum,
                 class_name: filters.class_name,
                 section: filters.section
             });
@@ -330,22 +358,46 @@ const TimeTable = () => {
 
                 <div className="flex items-center gap-3">
                     <div className="inline-flex items-center rounded-xl border border-slate-200 bg-white p-1">
-                        {SHIFT_OPTIONS.map(opt => (
+                        {shifts.map(opt => (
                             <button
                                 key={opt.id}
-                                onClick={() => setSelectedShift(opt.id)}
-                                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${selectedShift === opt.id
+                                onClick={() => setSelectedShiftId(opt.id.toString())}
+                                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${selectedShiftId === opt.id.toString()
                                     ? 'bg-school-blue text-white'
                                     : 'text-slate-600 hover:text-school-blue'
                                     }`}
                             >
-                                {opt.label}
+                                {opt.name}
                             </button>
                         ))}
+                        {isAdmin && (
+                            <button
+                                onClick={() => setIsShiftModalOpen(true)}
+                                className="px-2 py-1.5 rounded-lg text-slate-400 hover:bg-slate-50 transition-all border-l border-slate-100 ml-1"
+                                title="Manage Shifts"
+                            >
+                                <Plus className="w-4 h-4" />
+                            </button>
+                        )}
                     </div>
 
                     {isAdmin && (
                         <div className="flex items-center gap-2">
+                            <div className="relative">
+                                <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
+                                    <UserIcon className="w-4 h-4 text-slate-400" />
+                                </div>
+                                <select
+                                    value={selectedTeacherId}
+                                    onChange={(e) => setSelectedTeacherId(e.target.value)}
+                                    className="pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-600 outline-none focus:border-school-blue focus:ring-4 focus:ring-school-blue/5 transition-all appearance-none min-w-[160px]"
+                                >
+                                    <option value="">-- All Teachers --</option>
+                                    {teachers.map(t => (
+                                        <option key={t.user_id} value={t.user_id}>{t.name}</option>
+                                    ))}
+                                </select>
+                            </div>
                             <div className="relative">
                                 <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
                                     <Filter className="w-4 h-4 text-slate-400" />
@@ -364,14 +416,14 @@ const TimeTable = () => {
 
                             <button
                                 onClick={() => setIsEditMode(!isEditMode)}
-                                disabled={!filters.class_name}
+                                disabled={!filters.class_name && !selectedTeacherId}
                                 className={`flex items-center gap-2 px-4 py-2 rounded-xl border transition-all font-bold text-sm ${isEditMode
                                     ? 'bg-school-blue text-white border-school-blue shadow-lg shadow-school-blue/20'
                                     : 'bg-white text-slate-600 border-slate-200 hover:border-school-blue hover:text-school-blue'
                                     } disabled:opacity-50 disabled:cursor-not-allowed`}
                             >
                                 <Edit2 className="w-4 h-4" />
-                                {isEditMode ? 'Finish Editing' : 'Edit Mode'}
+                                {isEditMode ? 'Finish' : 'Edit'}
                             </button>
                         </div>
                     )}
@@ -398,28 +450,6 @@ const TimeTable = () => {
                     <Loader2 className="w-10 h-10 text-school-blue animate-spin" />
                     <p className="text-slate-500 font-medium">Loading schedule...</p>
                 </div>
-            ) : isTeacher ? (
-                <div className="space-y-12">
-                    {teacherGroups ? Object.keys(teacherGroups).map(key => (
-                        <div key={key} className="space-y-4">
-                            <div className="flex items-center gap-3 pl-2">
-                                <MapPin className="w-5 h-5 text-school-blue" />
-                                <h2 className="text-xl font-black text-slate-800 uppercase tracking-tight">Class {key}</h2>
-                            </div>
-                            <TimetableGrid
-                                entries={teacherGroups[key]}
-                                isAdmin={false}
-                                isEditMode={false}
-                                handleCellClick={() => { }}
-                                shift={selectedShift}
-                            />
-                        </div>
-                    )) : (
-                        <div className="text-center py-20 bg-slate-50 rounded-3xl">
-                            <p className="text-slate-400 font-medium">No classes assigned to you.</p>
-                        </div>
-                    )}
-                </div>
             ) : (
                 <TimetableGrid
                     entries={entries}
@@ -430,6 +460,14 @@ const TimeTable = () => {
                 />
             )}
 
+            {/* Admin Shift Modal */}
+            {isShiftModalOpen && (
+                <ShiftManager
+                    shifts={shifts}
+                    onClose={() => { setIsShiftModalOpen(false); fetchMetaData(); }}
+                />
+            )}
+
             {/* Admin Edit Modal */}
             {isModalOpen && (
                 <AdminModal
@@ -437,7 +475,7 @@ const TimeTable = () => {
                     onClose={closeModal}
                     onSuccess={() => { fetchTimetable(); closeModal(); }}
                     onDelete={handleDelete}
-                    meta={{ teachers, sections, subjects }}
+                    meta={{ teachers, sections, subjects, shifts }}
                     selectedShift={selectedShift}
                 />
             )}
@@ -447,18 +485,51 @@ const TimeTable = () => {
 
 const AdminModal = ({ entry, onClose, onSuccess, onDelete, meta, selectedShift }) => {
     const [loading, setLoading] = useState(false);
-    const initialShift = entry?.shift || selectedShift || 'morning';
     const [formData, setFormData] = useState({
         class_name: entry?.class_name || '',
         section: entry?.section || '',
         subject: entry?.subject || '',
         teacher: entry?.teacher || '',
         day: entry?.day || 1,
-        shift: initialShift,
+        shift_ref: entry?.shift_ref || selectedShift?.id || '',
         period_number: entry?.period_number || entry?.period || 1,
+        start_time: entry?.start_time || '00:00:00',
+        end_time: entry?.end_time || '00:00:00',
         room: entry?.room || ''
     });
-    const availablePeriods = SLOT_LAYOUT[formData.shift].filter(p => typeof p.id === 'number');
+
+    const periods = [1, 2, 3, 4, 5, 6, 7, 8];
+
+    // Helper to auto-set times based on period
+    useEffect(() => {
+        if (!entry?.id && formData.period_number && formData.start_time === '00:00:00') {
+            // Only auto-suggest for new entries if time is default
+            const pNum = formData.period_number;
+            const isMorning = selectedShift?.name.toLowerCase().includes('morning') || formData.shift_ref === 1; // Basic heuristic
+            
+            const morning_map = {
+                1: ["08:00", "08:30"],
+                2: ["08:30", "09:00"],
+                3: ["09:00", "09:30"],
+                4: ["10:00", "10:30"],
+                5: ["10:30", "11:00"],
+                6: ["11:00", "11:30"],
+            };
+            const afternoon_map = {
+                1: ["13:00", "13:30"],
+                2: ["13:30", "14:00"],
+                3: ["14:00", "14:30"],
+                4: ["15:00", "15:30"],
+                5: ["15:30", "16:00"],
+                6: ["16:00", "16:30"],
+            };
+
+            const map = isMorning ? morning_map : afternoon_map;
+            if (map[pNum]) {
+                setFormData(prev => ({ ...prev, start_time: map[pNum][0], end_time: map[pNum][1] }));
+            }
+        }
+    }, [formData.period_number, entry?.id]);
 
     const handleSectionChange = (e) => {
         const sectionId = e.target.value;
@@ -468,7 +539,8 @@ const AdminModal = ({ entry, onClose, onSuccess, onDelete, meta, selectedShift }
                 ...formData,
                 class_name: section.class_name,
                 section: section.section_name,
-                room: section.room_number || formData.room
+                room: section.room_number || formData.room,
+                shift_ref: section.assigned_shift || formData.shift_ref
             });
         }
     };
@@ -485,27 +557,7 @@ const AdminModal = ({ entry, onClose, onSuccess, onDelete, meta, selectedShift }
             onSuccess();
         } catch (err) {
             console.error('Save error:', err.response?.data);
-            const data = err.response?.data;
-            let errorMsg = 'Failed to save entry.';
-
-            if (data) {
-                if (typeof data === 'string') {
-                    errorMsg = data;
-                } else if (Array.isArray(data)) {
-                    errorMsg = data[0];
-                } else if (data.non_field_errors) {
-                    errorMsg = Array.isArray(data.non_field_errors) ? data.non_field_errors[0] : data.non_field_errors;
-                } else if (data.detail) {
-                    errorMsg = data.detail;
-                } else {
-                    const fields = Object.keys(data);
-                    if (fields.length > 0) {
-                        const firstError = data[fields[0]];
-                        errorMsg = Array.isArray(firstError) ? `${fields[0]}: ${firstError[0]}` : `${fields[0]}: ${firstError}`;
-                    }
-                }
-            }
-            alert(errorMsg);
+            alert('Failed to save entry. Check if entry already exists.');
         } finally {
             setLoading(false);
         }
@@ -515,7 +567,7 @@ const AdminModal = ({ entry, onClose, onSuccess, onDelete, meta, selectedShift }
 
     return (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200">
-            <div className="bg-white w-full max-w-md rounded-3xl shadow-2xl overflow-hidden border border-slate-100">
+            <div className="bg-white w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden border border-slate-100">
                 <div className="p-6 border-b border-slate-50 flex items-center justify-between bg-slate-50/50">
                     <h3 className="text-lg font-bold text-slate-800">
                         {isNew ? 'New Entry' : 'Edit Entry'}
@@ -540,37 +592,53 @@ const AdminModal = ({ entry, onClose, onSuccess, onDelete, meta, selectedShift }
                         <div className="space-y-1.5">
                             <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Shift</label>
                             <select
-                                value={formData.shift}
-                                onChange={e => {
-                                    const shift = e.target.value;
-                                    const maxForShift = 6;
-                                    setFormData({
-                                        ...formData,
-                                        shift,
-                                        period_number: Math.min(formData.period_number, maxForShift),
-                                    });
-                                }}
+                                value={formData.shift_ref}
+                                onChange={e => setFormData({ ...formData, shift_ref: parseInt(e.target.value) })}
                                 className="w-full px-4 py-2.5 bg-slate-50 border border-slate-100 rounded-xl text-sm font-bold text-slate-700 outline-none focus:border-school-blue focus:ring-2 focus:ring-school-blue/10 transition-all"
+                                required
                             >
-                                {SHIFT_OPTIONS.map(opt => <option key={opt.id} value={opt.id}>{opt.label}</option>)}
+                                <option value="">-- Choose Shift --</option>
+                                {meta.shifts?.map(opt => <option key={opt.id} value={opt.id}>{opt.name}</option>)}
                             </select>
                         </div>
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-1.5">
-                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Period</label>
+                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Period No.</label>
                             <select
                                 value={formData.period_number}
                                 onChange={e => setFormData({ ...formData, period_number: parseInt(e.target.value, 10) })}
                                 className="w-full px-4 py-2.5 bg-slate-50 border border-slate-100 rounded-xl text-sm font-bold text-slate-700 outline-none focus:border-school-blue focus:ring-2 focus:ring-school-blue/10 transition-all"
                             >
-                                {availablePeriods.map(p => (
-                                    <option key={p.id} value={p.id}>Period {p.id} ({p.time.split(' - ')[0]})</option>
+                                {periods.map(p => (
+                                    <option key={p} value={p}>Period {p}</option>
                                 ))}
                             </select>
                         </div>
-                        <div />
+                        <div className="space-y-1.5">
+                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Period Duration</label>
+                            <div className="grid grid-cols-2 gap-3">
+                                <div className="space-y-1">
+                                    <span className="text-[9px] font-bold text-slate-400 pl-1">FROM</span>
+                                    <input
+                                        type="time"
+                                        value={formData.start_time.substring(0, 5)}
+                                        onChange={e => setFormData(p => ({ ...p, start_time: e.target.value }))}
+                                        className="w-full px-3 py-2 bg-slate-50 border border-slate-100 rounded-xl text-xs font-bold text-slate-700 outline-none focus:border-school-blue focus:ring-2 focus:ring-school-blue/10 transition-all"
+                                    />
+                                </div>
+                                <div className="space-y-1">
+                                    <span className="text-[9px] font-bold text-slate-400 pl-1">TO</span>
+                                    <input
+                                        type="time"
+                                        value={formData.end_time.substring(0, 5)}
+                                        onChange={e => setFormData(p => ({ ...p, end_time: e.target.value }))}
+                                        className="w-full px-3 py-2 bg-slate-50 border border-slate-100 rounded-xl text-xs font-bold text-slate-700 outline-none focus:border-school-blue focus:ring-2 focus:ring-school-blue/10 transition-all"
+                                    />
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
                     <div className="space-y-1.5">
@@ -586,12 +654,6 @@ const AdminModal = ({ entry, onClose, onSuccess, onDelete, meta, selectedShift }
                                 <option key={s.id} value={s.id}>{s.class_name} - {s.section_name}</option>
                             ))}
                         </select>
-                        {formData.class_name && (
-                            <div className="flex gap-2 mt-2">
-                                <span className="px-2 py-1 bg-blue-50 text-school-blue text-[10px] font-black rounded-lg border border-blue-100 uppercase">Class: {formData.class_name}</span>
-                                <span className="px-2 py-1 bg-blue-50 text-school-blue text-[10px] font-black rounded-lg border border-blue-100 uppercase">Section: {formData.section}</span>
-                            </div>
-                        )}
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
@@ -658,6 +720,121 @@ const AdminModal = ({ entry, onClose, onSuccess, onDelete, meta, selectedShift }
                         )}
                     </div>
                 </form>
+            </div>
+        </div>
+    );
+};
+
+const ShiftManager = ({ shifts, onClose }) => {
+    const [loading, setLoading] = useState(false);
+    const [editingShift, setEditingShift] = useState(null);
+    const [form, setForm] = useState({ name: '', start_time: '08:00', end_time: '14:00' });
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        setLoading(true);
+        try {
+            if (editingShift) {
+                await api.put(`timetable/shifts/${editingShift.id}/`, form);
+            } else {
+                await api.post('timetable/shifts/', form);
+            }
+            setForm({ name: '', start_time: '08:00', end_time: '14:00' });
+            setEditingShift(null);
+            onClose();
+        } catch (err) {
+            alert('Failed to save shift');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleDelete = async (id) => {
+        if (!window.confirm('Delete this shift? All entries will be lost.')) return;
+        try {
+            await api.delete(`timetable/shifts/${id}/`);
+            onClose();
+        } catch (err) {
+            alert('Failed to delete shift');
+        }
+    };
+
+    return (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+            <div className="bg-white w-full max-w-lg rounded-3xl shadow-2xl p-6">
+                <div className="flex items-center justify-between mb-6">
+                    <h3 className="text-xl font-black text-slate-800 uppercase tracking-tight">Manage Shifts</h3>
+                    <button onClick={onClose} className="p-2 hover:bg-slate-50 rounded-xl transition-all">
+                        <X className="w-5 h-5" />
+                    </button>
+                </div>
+
+                <form onSubmit={handleSubmit} className="space-y-4 mb-8 p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="col-span-2">
+                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 block">Shift Name</label>
+                            <input
+                                value={form.name}
+                                onChange={e => setForm({ ...form, name: e.target.value })}
+                                className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-bold"
+                                placeholder="Morning, Evening..."
+                                required
+                            />
+                        </div>
+                        <div>
+                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 block">Start Time</label>
+                            <input
+                                type="time"
+                                value={form.start_time}
+                                onChange={e => setForm({ ...form, start_time: e.target.value })}
+                                className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-bold"
+                                required
+                            />
+                        </div>
+                        <div>
+                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 block">End Time</label>
+                            <input
+                                type="time"
+                                value={form.end_time}
+                                onChange={e => setForm({ ...form, end_time: e.target.value })}
+                                className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-bold"
+                                required
+                            />
+                        </div>
+                    </div>
+                    <button
+                        type="submit"
+                        disabled={loading}
+                        className="w-full py-3 bg-school-blue text-white rounded-xl font-bold hover:shadow-lg transition-all"
+                    >
+                        {editingShift ? 'Update Shift' : 'Create New Shift'}
+                    </button>
+                </form>
+
+                <div className="space-y-3 max-h-[300px] overflow-y-auto pr-2">
+                    {shifts.map(sh => (
+                        <div key={sh.id} className="flex items-center justify-between p-4 bg-white border border-slate-100 rounded-2xl group hover:border-school-blue/30 transition-all">
+                            <div>
+                                <h4 className="font-bold text-slate-800">{sh.name}</h4>
+                                <p className="text-xs text-slate-500 font-medium">{sh.start_time} - {sh.end_time}</p>
+                            </div>
+                            <div className="flex gap-2">
+                                <button
+                                    onClick={() => { setEditingShift(sh); setForm({ name: sh.name, start_time: sh.start_time, end_time: sh.end_time }); }}
+                                    className="p-2 text-slate-400 hover:text-school-blue hover:bg-school-blue/5 rounded-lg transition-all"
+                                >
+                                    <Edit2 className="w-4 h-4" />
+                                </button>
+                                <button
+                                    onClick={() => handleDelete(sh.id)}
+                                    className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
+                                >
+                                    <Trash2 className="w-4 h-4" />
+                                </button>
+                            </div>
+                        </div>
+                    ))}
+                </div>
             </div>
         </div>
     );

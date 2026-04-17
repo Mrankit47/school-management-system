@@ -4,6 +4,8 @@ import AppRoutes from './routes/AppRoutes';
 import MainLayout from './layouts/MainLayout';
 import useAuthStore from './store/authStore';
 
+import { Toaster } from 'react-hot-toast';
+
 const AppContent = () => {
   const { isAuthenticated } = useAuthStore();
   const location = useLocation();
@@ -17,12 +19,17 @@ const AppContent = () => {
     location.pathname.match(/^\/school\/[^/]+\/?$/) ||
     location.pathname.match(/^\/school\/[^/]+\/login\/?$/);
 
-  return (isAuthenticated && !isPublicRoute) ? (
-    <MainLayout>
-      <AppRoutes />
-    </MainLayout>
-  ) : (
-    <AppRoutes />
+  return (
+    <>
+      <Toaster position="top-right" reverseOrder={false} />
+      {(isAuthenticated && !isPublicRoute) ? (
+        <MainLayout>
+          <AppRoutes />
+        </MainLayout>
+      ) : (
+        <AppRoutes />
+      )}
+    </>
   );
 };
 

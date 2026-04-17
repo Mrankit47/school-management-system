@@ -434,7 +434,7 @@ class StudentIdCardPdfView(views.APIView):
     def get(self, request):
         if request.user.role != 'student':
             return Response(
-                {"error": "Only students can download their ID card"},
+                {"error": "Only students can view their ID card"},
                 status=status.HTTP_403_FORBIDDEN,
             )
         s = (
@@ -472,11 +472,7 @@ class StudentIdCardPdfView(views.APIView):
             school_website=getattr(settings, 'SCHOOL_WEBSITE', ''),
         )
         filename = f"id-card-{s.admission_number or s.id}.pdf"
-        disposition = (request.query_params.get('disposition') or 'attachment').lower()
-        if disposition == 'inline':
-            disp = f'inline; filename="{filename}"'
-        else:
-            disp = f'attachment; filename="{filename}"'
         response = HttpResponse(pdf_bytes, content_type='application/pdf')
-        response['Content-Disposition'] = disp
+        # Students are allowed to view only, not download.
+        response['Content-Disposition'] = f'inline; filename="{filename}"'
         return response
