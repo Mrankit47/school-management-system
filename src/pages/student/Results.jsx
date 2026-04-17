@@ -1,34 +1,23 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import api from '../../services/api';
 
 const colors = {
-    border: '#e5e7eb',
-    muted: '#6b7280',
-    text: '#111827',
     primary: '#2563eb',
-    present: '#16a34a',
-    absent: '#ef4444',
-    yellow: '#f59e0b',
-    card: '#ffffff',
-    bg: '#f9fafb',
+    primaryLight: '#eff6ff',
+    secondary: '#0f172a',
+    success: '#10b981',
+    successLight: '#ecfdf5',
+    warning: '#f59e0b',
+    warningLight: '#fffbeb',
+    danger: '#ef4444',
+    dangerLight: '#fef2f2',
+    border: '#e5e7eb',
+    text: '#1e293b',
+    textMuted: '#64748b',
+    bg: '#f8fafc',
+    white: '#ffffff',
 };
-
-function parseDateOnly(value) {
-    if (!value) return null;
-    const s = String(value);
-    const m = s.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-    if (!m) return null;
-    const y = parseInt(m[1], 10);
-    const mo = parseInt(m[2], 10);
-    const d = parseInt(m[3], 10);
-    return new Date(y, mo - 1, d);
-}
-
-function formatMoneyMaybe(v) {
-    const n = Number(v);
-    if (Number.isNaN(n)) return '0';
-    return `${n}`;
-}
 
 function pctToOverallGrade(pct) {
     const p = Number(pct) || 0;
@@ -40,308 +29,313 @@ function pctToOverallGrade(pct) {
     return 'F';
 }
 
-function overallResultText(totalObtained, passingMarks) {
-    const obt = Number(totalObtained) || 0;
-    const pass = Number(passingMarks) || 0;
-    return obt >= pass ? 'Pass' : 'Fail';
-}
+const cardStyle = {
+    backgroundColor: colors.white,
+    borderRadius: '24px',
+    padding: '24px',
+    border: `1px solid ${colors.border}`,
+    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03)',
+};
 
-function subjectResultText(r) {
-    const rs = (r.result_status || '').toString();
-    if (rs.toLowerCase() === 'pass') return 'Pass';
-    if (rs.toLowerCase() === 'absent') return 'Fail';
-    return 'Fail';
-}
+const badgeStyle = (pass) => ({
+    padding: '6px 16px',
+    borderRadius: '12px',
+    fontSize: '13px',
+    fontWeight: 800,
+    backgroundColor: pass ? colors.successLight : colors.dangerLight,
+    color: pass ? colors.success : colors.danger,
+    textTransform: 'uppercase',
+    letterSpacing: '0.5px',
+});
 
 export default function Results() {
     const [profile, setProfile] = useState(null);
-    const [results, setResults] = useState([]);
+    const [marks, setMarks] = useState([]);
     const [exams, setExams] = useState([]);
-    const [selectedExamId, setSelectedExamId] = useState(null);
+    const [selectedExamType, setSelectedExamType] = useState('');
     const [loading, setLoading] = useState(true);
+    const location = useLocation();
+
+    // Detect view based on URL
+    const isMainExamView = location.pathname.includes('/results/exam');
 
     useEffect(() => {
         setLoading(true);
-        Promise.all([api.get('students/profile/'), api.get('academics/results/my/'), api.get('academics/exams/')])
-            .then(([pRes, rRes, eRes]) => {
+        Promise.all([
+            api.get('students/profile/'),
+            api.get('academics/results/my/'),
+            api.get('academics/exams/')
+        ])
+            .then(([pRes, mRes, eRes]) => {
                 setProfile(pRes.data || null);
-                setResults(rRes.data || []);
+                setMarks(mRes.data || []);
                 setExams(eRes.data || []);
             })
+            .catch(err => console.error("Error fetching results:", err))
             .finally(() => setLoading(false));
     }, []);
 
-    const resultsByExam = useMemo(() => {
-        const map = new Map(); // examId -> { exam_name, rows }
-        (results || []).forEach((r) => {
-            if (!map.has(r.exam)) map.set(r.exam, { exam_name: r.exam_name, rows: [] });
-            map.get(r.exam).rows.push(r);
+    const marksByExamType = useMemo(() => {
+        const map = new Map();
+        (marks || []).forEach((m) => {
+            // Filter by category
+            if (isMainExamView) {
+                if (m.exam_type !== 'final') return;
+            } else {
+                if (m.exam_type === 'final') return;
+            }
+
+            if (!map.has(m.exam_type)) map.set(m.exam_type, []);
+            map.get(m.exam_type).push(m);
         });
         return map;
-    }, [results]);
-
-    const examMetaMap = useMemo(() => {
-        const map = new Map();
-        (exams || []).forEach((e) => map.set(Number(e.id), e));
-        return map;
-    }, [exams]);
+    }, [marks, isMainExamView]);
 
     const examOptions = useMemo(() => {
-        const options = [];
-        for (const [examId, data] of resultsByExam.entries()) {
-            const meta = examMetaMap.get(Number(examId));
-            options.push({
-                id: Number(examId),
-                label: meta ? `${meta.name} (${meta.exam_type || 'Exam'})` : data.exam_name,
-                startDate: meta?.start_date || meta?.date || null,
-                exam_type: meta?.exam_type || null,
+        const options = Array.from(marksByExamType.keys()).map(type => {
+            const meta = exams.find(e => e.exam_type === type);
+            const labelMap = {
+                'unit_test': 'Unit Test',
+                'class_test': 'Class Test',
+                'mst': 'MST',
+                'final': 'Final Exam'
+            };
+            return {
+                id: type,
+                label: labelMap[type] || type.replace('_', ' ').toUpperCase(),
+                exam_id: meta?.id,
                 passing_marks: meta?.passing_marks || 0,
-            });
-        }
+                total_marks: meta?.total_marks || 0,
+                startDate: meta?.start_date || null,
+            };
+        });
         options.sort((a, b) => String(b.startDate || '').localeCompare(String(a.startDate || '')));
         return options;
-    }, [resultsByExam, examMetaMap]);
+    }, [marksByExamType, exams]);
 
     useEffect(() => {
-        if (examOptions.length === 0) {
-            setSelectedExamId(null);
-            return;
+        if (examOptions.length > 0 && !selectedExamType) {
+            setSelectedExamType(examOptions[0].id);
         }
-        if (selectedExamId && examOptions.some((o) => o.id === selectedExamId)) return;
-        setSelectedExamId(examOptions[0].id);
-    }, [examOptions, selectedExamId]);
+    }, [examOptions, selectedExamType]);
 
-    const selectedExam = useMemo(() => examOptions.find((o) => o.id === selectedExamId) || null, [examOptions, selectedExamId]);
-
-    const selectedRows = useMemo(() => {
-        if (!selectedExamId) return [];
-        const data = resultsByExam.get(selectedExamId);
-        return data?.rows || [];
-    }, [resultsByExam, selectedExamId]);
+    const selectedOption = useMemo(() => examOptions.find(o => o.id === selectedExamType) || null, [examOptions, selectedExamType]);
+    const selectedRows = useMemo(() => marksByExamType.get(selectedExamType) || [], [marksByExamType, selectedExamType]);
 
     const computed = useMemo(() => {
-        const meta = examMetaMap.get(Number(selectedExamId)) || null;
-        const passingMarks = meta?.passing_marks || 0;
-        const totalMax = selectedRows.reduce((s, r) => s + Number(r.max_marks || 0), 0);
-        const totalObt = selectedRows.reduce((s, r) => s + Number(r.absent ? 0 : r.marks || 0), 0);
+        const totalMax = selectedRows.reduce((s, m) => s + Number(m.max_marks || 0), 0);
+        const totalObt = selectedRows.reduce((s, m) => s + Number(m.marks || 0), 0);
         const percentage = totalMax > 0 ? (totalObt / totalMax) * 100 : 0;
         const overallGrade = pctToOverallGrade(percentage);
-        const finalResult = overallResultText(totalObt, passingMarks);
-
-        const academicYear = (() => {
-            const start = meta?.start_date ? parseDateOnly(meta.start_date) : null;
-            const end = meta?.end_date ? parseDateOnly(meta.end_date) : null;
-            if (!start || !end) return '—';
-            return `${start.getFullYear()}-${String(end.getFullYear()).slice(-2)}`;
-        })();
+        const passingThreshold = totalMax * 0.33;
+        const finalResult = totalObt >= passingThreshold ? 'Pass' : 'Fail';
 
         return {
-            passingMarks,
             totalMax,
             totalObt,
             percentage,
             overallGrade,
             finalResult,
-            academicYear,
-            declarationDate: meta?.start_date || meta?.date || '—',
-            examType: meta?.exam_type || '—',
+            examType: selectedOption?.label || selectedExamType.replace('_', ' ').toUpperCase()
         };
-    }, [selectedExamId, selectedRows, examMetaMap]);
+    }, [selectedRows, selectedOption, selectedExamType]);
 
     const downloadPdf = async () => {
+        if (!selectedOption?.exam_id) {
+            alert('Exam record not found for PDF generation.');
+            return;
+        }
         try {
-            if (!selectedExamId) return;
-            const res = await api.get(`academics/results/my/${selectedExamId}/pdf/`, { responseType: 'blob' });
+            const res = await api.get(`academics/results/my/${selectedOption.exam_id}/pdf/`, { responseType: 'blob' });
             const url = window.URL.createObjectURL(new Blob([res.data]));
             const a = document.createElement('a');
             a.href = url;
-            a.download = `marksheet_exam_${selectedExamId}.pdf`;
+            a.download = `marksheet_${selectedOption.label.replace(' ', '_')}.pdf`;
             a.click();
             window.URL.revokeObjectURL(url);
         } catch (e) {
-            // eslint-disable-next-line no-alert
             alert('Could not download marksheet PDF.');
         }
     };
 
-    if (loading) return <div style={{ padding: 20, color: colors.muted, fontWeight: 900 }}>Loading results…</div>;
+    if (loading) return (
+        <div style={{ padding: '100px', textAlign: 'center', backgroundColor: colors.bg, minHeight: '100vh' }}>
+            <div style={{ fontSize: '20px', fontWeight: 800, color: colors.primary }}>Fetching your results...</div>
+        </div>
+    );
 
-    if (!selectedExamId || selectedRows.length === 0) {
+    if (examOptions.length === 0) {
         return (
-            <div style={{ padding: 20, backgroundColor: colors.bg, minHeight: 'calc(100vh - 60px)' }}>
-                <div style={{ fontWeight: 1000, fontSize: 18 }}>My Exam Results</div>
-                <div style={{ marginTop: 10, color: colors.muted, fontWeight: 900 }}>No results yet.</div>
+            <div style={{ padding: '100px 40px', textAlign: 'center', backgroundColor: colors.bg, minHeight: '100vh' }}>
+                <div style={{ ...cardStyle, maxWidth: '500px', margin: '0 auto' }}>
+                    <div style={{ fontSize: '64px', marginBottom: '20px' }}>📄</div>
+                    <h1 style={{ fontSize: '24px', fontWeight: 900, color: colors.secondary }}>No Published {isMainExamView ? 'Final' : 'Internal'} Result</h1>
+                    <p style={{ color: colors.textMuted, marginTop: '12px', lineHeight: 1.6 }}>
+                        {isMainExamView 
+                          ? "Your Final Exam marksheet will appear here once the administration publishes it."
+                          : "Your MST, Unit, and Class Test results will appear here once they are published."}
+                    </p>
+                </div>
             </div>
         );
     }
 
-    const studentName = profile?.user?.name || profile?.user?.username || 'Student';
-    const rollNumber = profile?.admission_number || '—';
-    const classLabel = profile ? `${profile.class_name || ''}${profile.section_name ? ` - ${profile.section_name}` : ''}`.trim() : '—';
-
     return (
-        <div style={{ padding: 20, backgroundColor: colors.bg, minHeight: 'calc(100vh - 60px)' }}>
-            <div style={{ maxWidth: 1120, margin: '0 auto' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'flex-start', flexWrap: 'wrap' }}>
+        <div style={{ padding: '32px', backgroundColor: colors.bg, minHeight: '100vh', fontFamily: 'Inter, system-ui, sans-serif' }}>
+            <div style={{ maxWidth: '1100px', margin: '0 auto' }}>
+                {/* Header */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '32px', gap: '20px', flexWrap: 'wrap' }}>
                     <div>
-                        <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-                            <div style={{ width: 52, height: 52, borderRadius: 16, backgroundColor: '#e0e7ff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 1000, color: colors.primary }}>
-                                MIS
-                            </div>
-                            <div>
-                                <div style={{ fontWeight: 1000, fontSize: 20, color: colors.text }}>Student Marksheet</div>
-                                <div style={{ color: colors.muted, fontWeight: 900, fontSize: 12, marginTop: 2 }}>
-                                    Official view of your final results
-                                </div>
-                            </div>
-                        </div>
+                        <h1 style={{ fontSize: '36px', fontWeight: 1000, color: colors.secondary, margin: 0, letterSpacing: '-1px' }}>
+                            {isMainExamView ? 'Final Exam Report' : 'Assessment Report'}
+                        </h1>
+                        <p style={{ color: colors.textMuted, marginTop: '6px', fontWeight: 700, fontSize: '15px' }}>
+                            {isMainExamView ? 'Detailed analysis of your end-of-term marks.' : 'Track your MST and internal test performance.'}
+                        </p>
                     </div>
-
-                    <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
-                        <div>
-                            <div style={{ fontSize: 12, color: colors.muted, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.03em', marginBottom: 6 }}>
-                                Exam
-                            </div>
-                            <select
-                                value={selectedExamId}
-                                onChange={(e) => setSelectedExamId(parseInt(e.target.value, 10))}
-                                style={{ padding: '10px 12px', borderRadius: 12, border: `1px solid ${colors.border}`, backgroundColor: '#fff', fontWeight: 900 }}
-                            >
-                                {examOptions.map((o) => (
-                                    <option key={o.id} value={o.id}>
-                                        {o.label}
-                                    </option>
-                                ))}
-                            </select>
-                        </div>
-
-                        <button
-                            type="button"
-                            onClick={downloadPdf}
-                            style={{
-                                padding: '12px 14px',
-                                borderRadius: 12,
-                                border: 'none',
-                                backgroundColor: colors.primary,
-                                color: '#fff',
+                    <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                        <select
+                            value={selectedExamType}
+                            onChange={(e) => setSelectedExamType(e.target.value)}
+                            style={{ 
+                                padding: '12px 24px', 
+                                borderRadius: '16px', 
+                                border: `2px solid ${colors.border}`, 
+                                fontWeight: 800, 
+                                outline: 'none', 
+                                backgroundColor: colors.white, 
                                 cursor: 'pointer',
-                                fontWeight: 1000,
-                                height: 44,
-                                whiteSpace: 'nowrap',
+                                transition: 'all 0.2s',
+                                fontSize: '14px'
                             }}
                         >
-                            Download PDF
+                            {examOptions.map((o) => (
+                                <option key={o.id} value={o.id}>{o.label}</option>
+                            ))}
+                        </select>
+                        <button
+                            onClick={downloadPdf}
+                            style={{ 
+                                padding: '12px 28px', 
+                                borderRadius: '16px', 
+                                border: 'none', 
+                                backgroundColor: colors.primary, 
+                                color: colors.white, 
+                                fontWeight: 900, 
+                                cursor: 'pointer', 
+                                boxShadow: `0 8px 20px -6px ${colors.primary}66`,
+                                fontSize: '14px'
+                            }}
+                        >
+                            Download Report
                         </button>
                     </div>
                 </div>
 
-                <div style={{ marginTop: 14, border: `1px solid ${colors.border}`, borderRadius: 16, backgroundColor: '#fff', padding: 16 }}>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(12, minmax(0,1fr))', gap: 12 }}>
-                        <div style={{ gridColumn: 'span 7' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
-                                <div>
-                                    <div style={{ fontSize: 12, color: colors.muted, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.03em' }}>Student Information</div>
-                                    <div style={{ marginTop: 8, fontWeight: 1000, fontSize: 18 }}>{studentName}</div>
-                                    <div style={{ marginTop: 6, color: colors.muted, fontWeight: 900 }}>Roll Number: {rollNumber}</div>
-                                    <div style={{ marginTop: 4, color: colors.muted, fontWeight: 900 }}>Class & Section: {classLabel}</div>
+                {/* Info Cards */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.8fr', gap: '24px', marginBottom: '32px' }}>
+                    <div style={cardStyle}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+                            <div style={{ 
+                                width: '64px', 
+                                height: '64px', 
+                                borderRadius: '20px', 
+                                backgroundColor: colors.primaryLight, 
+                                display: 'flex', 
+                                alignItems: 'center', 
+                                justifyContent: 'center',
+                                fontSize: '28px'
+                            }}>
+                                👨‍🎓
+                            </div>
+                            <div>
+                                <p style={{ color: colors.textMuted, fontSize: '13px', fontWeight: 800, textTransform: 'uppercase', marginBottom: '4px', letterSpacing: '1px' }}>Student Identity</p>
+                                <h3 style={{ margin: 0, fontSize: '24px', fontWeight: 900, color: colors.secondary }}>{profile?.user?.name}</h3>
+                                <div style={{ display: 'flex', gap: '16px', marginTop: '4px' }}>
+                                    <span style={{ color: colors.text, fontWeight: 700, fontSize: '14px' }}>Class: <span style={{ color: colors.primary }}>{profile?.class_section_display || 'Not Assigned'}</span></span>
+                                    <span style={{ color: colors.text, fontWeight: 700, fontSize: '14px' }}>Roll No: <span style={{ color: colors.primary }}>{profile?.roll_number || 'N/A'}</span></span>
                                 </div>
-                                <div style={{ textAlign: 'right' }}>
-                                    <div style={{ fontSize: 12, color: colors.muted, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.03em' }}>Academic Year</div>
-                                    <div style={{ marginTop: 8, fontWeight: 1000, fontSize: 18 }}>{computed.academicYear}</div>
-                                    <div style={{ marginTop: 6, color: colors.muted, fontWeight: 900 }}>School Name: School Management System</div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div style={{ gridColumn: 'span 5', border: `1px solid ${colors.border}`, borderRadius: 14, padding: 12, backgroundColor: '#fff' }}>
-                            <div style={{ fontSize: 12, color: colors.muted, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.03em' }}>Exam Details</div>
-                            <div style={{ marginTop: 10, fontWeight: 1000, color: colors.text }}>
-                                {computed.examType}
-                            </div>
-                            <div style={{ marginTop: 6, color: colors.muted, fontWeight: 900 }}>
-                                Result Declaration Date: {computed.declarationDate}
-                            </div>
-                            <div style={{ marginTop: 10, color: colors.muted, fontWeight: 900 }}>
-                                Total Subjects: {selectedRows.length}
                             </div>
                         </div>
                     </div>
 
-                    <div style={{ marginTop: 14, borderTop: `1px solid ${colors.border}`, paddingTop: 14 }}>
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(12, minmax(0,1fr))', gap: 12 }}>
-                            <div style={{ gridColumn: 'span 12' }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
-                                    <div style={{ fontWeight: 1000, fontSize: 16 }}>Subject-wise Marks</div>
-                                    <div style={{ color: colors.muted, fontWeight: 900, fontSize: 12 }}>
-                                        Computed automatically from teacher-entered marks
-                                    </div>
-                                </div>
-
-                                <div style={{ marginTop: 12, overflowX: 'auto' }}>
-                                    <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 720 }}>
-                                        <thead>
-                                            <tr style={{ backgroundColor: '#f2f4f7' }}>
-                                                <th style={{ padding: '12px 10px', textAlign: 'left', color: colors.muted, fontWeight: 1000 }}>Subject Name</th>
-                                                <th style={{ padding: '12px 10px', textAlign: 'right', color: colors.muted, fontWeight: 1000 }}>Maximum Marks</th>
-                                                <th style={{ padding: '12px 10px', textAlign: 'right', color: colors.muted, fontWeight: 1000 }}>Obtained Marks</th>
-                                                <th style={{ padding: '12px 10px', textAlign: 'left', color: colors.muted, fontWeight: 1000 }}>Grade</th>
-                                                <th style={{ padding: '12px 10px', textAlign: 'left', color: colors.muted, fontWeight: 1000 }}>Result</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {selectedRows.map((r) => (
-                                                <tr key={r.id} style={{ borderTop: `1px solid ${colors.border}` }}>
-                                                    <td style={{ padding: '12px 10px', fontWeight: 900 }}>{r.subject}</td>
-                                                    <td style={{ padding: '12px 10px', textAlign: 'right' }}>{formatMoneyMaybe(r.max_marks)}</td>
-                                                    <td style={{ padding: '12px 10px', textAlign: 'right', fontWeight: 1000, color: r.absent ? colors.absent : colors.text }}>
-                                                        {r.absent ? 'ABS' : formatMoneyMaybe(r.marks)}
-                                                    </td>
-                                                    <td style={{ padding: '12px 10px', fontWeight: 1000 }}>{r.grade || '—'}</td>
-                                                    <td style={{ padding: '12px 10px', fontWeight: 1000, color: r.absent ? colors.absent : (r.result_status || '').toLowerCase() === 'pass' ? colors.present : colors.absent }}>
-                                                        {subjectResultText(r)}
-                                                    </td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                </div>
+                    <div style={{ ...cardStyle, backgroundColor: colors.primary, color: colors.white, border: 'none' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                            <div>
+                                <p style={{ opacity: 0.8, fontSize: '13px', fontWeight: 800, textTransform: 'uppercase', marginBottom: '8px', letterSpacing: '1px' }}>Overall Result</p>
+                                <h3 style={{ margin: 0, fontSize: '42px', fontWeight: 1000 }}>{computed.percentage.toFixed(1)}%</h3>
+                                <p style={{ margin: '4px 0 0', fontWeight: 800, fontSize: '16px', opacity: 0.9 }}>Grade: {computed.overallGrade}</p>
                             </div>
-                        </div>
-
-                        <div style={{ marginTop: 18 }}>
-                            <div style={{ fontWeight: 1000, fontSize: 16 }}>Result Summary</div>
-                            <div style={{ marginTop: 12, display: 'grid', gridTemplateColumns: 'repeat(12, minmax(0,1fr))', gap: 12 }}>
-                                <div style={{ gridColumn: 'span 4', border: `1px solid ${colors.border}`, borderRadius: 14, padding: 12, backgroundColor: '#fff' }}>
-                                    <div style={{ color: colors.muted, fontWeight: 900, fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.03em' }}>Total Marks</div>
-                                    <div style={{ marginTop: 6, fontWeight: 1000, fontSize: 18 }}>{computed.totalObt}/{computed.totalMax}</div>
-                                </div>
-                                <div style={{ gridColumn: 'span 4', border: `1px solid ${colors.border}`, borderRadius: 14, padding: 12, backgroundColor: '#fff' }}>
-                                    <div style={{ color: colors.muted, fontWeight: 900, fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.03em' }}>Percentage</div>
-                                    <div style={{ marginTop: 6, fontWeight: 1000, fontSize: 18 }}>{computed.percentage.toFixed(2)}%</div>
-                                </div>
-                                <div style={{ gridColumn: 'span 4', border: `1px solid ${colors.border}`, borderRadius: 14, padding: 12, backgroundColor: '#fff' }}>
-                                    <div style={{ color: colors.muted, fontWeight: 900, fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.03em' }}>Overall</div>
-                                    <div style={{ marginTop: 6, fontWeight: 1000, fontSize: 18 }}>{computed.overallGrade}</div>
-                                    <div style={{ marginTop: 6, color: computed.finalResult === 'Pass' ? colors.present : colors.absent, fontWeight: 1000 }}>
-                                        {computed.finalResult}
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div style={{ marginTop: 18, display: 'grid', gridTemplateColumns: 'repeat(12, minmax(0,1fr))', gap: 12 }}>
-                            <div style={{ gridColumn: 'span 7', border: `1px solid ${colors.border}`, borderRadius: 14, padding: 12, backgroundColor: '#fff' }}>
-                                <div style={{ fontWeight: 1000, fontSize: 16 }}>Teacher Remarks</div>
-                                <div style={{ marginTop: 8, color: colors.muted, fontWeight: 900 }}>Class Teacher Name: —</div>
-                                <div style={{ marginTop: 4, color: colors.muted, fontWeight: 900 }}>Remarks: —</div>
-                            </div>
-                            <div style={{ gridColumn: 'span 5', border: `1px solid ${colors.border}`, borderRadius: 14, padding: 12, backgroundColor: '#fff' }}>
-                                <div style={{ fontWeight: 1000, fontSize: 16 }}>Digital Signature</div>
-                                <div style={{ marginTop: 10, color: colors.muted, fontWeight: 900 }}>Class Teacher: __________________</div>
-                                <div style={{ marginTop: 10, color: colors.muted, fontWeight: 900 }}>Authorized Sign: __________________</div>
+                            <div style={{ 
+                                backgroundColor: computed.finalResult === 'Pass' ? 'rgba(255,255,255,0.25)' : 'rgba(239, 68, 68, 0.4)', 
+                                padding: '10px 24px', 
+                                borderRadius: '14px', 
+                                fontWeight: 1000, 
+                                fontSize: '22px',
+                                boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+                            }}>
+                                {computed.finalResult}
                             </div>
                         </div>
                     </div>
+                </div>
+
+                {/* Subject Wise Performance */}
+                <div>
+                    <h2 style={{ fontSize: '22px', fontWeight: 900, color: colors.secondary, marginBottom: '20px', paddingLeft: '8px' }}>Subject Performance</h2>
+                    <div style={{ display: 'grid', gap: '16px' }}>
+                        {selectedRows.map((r) => {
+                            const pct = (r.marks / r.max_marks) * 100;
+                            const isPass = r.marks >= (r.max_marks * 0.33);
+                            return (
+                                <div key={r.id} style={{ ...cardStyle, padding: '20px 24px', transition: 'transform 0.2s' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                                        <div>
+                                            <span style={{ fontSize: '18px', fontWeight: 900, color: colors.secondary }}>{r.subject_name || r.subject}</span>
+                                        </div>
+                                        <div style={badgeStyle(isPass)}>
+                                            {isPass ? 'Pass' : 'Fail'}
+                                        </div>
+                                    </div>
+                                    
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 200px', gap: '40px', alignItems: 'center' }}>
+                                        <div>
+                                            <div style={{ height: '12px', width: '100%', backgroundColor: colors.bg, borderRadius: '6px', overflow: 'hidden' }}>
+                                                <div style={{ 
+                                                    height: '100%', 
+                                                    width: `${pct}%`, 
+                                                    backgroundColor: isPass ? colors.primary : colors.danger,
+                                                    borderRadius: '6px',
+                                                    transition: 'width 1s ease-out'
+                                                }} />
+                                            </div>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '10px' }}>
+                                                <span style={{ fontSize: '13px', fontWeight: 800, color: colors.textMuted }}>Achievement</span>
+                                                <span style={{ fontSize: '13px', fontWeight: 800, color: colors.secondary }}>{pct.toFixed(1)}%</span>
+                                            </div>
+                                        </div>
+                                        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '32px' }}>
+                                            <div style={{ textAlign: 'right' }}>
+                                                <p style={{ margin: 0, fontSize: '12px', fontWeight: 800, color: colors.textMuted, textTransform: 'uppercase' }}>Obtained</p>
+                                                <p style={{ margin: 0, fontSize: '20px', fontWeight: 900, color: colors.primary }}>{r.marks}</p>
+                                            </div>
+                                            <div style={{ textAlign: 'right' }}>
+                                                <p style={{ margin: 0, fontSize: '12px', fontWeight: 800, color: colors.textMuted, textTransform: 'uppercase' }}>Max</p>
+                                                <p style={{ margin: 0, fontSize: '20px', fontWeight: 900, color: colors.secondary }}>{r.max_marks}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+
+                {/* Footer Info */}
+                <div style={{ marginTop: '40px', padding: '24px', borderTop: `1px dashed ${colors.border}`, textAlign: 'center' }}>
+                    <p style={{ color: colors.textMuted, fontSize: '13px', fontWeight: 700 }}>
+                        This is an automatically generated report. For any discrepancies, please contact the administration office.
+                    </p>
                 </div>
             </div>
         </div>

@@ -44,6 +44,7 @@ import AdminClasses from '../pages/admin/Classes';
 import AdminSubjects from '../pages/admin/Subjects';
 import AssignTeacher from '../pages/admin/AssignTeacher';
 import AdminExams from '../pages/admin/Exams';
+import PublishResults from '../pages/admin/PublishResults';
 import AdminFees from '../pages/admin/Fees';
 import AdminFinanceCards from '../pages/admin/FinanceCards';
 import AdminHolidays from '../pages/admin/Holidays';
@@ -150,6 +151,7 @@ const AppRoutes = () => {
                 <Route path="subjects" element={<AdminSubjects />} />
                 <Route path="subjects/:subjectId" element={<SubjectDetails />} />
                 <Route path="exams" element={<AdminExams />} />
+                <Route path="publish-results" element={<PublishResults />} />
                 <Route path="announcements" element={<AdminAnnouncements />} />
                 <Route path="fees" element={<AdminFees />} />
                 <Route path="finance-cards" element={<AdminFinanceCards />} />

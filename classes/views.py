@@ -91,7 +91,15 @@ class AdminMainClassCreateView(views.APIView):
             name=name,
             defaults={'code': code, 'description': description},
         )
-        if not created and (code is not None or description is not None):
+        if created:
+            # Automatic Initialization of section 'A'
+            section_obj, _ = MainSection.objects.get_or_create(school=school, name='A')
+            ClassSection.objects.get_or_create(
+                school=school,
+                class_ref=obj,
+                section_ref=section_obj
+            )
+        elif code is not None or description is not None:
             if code is not None:
                 obj.code = code
             if description is not None:
@@ -289,6 +297,19 @@ class AdminClassSectionHierarchyView(views.APIView):
     def get(self, request):
         school = request.user.school
         classes = MainClass.objects.filter(school=school).order_by('name')
+        
+        # Self-healing: Ensure every class has at least one section (A)
+        # This fixes classes created before this automation.
+        classes_with_no_sections = classes.filter(sections__isnull=True)
+        if classes_with_no_sections.exists():
+            default_section, _ = MainSection.objects.get_or_create(school=school, name='A')
+            for c in classes_with_no_sections:
+                ClassSection.objects.get_or_create(
+                    school=school,
+                    class_ref=c,
+                    section_ref=default_section
+                )
+
         sections = ClassSection.objects.select_related(
             'class_ref',
             'section_ref',

@@ -49,7 +49,7 @@ const Sidebar = () => {
         },
         { path: '/student/gallery', label: 'Gallery', icon: '🖼️' },
         { path: '/student/shops', label: 'Shop Locations', icon: '🏪' },
-        { path: '/student/profile', label: 'Your Profile', icon: '👤' },
+        { path: '/student/profile', label: 'Your Profile', icon: '🧑🏻‍🎓' },
     ];
 
     const teacherLinks = [
@@ -88,6 +88,7 @@ const Sidebar = () => {
                 { path: '/admin/subjects', label: 'Subjects' },
                 { path: '/admin/assign-teacher', label: 'Assign Teacher' },
                 { path: '/admin/exams', label: 'Exams' },
+                { path: '/admin/publish-results', label: 'Publish Results' },
                 { path: '/admin/announcements', label: 'Announcements' },
                 { path: '/admin/syllabus', label: 'Syllabus' },
                 { path: '/admin/holidays', label: 'Holidays' },

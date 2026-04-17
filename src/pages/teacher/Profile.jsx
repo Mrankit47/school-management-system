@@ -108,13 +108,20 @@ const TeacherProfile = () => {
     const [docFile, setDocFile] = useState(null);
     const [docError, setDocError] = useState('');
 
+    const [schoolInfo, setSchoolInfo] = useState(null);
+
     useEffect(() => {
         setLoading(true);
-        Promise.all([api.get('teachers/profile/'), api.get('teachers/profile/documents/')])
-            .then(([pRes, dRes]) => {
+        Promise.all([
+            api.get('teachers/profile/'),
+            api.get('teachers/profile/documents/'),
+            api.get('common/school-info/').catch(() => ({ data: null }))
+        ])
+            .then(([pRes, dRes, sRes]) => {
                 const p = pRes.data || null;
                 setProfile(p);
                 setDocuments(dRes.data || []);
+                setSchoolInfo(sRes.data || null);
 
                 if (p) {
                     setForm({
@@ -459,89 +466,73 @@ const TeacherProfile = () => {
             ) : null}
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(12, minmax(0, 1fr))', gap: 12 }}>
-                {/* Header photo */}
-                <div style={{ gridColumn: 'span 12', backgroundColor: colors.card, border: `1px solid ${colors.border}`, borderRadius: 16, padding: 16, boxShadow: colors.shadow }}>
-                    <div style={{ display: 'flex', gap: 14, alignItems: 'center', flexWrap: 'wrap' }}>
-                        <div style={{ width: 90, height: 90, borderRadius: 22, border: `1px solid ${colors.border}`, backgroundColor: '#f3f4f6', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
-                            {previewImageSrc ? (
-                                <button
-                                    type="button"
-                                    onClick={() => setFullPhotoOpen(true)}
-                                    title="View full photo"
-                                    aria-label="View full profile photo"
-                                    style={{
-                                        border: 'none',
-                                        padding: 0,
-                                        margin: 0,
-                                        width: '100%',
-                                        height: '100%',
-                                        cursor: 'pointer',
-                                        background: 'transparent',
-                                    }}
-                                >
-                                    <img
-                                        src={previewImageSrc}
-                                        alt="Teacher profile"
-                                        style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-                                    />
-                                </button>
-                            ) : (
-                                <span style={{ fontWeight: 1000, color: colors.primary, fontSize: 24 }}>
-                                    {(form.name || 'T').slice(0, 1).toUpperCase()}
-                                </span>
-                            )}
-                        </div>
-                        <div style={{ flex: 1, minWidth: 260 }}>
-                            <div style={{ fontWeight: 1000, fontSize: 18, color: colors.text }}>{form.name || '—'}</div>
-                            <div style={{ marginTop: 4, color: colors.muted, fontWeight: 900, fontSize: 13 }}>
-                                {profile.role_label || 'Teacher'} • {form.employee_id || '—'}
-                            </div>
-                            <input
-                                ref={fileInputRef}
-                                type="file"
-                                accept="image/jpeg,image/png,image/webp,image/gif,.jpg,.jpeg,.png,.webp,.gif"
-                                style={{ display: 'none' }}
-                                onChange={onPhotoSelected}
-                            />
-                            <div style={{ marginTop: 10, maxWidth: 420 }}>
-                                <div style={labelStyle}>Profile Photo</div>
-                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
+                {/* Header photo & ID Card Row */}
+                <div style={{ gridColumn: 'span 12', display: 'grid', gridTemplateColumns: 'repeat(12, minmax(0, 1fr))', gap: 12 }}>
+                    {/* Left: Profile Upload & Info */}
+                    <div style={{ gridColumn: 'span 7', backgroundColor: colors.card, border: `1px solid ${colors.border}`, borderRadius: 16, padding: 16, boxShadow: colors.shadow }}>
+                        <div style={{ display: 'flex', gap: 14, alignItems: 'center', flexWrap: 'wrap' }}>
+                            <div style={{ width: 90, height: 90, borderRadius: 22, border: `1px solid ${colors.border}`, backgroundColor: '#f3f4f6', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+                                {previewImageSrc ? (
                                     <button
                                         type="button"
-                                        onClick={pickPhoto}
-                                        disabled={photoBusy || idCardBusy}
+                                        onClick={() => setFullPhotoOpen(true)}
+                                        title="View full photo"
+                                        aria-label="View full profile photo"
                                         style={{
-                                            padding: '8px 14px',
-                                            borderRadius: 10,
-                                            border: `1px solid ${colors.primary}`,
-                                            background: '#eff6ff',
-                                            color: colors.primary,
-                                            fontWeight: 900,
-                                            cursor: photoBusy ? 'not-allowed' : 'pointer',
-                                            fontSize: 13,
+                                            border: 'none',
+                                            padding: 0,
+                                            margin: 0,
+                                            width: '100%',
+                                            height: '100%',
+                                            cursor: 'pointer',
+                                            background: 'transparent',
                                         }}
                                     >
-                                        {photoBusy ? 'Please wait…' : 'Upload photo'}
+                                        <img
+                                            src={previewImageSrc}
+                                            alt="Teacher profile"
+                                            style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                                        />
                                     </button>
-                                    {(profile?.has_photo || profile?.photo_url) && (
-                                        <>
-                                            <button
-                                                type="button"
-                                                onClick={() => setFullPhotoOpen(true)}
-                                                disabled={photoBusy || idCardBusy}
-                                                style={{
-                                                    padding: '8px 14px',
-                                                    borderRadius: 10,
-                                                    border: '1px solid #0ea5e9',
-                                                    background: '#f0f9ff',
-                                                    color: '#0369a1',
-                                                    fontWeight: 900,
-                                                    cursor: photoBusy ? 'not-allowed' : 'pointer',
-                                                    fontSize: 13,
-                                                }}
-                                            >
-                                                View full photo
-                                            </button>
+                                ) : (
+                                    <span style={{ fontWeight: 1000, color: colors.primary, fontSize: 24 }}>
+                                        {(form.name || 'T').slice(0, 1).toUpperCase()}
+                                    </span>
+                                )}
+                            </div>
+                            <div style={{ flex: 1, minWidth: 200 }}>
+                                <div style={{ fontWeight: 1000, fontSize: 18, color: colors.text }}>{form.name || '—'}</div>
+                                <div style={{ marginTop: 4, color: colors.muted, fontWeight: 900, fontSize: 13 }}>
+                                    {profile.role_label || 'Teacher'} • {form.employee_id || '—'}
+                                </div>
+                                <input
+                                    ref={fileInputRef}
+                                    type="file"
+                                    accept="image/jpeg,image/png,image/webp,image/gif,.jpg,.jpeg,.png,.webp,.gif"
+                                    style={{ display: 'none' }}
+                                    onChange={onPhotoSelected}
+                                />
+                                <div style={{ marginTop: 10 }}>
+                                    <div style={labelStyle}>Profile Photo</div>
+                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
+                                        <button
+                                            type="button"
+                                            onClick={pickPhoto}
+                                            disabled={photoBusy || idCardBusy}
+                                            style={{
+                                                padding: '8px 14px',
+                                                borderRadius: 10,
+                                                border: `1px solid ${colors.primary}`,
+                                                background: '#eff6ff',
+                                                color: colors.primary,
+                                                fontWeight: 900,
+                                                cursor: photoBusy ? 'not-allowed' : 'pointer',
+                                                fontSize: 13,
+                                            }}
+                                        >
+                                            {photoBusy ? '…' : 'Upload'}
+                                        </button>
+                                        {(profile?.has_photo || profile?.photo_url) && (
                                             <button
                                                 type="button"
                                                 onClick={removeProfilePhoto}
@@ -557,37 +548,98 @@ const TeacherProfile = () => {
                                                     fontSize: 13,
                                                 }}
                                             >
-                                                Remove photo
+                                                Remove
                                             </button>
-                                        </>
-                                    )}
-                                    <button
-                                        type="button"
-                                        onClick={viewIdCard}
-                                        disabled={idCardBusy}
-                                        style={{
-                                            padding: '8px 14px',
-                                            borderRadius: 10,
-                                            border: 'none',
-                                            background: '#ecfdf5',
-                                            color: '#166534',
-                                            fontWeight: 900,
-                                            cursor: idCardBusy ? 'not-allowed' : 'pointer',
-                                            fontSize: 13,
-                                        }}
-                                    >
-                                        {idCardBusy ? '…' : 'View ID card'}
-                                    </button>
-                                </div>
-                                {photoError ? (
-                                    <div style={{ marginTop: 8, color: colors.danger, fontWeight: 800, fontSize: 12 }}>
-                                        {photoError}
+                                        )}
+                                        <button
+                                            type="button"
+                                            onClick={viewIdCard}
+                                            disabled={idCardBusy}
+                                            style={{
+                                                padding: '8px 14px',
+                                                borderRadius: 10,
+                                                border: 'none',
+                                                background: '#ecfdf5',
+                                                color: '#166534',
+                                                fontWeight: 900,
+                                                cursor: idCardBusy ? 'not-allowed' : 'pointer',
+                                                fontSize: 13,
+                                            }}
+                                        >
+                                            {idCardBusy ? '…' : 'View PDF'}
+                                        </button>
                                     </div>
-                                ) : null}
-                                <div style={{ marginTop: 6, fontSize: 12, color: colors.muted, fontWeight: 700 }}>
-                                    JPG, PNG, WebP or GIF, up to 4MB. ID card shows your photo only if you upload one.
+                                    <div style={{ marginTop: 6, fontSize: 11, color: colors.muted, fontWeight: 700, lineHeight: 1.4 }}>
+                                        ID card shows your photo only if you upload one.
+                                    </div>
                                 </div>
                             </div>
+                        </div>
+                    </div>
+
+                    {/* Right: ID Card Display */}
+                    <div style={{ gridColumn: 'span 5', display: 'flex', flexDirection: 'column' }}>
+                        <div style={{ 
+                            width: '100%', 
+                            flex: 1,
+                            backgroundColor: '#fff',
+                            borderRadius: 20,
+                            border: `1px solid ${colors.border}`,
+                            overflow: 'hidden',
+                            boxShadow: colors.shadow,
+                            fontFamily: 'system-ui, -apple-system, sans-serif',
+                            display: 'flex',
+                            flexDirection: 'column'
+                        }}>
+                            {/* ID Card Header */}
+                            <div style={{ 
+                                backgroundColor: '#ffcc00', 
+                                padding: '14px 20px', 
+                                display: 'flex', 
+                                alignItems: 'center', 
+                                justifyContent: 'center',
+                                gap: 10,
+                                borderBottom: '4px solid #0f172a',
+                                position: 'relative'
+                            }}>
+                                {schoolInfo?.logo_url && (
+                                    <img src={schoolInfo.logo_url} alt="Logo" style={{ width: 32, height: 32, objectFit: 'contain' }} />
+                                )}
+                                <h2 style={{ margin: 0, fontSize: 20, fontWeight: 900, color: '#0f172a', letterSpacing: '-0.02em', textAlign: 'center' }}>
+                                    {schoolInfo?.name || 'Standard Public School'}
+                                </h2>
+                            </div>
+
+                            <div style={{ padding: 16, display: 'flex', gap: 16, flex: 1, alignItems: 'center' }}>
+                                <div style={{ flex: 1 }}>
+                                    <div style={{ fontSize: 12, fontWeight: 900, color: '#0f172a', marginBottom: 10, letterSpacing: '0.05em' }}>
+                                        TEACHER ID CARD
+                                    </div>
+                                    <div style={{ display: 'grid', gap: 5 }}>
+                                        {[
+                                            { label: 'Name', value: form.name },
+                                            { label: 'Emp ID', value: form.employee_id },
+                                            { label: 'Role', value: profile.role_label || 'Teacher' },
+                                            { label: 'Phone', value: form.phone || '—' },
+                                            { label: 'Subject', value: form.subject_specialization || '—' }
+                                        ].map((item, idx) => (
+                                            <div key={idx} style={{ display: 'flex', gap: 6, fontSize: 12 }}>
+                                                <span style={{ fontWeight: 800, color: '#64748b', minWidth: 80 }}>{item.label}:</span>
+                                                <span style={{ fontWeight: 700, color: '#1e293b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.value}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                                <div style={{ width: 90, height: 110, border: '1px solid #e2e8f0', borderRadius: 12, backgroundColor: '#f8fafc', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
+                                    {previewImageSrc ? (
+                                        <img src={previewImageSrc} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                    ) : (
+                                        <div style={{ fontSize: 32, fontWeight: 900, color: '#e2e8f0' }}>{(form.name || 'T')[0].toUpperCase()}</div>
+                                    )}
+                                </div>
+                            </div>
+                            
+                            <div style={{ height: 6, background: 'linear-gradient(90deg, #2563eb, #ffcc00)' }}></div>
                         </div>
                     </div>
                 </div>

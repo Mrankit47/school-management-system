@@ -82,17 +82,21 @@ class TeacherProfileView(views.APIView):
                     }
                 )
 
-            subjects_assigned_qs = profile.subjects.select_related('class_ref').all().order_by('name')
+            # Strictly pull subjects from the TeacherAssignment model
+            from subjects.models import TeacherAssignment
+            assignments_qs = TeacherAssignment.objects.filter(teacher=profile).select_related('subject', 'class_ref').order_by('subject__name')
+            
             subjects_assigned = []
-            for s in subjects_assigned_qs:
-                subjects_assigned.append(
-                    {
-                        'id': s.id,
-                        'name': s.name,
-                        'code': s.code,
-                        'class_name': s.class_ref.name if s.class_ref else None,
-                    }
-                )
+            seen_subject_ids = set()
+            for ta in assignments_qs:
+                if ta.subject_id not in seen_subject_ids:
+                    subjects_assigned.append({
+                        'id': ta.subject.id,
+                        'name': ta.subject.name,
+                        'code': ta.subject.code,
+                        'class_name': ta.class_ref.name,
+                    })
+                    seen_subject_ids.add(ta.subject_id)
 
             role_label = _teacher_role_label(profile)
 
