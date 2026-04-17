@@ -50,7 +50,6 @@ import BulkImport from '../pages/admin/BulkImport';
 import SubjectDetails from '../pages/admin/SubjectDetails';
 import TimeTable from '../pages/common/TimeTable';
 import AdminSyllabus from '../pages/admin/Syllabus';
-import GalleryUpload from '../pages/admin/GalleryUpload';
 
 import SaaSLanding from '../pages/SaaSLanding';
 import SuperAdminLogin from '../pages/superadmin/Login';
@@ -60,6 +59,7 @@ import DealerManagement from '../pages/superadmin/DealerManagement';
 
 import DealerLogin from '../pages/dealer/Login';
 import DealerDashboard from '../pages/dealer/Dashboard';
+import DealerProfile from '../pages/dealer/Profile';
 
 const AppRoutes = () => {
     return (
@@ -84,6 +84,7 @@ const AppRoutes = () => {
             <Route path="/dealer/*" element={<ProtectedRoute allowedRoles={['dealer']}>
               <Routes>
                 <Route path="dashboard" element={<DealerDashboard />} />
+                <Route path="profile" element={<DealerProfile />} />
               </Routes>
             </ProtectedRoute>} />
             
@@ -147,7 +148,6 @@ const AppRoutes = () => {
                 <Route path="bulk-import" element={<BulkImport />} />
                 <Route path="timetable" element={<TimeTable />} />
                 <Route path="syllabus" element={<AdminSyllabus />} />
-                <Route path="gallery/upload" element={<GalleryUpload />} />
               </Routes>
             </ProtectedRoute>} />
 

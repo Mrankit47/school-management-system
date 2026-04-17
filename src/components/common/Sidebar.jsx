@@ -90,13 +90,6 @@ const Sidebar = () => {
                 { path: '/admin/timetable', label: 'Time Table' },
             ]
         },
-        { 
-            label: 'Gallery', 
-            icon: '🖼️',
-            subLinks: [
-                { path: '/admin/gallery/upload', label: 'Upload Images' },
-            ]
-        },
         { path: '/admin/fees', label: 'Finance', icon: '💰' },
     ];
 

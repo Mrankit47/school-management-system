@@ -104,6 +104,10 @@ class DealerSchoolSerializer(serializers.ModelSerializer):
         if 'location' not in validated_data or not validated_data['location']:
             validated_data['location'] = dealer.location
 
+        # Ensure school is active by default
+        if 'is_active' not in validated_data:
+            validated_data['is_active'] = True
+
         school = super().create(validated_data)
 
         if admin_email and admin_username and admin_password:
@@ -123,3 +127,25 @@ class DealerSchoolSerializer(serializers.ModelSerializer):
             )
         
         return school
+
+class DealerSelfProfileSerializer(serializers.ModelSerializer):
+    username = serializers.CharField(source='user.username', read_only=True)
+    email = serializers.EmailField(source='user.email')
+
+    class Meta:
+        model = Dealer
+        fields = ['id', 'name', 'contact', 'location', 'username', 'email']
+
+    def update(self, instance, validated_data):
+        user_data = validated_data.pop('user', {})
+        email = user_data.get('email')
+
+        if email:
+            user = instance.user
+            if User.objects.filter(email=email).exclude(id=user.id).exists():
+                raise serializers.ValidationError({"email": "This email is already in use by another account."})
+            user.email = email
+            user.save()
+
+        return super().update(instance, validated_data)
+

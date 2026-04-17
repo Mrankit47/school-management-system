@@ -3,8 +3,27 @@ from rest_framework.response import Response
 from rest_framework.decorators import action
 from core.permissions import IsSuperAdmin, IsDealer
 from .models import Dealer
-from .serializers import DealerSerializer, DealerSchoolSerializer
+from .serializers import DealerSerializer, DealerSchoolSerializer, DealerSelfProfileSerializer
 from tenants.models import School
+
+class DealerProfileViewSet(viewsets.ViewSet):
+    """
+    Dealer's own profile management.
+    """
+    permission_classes = [IsDealer]
+
+    def list(self, request):
+        dealer = request.user.dealer_profile
+        serializer = DealerSelfProfileSerializer(dealer)
+        return Response(serializer.data)
+
+    def partial_update(self, request, pk=None):
+        dealer = request.user.dealer_profile
+        serializer = DealerSelfProfileSerializer(dealer, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data)
+
 
 class DealerViewSet(viewsets.ModelViewSet):
     """

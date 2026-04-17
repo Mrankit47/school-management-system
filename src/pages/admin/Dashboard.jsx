@@ -3,7 +3,6 @@ import api from '../../services/api';
 import StudentCards from './StudentCards';
 import TeacherCards from './TeacherCards';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Cell } from 'recharts';
-import ImageSlider from '../../components/common/ImageSlider';
 
 const AdminDashboard = () => {
     const [recentStudents, setRecentStudents] = useState([]);
@@ -174,9 +173,48 @@ const AdminDashboard = () => {
 
                     {/* Chart & Activity Grid */}
                     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-                        {/* School Gallery Slider Section */}
-                        <div className="lg:col-span-8 h-[500px]">
-                            <ImageSlider />
+                        {/* School Statistics Overview Chart */}
+                        <div className="lg:col-span-8 bg-white/50 backdrop-blur-md p-8 rounded-[2.5rem] border border-slate-100 shadow-xl shadow-slate-200/30">
+                            <div className="flex items-start justify-between mb-8 gap-4 flex-wrap">
+                                <div>
+                                    <h3 className="font-poppins font-bold text-school-text text-lg">Academic Statistics Overview</h3>
+                                    <p className="text-xs text-slate-400">Distribution of students, teachers, classes and sections</p>
+                                </div>
+                                <div className="flex items-center gap-3">
+                                    <div className="flex items-center gap-3 px-4 py-2 bg-slate-50 rounded-xl border border-slate-100">
+                                        <span className="w-2.5 h-2.5 rounded-full bg-school-blue animate-pulse"></span>
+                                        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Academic Data</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="h-72 rounded-2xl border border-slate-100 bg-white/70 p-3">
+                                {studentsLoading ? (
+                                    <div className="h-full flex items-center justify-center text-slate-400 font-bold">Loading chart...</div>
+                                ) : (
+                                    <ResponsiveContainer width="100%" height="100%">
+                                        <BarChart data={statsChartData} margin={{ top: 8, right: 12, left: 4, bottom: 8 }}>
+                                            <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                                            <XAxis dataKey="name" tick={{ fill: '#64748b', fontWeight: 700, fontSize: 12 }} />
+                                            <YAxis tick={{ fill: '#64748b', fontWeight: 700, fontSize: 12 }} />
+                                            <Tooltip
+                                                formatter={(value) => [formatValue(value), 'Total Count']}
+                                                labelStyle={{ color: '#0f172a', fontWeight: 700 }}
+                                                contentStyle={{ borderRadius: 12, border: '1px solid #e2e8f0' }}
+                                            />
+                                            <Bar
+                                                dataKey="count"
+                                                radius={[8, 8, 0, 0]}
+                                                isAnimationActive={true}
+                                                animationDuration={900}
+                                            >
+                                                {statsChartData.map((entry, index) => (
+                                                    <Cell key={`cell-${index}`} fill={entry.color} />
+                                                ))}
+                                            </Bar>
+                                        </BarChart>
+                                    </ResponsiveContainer>
+                                )}
+                            </div>
                         </div>
 
                         {/* Recent Activity / Calendar Placeholder (Light Theme) */}

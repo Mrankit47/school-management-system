@@ -198,7 +198,7 @@ const AddStudent = () => {
                     <form onSubmit={handleSubmit} style={{ display: 'grid', gap: '18px' }}>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                         <div>
-                            <div style={labelStyle}>First Name</div>
+                            <div style={labelStyle}>First Name <span style={{ color: '#dc2626' }}>*</span></div>
                             <input
                                 type="text"
                                 placeholder="First Name"
@@ -209,7 +209,7 @@ const AddStudent = () => {
                             />
                         </div>
                         <div>
-                            <div style={labelStyle}>Last Name</div>
+                            <div style={labelStyle}>Last Name <span style={{ color: '#dc2626' }}>*</span></div>
                             <input
                                 type="text"
                                 placeholder="Last Name"
@@ -222,7 +222,7 @@ const AddStudent = () => {
                     </div>
 
                     <div>
-                        <div style={labelStyle}>Email</div>
+                        <div style={labelStyle}>Email <span style={{ color: '#dc2626' }}>*</span></div>
                         <input
                             type="email"
                             placeholder="Email"
@@ -234,7 +234,7 @@ const AddStudent = () => {
                     </div>
 
                     <div>
-                        <div style={labelStyle}>Password</div>
+                        <div style={labelStyle}>Password <span style={{ color: '#dc2626' }}>*</span></div>
                         <input
                             type="password"
                             placeholder="Password"
@@ -246,7 +246,7 @@ const AddStudent = () => {
                     </div>
 
                     <div>
-                        <div style={labelStyle}>Confirm Password</div>
+                        <div style={labelStyle}>Confirm Password <span style={{ color: '#dc2626' }}>*</span></div>
                         <input
                             type="password"
                             placeholder="Confirm Password"
@@ -278,7 +278,7 @@ const AddStudent = () => {
                     </div>
 
                     <div>
-                        <div style={labelStyle}>Date of Birth (DOB)</div>
+                        <div style={labelStyle}>Date of Birth (DOB) <span style={{ color: '#dc2626' }}>*</span></div>
                         <input
                             type="date"
                             value={formData.dob}
@@ -290,8 +290,8 @@ const AddStudent = () => {
 
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                         <div>
-                            <div style={labelStyle}>Gender</div>
-                            <select
+                            <div style={labelStyle}>Gender <span style={{ color: '#dc2626' }}>*</span></div>
+                        <select
                                 value={formData.gender}
                                 onChange={(e) => setFormData({ ...formData, gender: e.target.value })}
                                 required
@@ -308,7 +308,6 @@ const AddStudent = () => {
                             <select
                                 value={formData.blood_group}
                                 onChange={(e) => setFormData({ ...formData, blood_group: e.target.value })}
-                                required
                                 style={inputStyle}
                             >
                                 <option value="">-- Select Blood Group --</option>
@@ -337,13 +336,14 @@ const AddStudent = () => {
                             />
                         </div>
                         <div>
-                            <div style={labelStyle}>Mother's Name</div>
+                            <div style={labelStyle}>Mother's Name <span style={{ color: '#dc2626' }}>*</span></div>
                             <input
                                 type="text"
                                 placeholder="Mother's Name"
                                 value={formData.mother_name}
                                 onChange={(e) => setFormData({ ...formData, mother_name: e.target.value })}
                                 style={inputStyle}
+                                required
                             />
                         </div>
                     </div>
@@ -374,7 +374,7 @@ const AddStudent = () => {
                             </div>
                         </div>
                         <div>
-                            <div style={labelStyle}>Mother's Contact</div>
+                            <div style={labelStyle}>Mother's Contact <span style={{ color: '#dc2626' }}>*</span></div>
                             <div style={{ display: 'grid', gridTemplateColumns: '70px 1fr', gap: '8px' }}>
                                 <input
                                     type="text"
@@ -393,6 +393,7 @@ const AddStudent = () => {
                                         setFormData({ ...formData, mother_contact: digits });
                                     }}
                                     style={inputStyle}
+                                    required
                                 />
                             </div>
                         </div>
@@ -410,7 +411,7 @@ const AddStudent = () => {
                     </div>
 
                     <div>
-                        <div style={labelStyle}>Residential Address</div>
+                        <div style={labelStyle}>Residential Address <span style={{ color: '#dc2626' }}>*</span></div>
                         <input
                             type="text"
                             placeholder="Residential Address"
@@ -422,7 +423,7 @@ const AddStudent = () => {
                     </div>
 
                     <div>
-                        <div style={labelStyle}>Date of Admission</div>
+                        <div style={labelStyle}>Date of Admission <span style={{ color: '#dc2626' }}>*</span></div>
                         <input
                             type="date"
                             value={formData.date_of_admission}
@@ -433,7 +434,7 @@ const AddStudent = () => {
                     </div>
 
                     <div>
-                        <div style={labelStyle}>Category</div>
+                        <div style={labelStyle}>Category <span style={{ color: '#dc2626' }}>*</span></div>
                         <select
                             value={formData.category}
                             onChange={(e) => setFormData({ ...formData, category: e.target.value })}
@@ -452,7 +453,7 @@ const AddStudent = () => {
 
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                         <div>
-                            <div style={labelStyle}>Class</div>
+                            <div style={labelStyle}>Class <span style={{ color: '#dc2626' }}>*</span></div>
                             <select
                                 value={formData.class_id}
                                 onChange={(e) => setFormData({ ...formData, class_id: e.target.value })}
@@ -466,7 +467,7 @@ const AddStudent = () => {
                             </select>
                         </div>
                         <div>
-                            <div style={labelStyle}>Section</div>
+                            <div style={labelStyle}>Section <span style={{ color: '#dc2626' }}>*</span></div>
                             <select
                                 value={formData.section_id}
                                 onChange={(e) => setFormData({ ...formData, section_id: e.target.value })}
