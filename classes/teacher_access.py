@@ -13,11 +13,13 @@ def teacher_teaches_class_section(teacher_profile, class_section) -> bool:
     
     from subjects.models import TeacherAssignment, Subject
 
-    # Any assignment (Subject Teacher OR Class Teacher) allows general teaching access
+    # Any assignment (Subject Teacher OR Class Teacher) allows general teaching access.
+    # Include section-specific and class-wide (section is null) assignments.
     if TeacherAssignment.objects.filter(
         teacher_id=teacher_profile.id,
         class_ref_id=class_section.class_ref_id,
-        section_id=class_section.id,
+    ).filter(
+        Q(section_id=class_section.id) | Q(section__isnull=True)
     ).exists():
         return True
 

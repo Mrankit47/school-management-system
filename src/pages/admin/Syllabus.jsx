@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import api from '../../services/api';
 
 const colors = {
@@ -69,68 +69,101 @@ export default function AdminSyllabus() {
     const [error, setError] = useState('');
     const [search, setSearch] = useState('');
     const [syllabi, setSyllabi] = useState([]);
+    
+    const [classes, setClasses] = useState([]);
+    const [allSubjects, setAllSubjects] = useState([]);
 
+    const [createForm, setCreateForm] = useState({ class_id: '', subject_id: '', title: '', description: '', file: null });
+    
     const [editOpen, setEditOpen] = useState(false);
     const [editId, setEditId] = useState(null);
     const [editTitle, setEditTitle] = useState('');
     const [editDesc, setEditDesc] = useState('');
-    const [editPdf, setEditPdf] = useState(null);
+    const [editFile, setEditFile] = useState(null);
     const [saving, setSaving] = useState(false);
 
-    const load = async (forceSearch) => {
+    const filteredSubjects = useMemo(() => {
+        if (!createForm.class_id) return [];
+        return allSubjects.filter(s => String(s.class_ref) === String(createForm.class_id));
+    }, [createForm.class_id, allSubjects]);
+
+    const loadData = async () => {
         setLoading(true);
         setError('');
         try {
-            const params = {};
-            const q = (forceSearch ?? search).trim();
-            if (q) params.search = q;
-            const res = await api.get('syllabus/admin/', { params });
-            setSyllabi(res.data || []);
+            const [sRes, cRes, subRes] = await Promise.all([
+                api.get('syllabus/'),
+                api.get('classes/main-classes/'),
+                api.get('subjects/')
+            ]);
+            setSyllabi(sRes.data || []);
+            setClasses(cRes.data || []);
+            setAllSubjects(subRes.data || []);
         } catch (e) {
-            setError(e?.response?.data?.error || 'Could not load syllabus.');
-            setSyllabi([]);
+            setError('Could not load data.');
         } finally {
             setLoading(false);
         }
     };
 
     useEffect(() => {
-        load();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
+        loadData();
     }, []);
 
+    const handleSearch = async () => {
+        try {
+            const res = await api.get('syllabus/', { params: { search } });
+            setSyllabi(res.data || []);
+        } catch (e) {}
+    };
+
     useEffect(() => {
-        const t = setTimeout(() => load(), 350);
+        const t = setTimeout(() => handleSearch(), 350);
         return () => clearTimeout(t);
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [search]);
+
+    const onCreate = async (e) => {
+        e.preventDefault();
+        setSaving(true);
+        try {
+            const fd = new FormData();
+            fd.append('class_id', createForm.class_id);
+            fd.append('subject_id', createForm.subject_id);
+            fd.append('title', createForm.title);
+            fd.append('description', createForm.description);
+            fd.append('file', createForm.file);
+
+            await api.post('syllabus/control/', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+            setCreateForm({ class_id: '', subject_id: '', title: '', description: '', file: null });
+            loadData();
+        } catch (e) {
+            setError(e?.response?.data?.error || 'Upload failed.');
+        } finally {
+            setSaving(false);
+        }
+    };
 
     const openEdit = (row) => {
         setEditId(row.id);
         setEditTitle(row.title || '');
         setEditDesc(row.description || '');
-        setEditPdf(null);
+        setEditFile(null);
         setEditOpen(true);
     };
 
     const saveEdit = async () => {
-        if (!editId) return;
         setSaving(true);
-        setError('');
         try {
-            const payload = new FormData();
-            payload.append('title', editTitle.trim());
-            payload.append('description', editDesc || '');
-            if (editPdf) payload.append('pdf', editPdf);
+            const fd = new FormData();
+            fd.append('title', editTitle);
+            fd.append('description', editDesc);
+            if (editFile) fd.append('file', editFile);
 
-            await api.patch(`syllabus/${editId}/`, payload, { headers: { 'Content-Type': 'multipart/form-data' } });
-
+            await api.patch(`syllabus/control/${editId}/`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
             setEditOpen(false);
-            setEditId(null);
-            setEditPdf(null);
-            await load();
+            loadData();
         } catch (e) {
-            setError(e?.response?.data?.error || 'Update failed.');
+            setError('Update failed.');
         } finally {
             setSaving(false);
         }
@@ -138,100 +171,153 @@ export default function AdminSyllabus() {
 
     const deleteSyllabus = async (id) => {
         if (!window.confirm('Delete this syllabus?')) return;
-        setError('');
         try {
-            await api.delete(`syllabus/${id}/`);
-            await load();
+            await api.delete(`syllabus/control/${id}/`);
+            loadData();
         } catch (e) {
-            setError(e?.response?.data?.error || 'Delete failed.');
+            setError('Delete failed.');
         }
     };
 
     return (
         <div style={{ padding: 20, background: colors.bg, minHeight: 'calc(100vh - 60px)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap', marginBottom: 12 }}>
-                <div>
-                    <h1 style={{ margin: 0, fontSize: '32px', fontWeight: 1000, color: colors.text }}>Admin Syllabus Management</h1>
-                    <div style={{ marginTop: 4, color: colors.muted, fontWeight: 900, fontSize: 13 }}>Full control over syllabus uploads.</div>
-                </div>
-                <div style={{ minWidth: 260 }}>
-                    <div style={labelStyle}>Search (Subject / Title)</div>
-                    <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="e.g. Mathematics" style={inputStyle} />
-                </div>
+            <div style={{ marginBottom: 20 }}>
+                <h1 style={{ margin: 0, fontSize: '32px', fontWeight: 1000, color: colors.text }}>Admin Syllabus Management</h1>
+                <p style={{ margin: '4px 0 0', color: colors.muted, fontWeight: 900, fontSize: 13 }}>Full central control over school syllabus.</p>
             </div>
 
-            {error ? <div style={{ border: '1px solid #fecaca', background: '#fff7ed', color: '#b91c1c', padding: '10px 12px', borderRadius: 12, fontWeight: 900, marginBottom: 12 }}>{error}</div> : null}
-
-            <div style={{ background: colors.card, border: `1px solid ${colors.border}`, borderRadius: 16, boxShadow: colors.shadow, padding: 16 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-                    <div style={{ fontWeight: 1000 }}>Total Syllabus Files</div>
-                    <div style={{ color: colors.muted, fontWeight: 900, fontSize: 13 }}>{syllabi.length}</div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 20, alignItems: 'start' }}>
+                {/* Upload Section */}
+                <div style={{ background: colors.card, border: `1px solid ${colors.border}`, borderRadius: 16, padding: 20, boxShadow: colors.shadow }}>
+                    <h2 style={{ margin: '0 0 16px', fontSize: 18, fontWeight: 1000 }}>Upload New Syllabus</h2>
+                    <form onSubmit={onCreate} style={{ display: 'grid', gap: 12 }}>
+                        <div>
+                            <div style={labelStyle}>Class *</div>
+                            <select 
+                                style={inputStyle} 
+                                value={createForm.class_id} 
+                                onChange={e => setCreateForm({...createForm, class_id: e.target.value, subject_id: ''})}
+                                required
+                            >
+                                <option value="">Select Class</option>
+                                {classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                            </select>
+                        </div>
+                        <div>
+                            <div style={labelStyle}>Subject *</div>
+                            <select 
+                                style={inputStyle} 
+                                value={createForm.subject_id} 
+                                onChange={e => setCreateForm({...createForm, subject_id: e.target.value})}
+                                required
+                             >
+                                <option value="">Select Subject</option>
+                                {filteredSubjects.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                            </select>
+                        </div>
+                        <div>
+                            <div style={labelStyle}>Title *</div>
+                            <input 
+                                style={inputStyle} 
+                                value={createForm.title} 
+                                onChange={e => setCreateForm({...createForm, title: e.target.value})}
+                                placeholder="Quarterly Syllabus"
+                                required 
+                            />
+                        </div>
+                        <div>
+                            <div style={labelStyle}>Description</div>
+                            <textarea 
+                                style={{...inputStyle, minHeight: 80}} 
+                                value={createForm.description} 
+                                onChange={e => setCreateForm({...createForm, description: e.target.value})}
+                            />
+                        </div>
+                        <div>
+                            <div style={labelStyle}>File (PDF, CSV, DOC) *</div>
+                            <input 
+                                type="file" 
+                                style={inputStyle} 
+                                onChange={e => setCreateForm({...createForm, file: e.target.files[0]})}
+                                required 
+                            />
+                        </div>
+                        <button 
+                            type="submit" 
+                            disabled={saving} 
+                            style={{ padding: 12, borderRadius: 12, border: 'none', backgroundColor: colors.primary, color: '#fff', fontWeight: 1000, cursor: 'pointer', opacity: saving ? 0.7 : 1 }}
+                        >
+                            {saving ? 'Uploading...' : 'Upload Syllabus'}
+                        </button>
+                    </form>
                 </div>
 
-                {loading ? <div style={{ marginTop: 12, color: colors.muted, fontWeight: 900 }}>Loading...</div> : null}
+                {/* List Section */}
+                <div style={{ background: colors.card, border: `1px solid ${colors.border}`, borderRadius: 16, padding: 20, boxShadow: colors.shadow }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                        <h2 style={{ margin: 0, fontSize: 18, fontWeight: 1000 }}>Syllabus List</h2>
+                        <input 
+                            placeholder="Search by title or subject..." 
+                            style={{...inputStyle, width: 250}} 
+                            value={search} 
+                            onChange={e => setSearch(e.target.value)} 
+                        />
+                    </div>
 
-                <div style={{ marginTop: 12, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 12 }}>
-                    {syllabi.map((s) => (
-                        <div key={s.id} style={{ border: `1px solid ${colors.border}`, borderRadius: 14, background: '#fafafa', padding: 12 }}>
-                            <div style={{ fontWeight: 1000, color: colors.text }}>{s.title}</div>
-                            <div style={{ marginTop: 4, color: colors.muted, fontWeight: 900, fontSize: 12 }}>
-                                {s.class_name} • {s.subject_name}
-                            </div>
-                            <div style={{ marginTop: 6, color: colors.muted, fontWeight: 900, fontSize: 12 }}>
-                                Uploaded: {s.uploaded_at ? new Date(s.uploaded_at).toLocaleDateString() : '—'}
-                            </div>
-                            <div style={{ marginTop: 8, color: colors.muted, fontWeight: 900, fontSize: 13, lineHeight: 1.4, whiteSpace: 'pre-wrap' }}>
-                                {(s.description || '').slice(0, 140)}
-                                {(s.description || '').length > 140 ? '...' : ''}
-                            </div>
+                    {error && <div style={{ color: colors.danger, fontWeight: 900, marginBottom: 10 }}>{error}</div>}
 
-                            <div style={{ marginTop: 10, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                                {s.pdf_url ? (
-                                    <a href={s.pdf_url} target="_blank" rel="noreferrer" download style={{ padding: '7px 10px', borderRadius: 10, border: `1px solid ${colors.border}`, background: '#fff', color: colors.primary, fontWeight: 1000, textDecoration: 'none' }}>
-                                        Download
-                                    </a>
-                                ) : null}
-                                <button type="button" onClick={() => openEdit(s)} style={{ padding: '7px 10px', borderRadius: 10, border: 'none', background: '#16a34a', color: '#fff', fontWeight: 1000, cursor: 'pointer' }}>
-                                    Edit
-                                </button>
-                                <button type="button" onClick={() => deleteSyllabus(s.id)} style={{ padding: '7px 10px', borderRadius: 10, border: 'none', background: colors.danger, color: '#fff', fontWeight: 1000, cursor: 'pointer' }}>
-                                    Delete
-                                </button>
+                    <div style={{ display: 'grid', gap: 12 }}>
+                        {syllabi.map(s => (
+                            <div key={s.id} style={{ padding: 16, border: `1px solid ${colors.border}`, borderRadius: 14, background: '#f8fafc' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start' }}>
+                                    <div>
+                                        <div style={{ fontWeight: 1000, fontSize: 16 }}>{s.title}</div>
+                                        <div style={{ fontSize: 12, color: colors.muted, fontWeight: 800 }}>
+                                            {s.class_name} • {s.subject_name} • By {s.uploaded_by_name}
+                                        </div>
+                                    </div>
+                                    <div style={{ display: 'flex', gap: 6 }}>
+                                        {s.file_url && (
+                                            <a href={s.file_url} target="_blank" rel="noreferrer" style={{ padding: '6px 12px', borderRadius: 8, backgroundColor: '#fff', border: `1px solid ${colors.border}`, color: colors.primary, textDecoration: 'none', fontSize: 12, fontWeight: 1000 }}>
+                                                View
+                                            </a>
+                                        )}
+                                        <button onClick={() => openEdit(s)} style={{ padding: '6px 10px', borderRadius: 8, backgroundColor: colors.success, border: 'none', color: '#fff', cursor: 'pointer', fontSize: 12, fontWeight: 1000 }}>Edit</button>
+                                        <button onClick={() => deleteSyllabus(s.id)} style={{ padding: '6px 10px', borderRadius: 8, backgroundColor: colors.danger, border: 'none', color: '#fff', cursor: 'pointer', fontSize: 12, fontWeight: 1000 }}>Delete</button>
+                                    </div>
+                                </div>
+                                {s.description && <p style={{ margin: '8px 0 0', fontSize: 13, color: '#475569' }}>{s.description}</p>}
+                                <div style={{ marginTop: 8, fontSize: 11, color: colors.muted }}>Uploaded: {new Date(s.uploaded_at).toLocaleDateString()}</div>
                             </div>
-                        </div>
-                    ))}
-
-                    {!loading && !syllabi.length ? <div style={{ gridColumn: '1/-1', color: colors.muted, fontWeight: 900 }}>No syllabus found.</div> : null}
+                        ))}
+                        {!loading && syllabi.length === 0 && <p style={{ color: colors.muted, textAlign: 'center' }}>No syllabus found.</p>}
+                    </div>
                 </div>
             </div>
 
             <Modal open={editOpen} title="Edit Syllabus" onClose={() => setEditOpen(false)}>
                 <div style={{ display: 'grid', gap: 12 }}>
                     <div>
-                        <div style={labelStyle}>Title *</div>
-                        <input value={editTitle} onChange={(e) => setEditTitle(e.target.value)} style={inputStyle} />
+                        <div style={labelStyle}>Title</div>
+                        <input style={inputStyle} value={editTitle} onChange={e => setEditTitle(e.target.value)} />
                     </div>
                     <div>
                         <div style={labelStyle}>Description</div>
-                        <textarea value={editDesc} onChange={(e) => setEditDesc(e.target.value)} style={{ ...inputStyle, minHeight: 90, resize: 'vertical' }} />
+                        <textarea style={{...inputStyle, minHeight: 80}} value={editDesc} onChange={e => setEditDesc(e.target.value)} />
                     </div>
                     <div>
-                        <div style={labelStyle}>PDF (optional)</div>
-                        <input type="file" accept=".pdf" onChange={(e) => setEditPdf(e.target.files?.[0] || null)} style={inputStyle} />
-                        <div style={{ marginTop: 6, color: colors.muted, fontWeight: 900, fontSize: 12 }}>Leave empty to keep existing PDF.</div>
+                        <div style={labelStyle}>Update File (Optional)</div>
+                        <input type="file" style={inputStyle} onChange={e => setEditFile(e.target.files[0])} />
                     </div>
-
-                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
-                        <button type="button" onClick={() => setEditOpen(false)} style={{ padding: '10px 14px', borderRadius: 12, border: `1px solid ${colors.border}`, background: '#fff', cursor: 'pointer', fontWeight: 1000 }}>
-                            Cancel
-                        </button>
-                        <button type="button" disabled={saving || !editTitle.trim()} onClick={saveEdit} style={{ padding: '10px 14px', borderRadius: 12, border: 'none', background: colors.primary, color: '#fff', cursor: saving ? 'not-allowed' : 'pointer', fontWeight: 1000, opacity: saving ? 0.7 : 1 }}>
-                            {saving ? 'Saving...' : 'Save'}
-                        </button>
-                    </div>
+                    <button 
+                        onClick={saveEdit} 
+                        disabled={saving}
+                        style={{ padding: 12, borderRadius: 12, border: 'none', backgroundColor: colors.primary, color: '#fff', fontWeight: 1000, cursor: 'pointer', marginTop: 10 }}
+                    >
+                        {saving ? 'Saving...' : 'Save Changes'}
+                    </button>
                 </div>
             </Modal>
         </div>
     );
 }
-

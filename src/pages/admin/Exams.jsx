@@ -112,6 +112,8 @@ const Exams = () => {
     });
 
     const [publishing, setPublishing] = useState(false);
+    const [subjectStatus, setSubjectStatus] = useState(null);
+    const [resultsClassFilter, setResultsClassFilter] = useState('all');
     const [overviewClassFilter, setOverviewClassFilter] = useState('all');
     const [overviewStatusFilter, setOverviewStatusFilter] = useState('all');
     const [editingExamId, setEditingExamId] = useState(null);
@@ -162,6 +164,7 @@ const Exams = () => {
         if (!selectedExam) {
             setSchedules([]);
             setSubjects([]);
+            setSubjectStatus(null);
             return;
         }
         const sec = sections.find((s) => String(s.id) === String(selectedExam.class_section));
@@ -177,6 +180,16 @@ const Exams = () => {
             })
             .catch(() => {});
     }, [selectedExamId, sections, selectedExam]);
+
+    useEffect(() => {
+        if (!selectedExamId) {
+            setSubjectStatus(null);
+            return;
+        }
+        api.get(`academics/exams/${selectedExamId}/subject-status/`)
+            .then((res) => setSubjectStatus(res.data))
+            .catch(() => setSubjectStatus(null));
+    }, [selectedExamId]);
 
     const onCreateExam = async (e) => {
         e.preventDefault();
@@ -302,11 +315,13 @@ const Exams = () => {
         setPublishing(true);
         setError('');
         try {
-            await api.post(`academics/exams/${selectedExamId}/publish-results/`, { publish });
+            await api.put(`academics/exams/${selectedExamId}/publish-results/`, { publish });
             await refreshExams();
+            const statusRes = await api.get(`academics/exams/${selectedExamId}/subject-status/`);
+            setSubjectStatus(statusRes.data);
             setMessage(publish ? 'Results published' : 'Results unpublished');
         } catch (err) {
-            setError('Failed to update publish status');
+            setError(err?.response?.data?.error || 'Failed to update publish status');
         } finally {
             setPublishing(false);
         }
@@ -402,6 +417,22 @@ const Exams = () => {
             return true;
         });
     }, [exams, overviewClassFilter, overviewStatusFilter]);
+
+    const resultManagementExams = useMemo(() => {
+        return (exams || []).filter((e) => {
+            if (resultsClassFilter !== 'all' && String(e.class_section) !== String(resultsClassFilter)) return false;
+            return true;
+        });
+    }, [exams, resultsClassFilter]);
+
+    useEffect(() => {
+        if (!selectedExamId) return;
+        const exists = resultManagementExams.some((e) => String(e.id) === String(selectedExamId));
+        if (!exists) {
+            setSelectedExamId('');
+            setSubjectStatus(null);
+        }
+    }, [resultManagementExams, selectedExamId]);
 
     const done1 = !!selectedExamId;
     const done2 = done1 && schedules.length > 0;
@@ -657,13 +688,50 @@ const Exams = () => {
                     </div>
 
                     <div style={card}>
-                        <div style={{ fontWeight: 900, marginBottom: '10px' }}>Step 3: Publish Result</div>
+                        <div style={{ fontWeight: 900, marginBottom: '10px' }}>Exam Results Management</div>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '12px' }}>
+                            <select value={resultsClassFilter} onChange={(e) => setResultsClassFilter(e.target.value)} style={input}>
+                                <option value="all">All Classes/Sections</option>
+                                {sections.map((s) => (
+                                    <option key={s.id} value={s.id}>
+                                        {s.class_name} - {s.section_name}
+                                    </option>
+                                ))}
+                            </select>
+                            <select value={selectedExamId} onChange={(e) => { setSelectedExamId(e.target.value); setStep(e.target.value ? 3 : 1); }} style={input}>
+                                <option value="">-- Select Exam --</option>
+                                {resultManagementExams.map((e) => (
+                                    <option key={e.id} value={e.id}>
+                                        {e.name} ({e.class_section_display || `${e.class_name}-${e.section_name}`})
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
                         {!selectedExamId ? (
-                            <div style={{ color: '#6b7280', fontWeight: 800 }}>Create/select an exam first.</div>
+                            <div style={{ color: '#6b7280', fontWeight: 800 }}>Select class and exam to monitor submissions.</div>
                         ) : !done2 ? (
                             <div style={{ color: '#6b7280', fontWeight: 800 }}>Add schedule first to enable publishing.</div>
                         ) : (
                             <>
+                                <div style={{ marginBottom: '10px', border: '1px solid #e5e7eb', borderRadius: '10px', padding: '10px', backgroundColor: '#f9fafb' }}>
+                                    <div style={{ fontWeight: 800, marginBottom: '8px' }}>
+                                        Subject Completion ({selectedExam?.class_section_display || ''} - {selectedExam?.exam_type})
+                                    </div>
+                                    {!subjectStatus?.subjects?.length ? (
+                                        <div style={{ color: '#6b7280', fontSize: '13px' }}>No subjects found for this exam.</div>
+                                    ) : (
+                                        <div style={{ display: 'grid', gap: '6px' }}>
+                                            {subjectStatus.subjects.map((s) => (
+                                                <div key={s.subject} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
+                                                    <span>{s.subject}</span>
+                                                    <span style={{ fontWeight: 800, color: s.status === 'Submitted' ? '#166534' : '#b45309' }}>
+                                                        {s.status} ({s.submitted_students}/{s.total_students})
+                                                    </span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
                                 <div style={{ display: 'grid', gridTemplateColumns: '1fr auto auto', gap: '10px', alignItems: 'end', marginBottom: '10px' }}>
                                     <div>
                                         <div style={label}>Exam + Result Status</div>
@@ -671,7 +739,7 @@ const Exams = () => {
                                             {selectedExam?.name} - {selectedExam?.result_published ? 'Published' : 'Unpublished'}
                                         </div>
                                     </div>
-                                    <button type="button" onClick={() => togglePublishResults(true)} disabled={publishing || !selectedExamId || !done2} style={{ padding: '10px 14px', borderRadius: '10px', border: 'none', backgroundColor: '#2563eb', color: '#fff', fontWeight: 900, cursor: 'pointer' }}>
+                                    <button type="button" onClick={() => togglePublishResults(true)} disabled={publishing || !selectedExamId || !done2 || !subjectStatus?.all_submitted} style={{ padding: '10px 14px', borderRadius: '10px', border: 'none', backgroundColor: '#2563eb', color: '#fff', fontWeight: 900, cursor: 'pointer' }}>
                                         Publish Result
                                     </button>
                                     <button type="button" onClick={() => togglePublishResults(false)} disabled={publishing || !selectedExamId || !done2} style={{ padding: '10px 14px', borderRadius: '10px', border: '1px solid #e5e7eb', backgroundColor: '#fff', color: '#111827', fontWeight: 900, cursor: 'pointer' }}>
