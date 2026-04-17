@@ -64,6 +64,7 @@ import DealerManagement from '../pages/superadmin/DealerManagement';
 
 import DealerLogin from '../pages/dealer/Login';
 import DealerDashboard from '../pages/dealer/Dashboard';
+import DealerProfile from '../pages/dealer/Profile';
 
 const AppRoutes = () => {
     return (
@@ -88,6 +89,7 @@ const AppRoutes = () => {
             <Route path="/dealer/*" element={<ProtectedRoute allowedRoles={['dealer']}>
               <Routes>
                 <Route path="dashboard" element={<DealerDashboard />} />
+                <Route path="profile" element={<DealerProfile />} />
               </Routes>
             </ProtectedRoute>} />
             

@@ -125,7 +125,7 @@ const Profile = () => {
     if (!profile) return <p style={{ padding: 20, color: '#b91c1c', fontWeight: 900 }}>Profile not found.</p>;
 
     const classDisplay = profile.class_name || profile.class_ref_name || 'N/A';
-    const fatherName = profile.parent_guardian_name || '—';
+    const fatherName = profile.father_name || '—';
     const motherName = profile.mother_name || '—';
     const photoInitial = (profile.name || 'S').slice(0, 1).toUpperCase();
 
@@ -436,7 +436,8 @@ const Profile = () => {
                         <div><strong>Date of Birth:</strong> {profile.dob || '—'}</div>
                         <div><strong>Date of Admission:</strong> {profile.date_of_admission || '—'}</div>
                         <div><strong>Email:</strong> {profile.email || '—'}</div>
-                        <div><strong>Phone Number:</strong> {profile.phone || profile.parent_contact_number || '—'}</div>
+                        <div><strong>Phone Number:</strong> {profile.phone || profile.father_contact || '—'}</div>
+                        <div><strong>Bus No.:</strong> {profile.bus_no || 'N/A'}</div>
                     </div>
                 </div>
 
@@ -469,9 +470,10 @@ const Profile = () => {
                 <div style={{ ...card, gridColumn: 'span 6' }}>
                     <div style={{ fontWeight: 1000, marginBottom: 10 }}>Parent Details</div>
                     <div style={{ display: 'grid', gap: 8 }}>
-                        <div><strong>Father Name:</strong> {fatherName}</div>
-                        <div><strong>Mother Name:</strong> {motherName}</div>
-                        <div><strong>Parent Contact Number:</strong> {profile.parent_contact_number || '—'}</div>
+                        <div><strong>Father's Name:</strong> {fatherName}</div>
+                        <div><strong>Mother's Name:</strong> {motherName}</div>
+                        <div><strong>Father's Contact:</strong> {profile.father_contact || '—'}</div>
+                        <div><strong>Mother's Contact:</strong> {profile.mother_contact || '—'}</div>
                         <div><strong>Address:</strong> {profile.address || '—'}</div>
                     </div>
                 </div>

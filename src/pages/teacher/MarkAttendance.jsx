@@ -31,9 +31,9 @@ function StatusBadge({ status }) {
         color = palette.absent;
     }
 
-    const label = s === 'present' ? 'P' : s === 'absent' ? 'A' : 'Unmarked';
+    const label = s === 'present' ? 'Present' : s === 'absent' ? 'Absent' : 'Unmarked';
     return (
-        <span style={{ display: 'inline-block', padding: '6px 10px', borderRadius: 999, backgroundColor: bg, border: `1px solid ${palette.border}`, color, fontWeight: 1000, fontSize: 12 }}>
+        <span style={{ display: 'inline-block', padding: '6px 14px', borderRadius: 999, backgroundColor: bg, border: `1px solid ${palette.border}`, color, fontWeight: 900, fontSize: 12 }}>
             {label}
         </span>
     );
@@ -167,22 +167,26 @@ const MarkAttendance = () => {
                             <div style={{ color: palette.muted, fontWeight: 900, fontSize: 12 }}>Present: <span style={{ color: palette.present, fontWeight: 1000 }}>{sheet?.summary?.present ?? 0}</span></div>
                             <div style={{ color: palette.muted, fontWeight: 900, fontSize: 12 }}>Absent: <span style={{ color: palette.absent, fontWeight: 1000 }}>{sheet?.summary?.absent ?? 0}</span></div>
                             <div style={{ color: palette.muted, fontWeight: 900, fontSize: 12 }}>Marked: <span style={{ color: '#111827', fontWeight: 1000 }}>{sheet?.summary?.marked ?? 0}</span></div>
-                            <button
-                                type="button"
-                                onClick={markAllPresent}
-                                disabled={!isEditable}
-                                style={{ padding: '8px 12px', borderRadius: 10, border: `1px solid ${palette.border}`, backgroundColor: '#fff', fontWeight: 1000, cursor: 'pointer' }}
-                            >
-                                Mark All Present
-                            </button>
-                            <button
-                                type="button"
-                                onClick={saveAttendance}
-                                disabled={saving || !isEditable}
-                                style={{ padding: '8px 12px', borderRadius: 10, border: 'none', backgroundColor: palette.primary, color: '#fff', fontWeight: 1000, cursor: saving || !isEditable ? 'not-allowed' : 'pointer', opacity: saving || !isEditable ? 0.6 : 1 }}
-                            >
-                                {saving ? 'Saving...' : 'Save Attendance'}
-                            </button>
+                        {sheet?.can_mark && (
+                            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                                <button
+                                    type="button"
+                                    onClick={markAllPresent}
+                                    disabled={!isEditable}
+                                    style={{ padding: '8px 12px', borderRadius: 10, border: `1px solid ${palette.border}`, backgroundColor: '#fff', fontWeight: 1000, cursor: 'pointer' }}
+                                >
+                                    Mark All Present
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={saveAttendance}
+                                    disabled={saving || !isEditable}
+                                    style={{ padding: '8px 12px', borderRadius: 10, border: 'none', backgroundColor: palette.primary, color: '#fff', fontWeight: 1000, cursor: saving || !isEditable ? 'not-allowed' : 'pointer', opacity: saving || !isEditable ? 0.6 : 1 }}
+                                >
+                                    {saving ? 'Saving...' : 'Save Attendance'}
+                                </button>
+                            </div>
+                        )}
                         </div>
                     </div>
                     {!isEditable ? (
@@ -201,7 +205,7 @@ const MarkAttendance = () => {
                                     <th style={{ padding: 12, textAlign: 'left', color: palette.muted, fontWeight: 1000, fontSize: 12 }}>Student Name</th>
                                     <th style={{ padding: 12, textAlign: 'left', color: palette.muted, fontWeight: 1000, fontSize: 12 }}>Roll No</th>
                                     <th style={{ padding: 12, textAlign: 'left', color: palette.muted, fontWeight: 1000, fontSize: 12 }}>Status</th>
-                                    <th style={{ padding: 12, textAlign: 'left', color: palette.muted, fontWeight: 1000, fontSize: 12 }}>Action</th>
+                                    {sheet?.can_mark && <th style={{ padding: 12, textAlign: 'left', color: palette.muted, fontWeight: 1000, fontSize: 12 }}>Action</th>}
                                 </tr>
                 </thead>
                 <tbody>
@@ -220,24 +224,26 @@ const MarkAttendance = () => {
                                                 <td style={{ padding: 12 }}>
                                                     <StatusBadge status={s.status} />
                                                 </td>
-                                                <td style={{ padding: 12, whiteSpace: 'nowrap' }}>
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => setStudentStatus(s.student_id, 'present')}
-                                                        disabled={!isEditable}
-                                                        style={{ padding: '8px 12px', marginRight: 8, borderRadius: 10, border: 'none', backgroundColor: '#16a34a', color: '#fff', fontWeight: 1000, cursor: !isEditable ? 'not-allowed' : 'pointer', opacity: !isEditable ? 0.6 : 1 }}
-                                                    >
-                                                        P
-                                                    </button>
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => setStudentStatus(s.student_id, 'absent')}
-                                                        disabled={!isEditable}
-                                                        style={{ padding: '8px 12px', borderRadius: 10, border: 'none', backgroundColor: '#ef4444', color: '#fff', fontWeight: 1000, cursor: !isEditable ? 'not-allowed' : 'pointer', opacity: !isEditable ? 0.6 : 1 }}
-                                                    >
-                                                        A
-                                                    </button>
-                                                </td>
+                                                {sheet?.can_mark && (
+                                                    <td style={{ padding: 12, whiteSpace: 'nowrap' }}>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setStudentStatus(s.student_id, 'present')}
+                                                            disabled={!isEditable}
+                                                            style={{ padding: '8px 12px', marginRight: 8, borderRadius: 10, border: 'none', backgroundColor: '#16a34a', color: '#fff', fontWeight: 1000, cursor: !isEditable ? 'not-allowed' : 'pointer', opacity: !isEditable ? 0.6 : 1 }}
+                                                        >
+                                                            P
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setStudentStatus(s.student_id, 'absent')}
+                                                            disabled={!isEditable}
+                                                            style={{ padding: '8px 12px', borderRadius: 10, border: 'none', backgroundColor: '#ef4444', color: '#fff', fontWeight: 1000, cursor: !isEditable ? 'not-allowed' : 'pointer', opacity: !isEditable ? 0.6 : 1 }}
+                                                        >
+                                                            A
+                                                        </button>
+                                                    </td>
+                                                )}
                                             </tr>
                                         );
                                     })

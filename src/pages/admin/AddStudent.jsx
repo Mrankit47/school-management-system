@@ -12,8 +12,11 @@ const AddStudent = () => {
         dob: '',
         gender: '',
         blood_group: '',
-        parent_guardian_name: '',
-        parent_contact_number: '',
+        father_name: '',
+        mother_name: '',
+        father_contact: '',
+        mother_contact: '',
+        bus_no: '',
         address: '',
         date_of_admission: '',
         category: '',
@@ -22,7 +25,8 @@ const AddStudent = () => {
     const [mainSections, setMainSections] = useState([]);
     const [message, setMessage] = useState('');
     const [students, setStudents] = useState([]);
-    const parentPhoneDigits = (formData.parent_contact_number || '').replace(/\D/g, '').slice(0, 10);
+    const fatherPhoneDigits = (formData.father_contact || '').replace(/\D/g, '').slice(0, 10);
+    const motherPhoneDigits = (formData.mother_contact || '').replace(/\D/g, '').slice(0, 10);
     const selectedSection = mainSections.find((s) => String(s.id) === String(formData.section_id));
     const rollPreview = selectedSection?.name ? `101${String(selectedSection.name).trim().charAt(0).toUpperCase()}` : 'Auto (e.g. 101A)';
     const admissionPreview = (() => {
@@ -84,8 +88,8 @@ const AddStudent = () => {
             setMessage('Error: Password and confirm password do not match.');
             return;
         }
-        if (parentPhoneDigits.length !== 10) {
-            setMessage('Error: Parent contact number must be exactly 10 digits.');
+        if (fatherPhoneDigits.length !== 10) {
+            setMessage('Error: Father\'s contact number must be exactly 10 digits.');
             return;
         }
         try {
@@ -109,7 +113,8 @@ const AddStudent = () => {
             payload.username = emailLocal ? emailLocal : (generatedFromName && generatedFromName !== '.' ? generatedFromName : 'student');
 
             payload.name = `${formData.first_name} ${formData.last_name}`.trim();
-            payload.parent_contact_number = `+91${parentPhoneDigits}`;
+            payload.father_contact = fatherPhoneDigits ? `+91${fatherPhoneDigits}` : '';
+            payload.mother_contact = motherPhoneDigits ? `+91${motherPhoneDigits}` : '';
             await api.post('students/admin-create/', payload);
             setMessage('Student created successfully!');
             await fetchStudents();
@@ -127,8 +132,11 @@ const AddStudent = () => {
                 dob: '',
                 gender: '',
                 blood_group: '',
-                parent_guardian_name: '',
-                parent_contact_number: '',
+                father_name: '',
+                mother_name: '',
+                father_contact: '',
+                mother_contact: '',
+                bus_no: '',
                 address: '',
                 date_of_admission: '',
                 category: '',
@@ -190,7 +198,7 @@ const AddStudent = () => {
                     <form onSubmit={handleSubmit} style={{ display: 'grid', gap: '18px' }}>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                         <div>
-                            <div style={labelStyle}>First Name</div>
+                            <div style={labelStyle}>First Name <span style={{ color: '#dc2626' }}>*</span></div>
                             <input
                                 type="text"
                                 placeholder="First Name"
@@ -201,7 +209,7 @@ const AddStudent = () => {
                             />
                         </div>
                         <div>
-                            <div style={labelStyle}>Last Name</div>
+                            <div style={labelStyle}>Last Name <span style={{ color: '#dc2626' }}>*</span></div>
                             <input
                                 type="text"
                                 placeholder="Last Name"
@@ -214,7 +222,7 @@ const AddStudent = () => {
                     </div>
 
                     <div>
-                        <div style={labelStyle}>Email</div>
+                        <div style={labelStyle}>Email <span style={{ color: '#dc2626' }}>*</span></div>
                         <input
                             type="email"
                             placeholder="Email"
@@ -226,7 +234,7 @@ const AddStudent = () => {
                     </div>
 
                     <div>
-                        <div style={labelStyle}>Password</div>
+                        <div style={labelStyle}>Password <span style={{ color: '#dc2626' }}>*</span></div>
                         <input
                             type="password"
                             placeholder="Password"
@@ -238,7 +246,7 @@ const AddStudent = () => {
                     </div>
 
                     <div>
-                        <div style={labelStyle}>Confirm Password</div>
+                        <div style={labelStyle}>Confirm Password <span style={{ color: '#dc2626' }}>*</span></div>
                         <input
                             type="password"
                             placeholder="Confirm Password"
@@ -270,7 +278,7 @@ const AddStudent = () => {
                     </div>
 
                     <div>
-                        <div style={labelStyle}>Date of Birth (DOB)</div>
+                        <div style={labelStyle}>Date of Birth (DOB) <span style={{ color: '#dc2626' }}>*</span></div>
                         <input
                             type="date"
                             value={formData.dob}
@@ -282,8 +290,8 @@ const AddStudent = () => {
 
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                         <div>
-                            <div style={labelStyle}>Gender</div>
-                            <select
+                            <div style={labelStyle}>Gender <span style={{ color: '#dc2626' }}>*</span></div>
+                        <select
                                 value={formData.gender}
                                 onChange={(e) => setFormData({ ...formData, gender: e.target.value })}
                                 required
@@ -300,7 +308,6 @@ const AddStudent = () => {
                             <select
                                 value={formData.blood_group}
                                 onChange={(e) => setFormData({ ...formData, blood_group: e.target.value })}
-                                required
                                 style={inputStyle}
                             >
                                 <option value="">-- Select Blood Group --</option>
@@ -316,45 +323,95 @@ const AddStudent = () => {
                         </div>
                     </div>
 
-                    <div>
-                        <div style={labelStyle}>Parent/Guardian Name</div>
-                        <input
-                            type="text"
-                            placeholder="Parent/Guardian Name"
-                            value={formData.parent_guardian_name}
-                            onChange={(e) => setFormData({ ...formData, parent_guardian_name: e.target.value })}
-                            style={inputStyle}
-                            required
-                        />
-                    </div>
-
-                    <div>
-                        <div style={labelStyle}>Parent Contact Number</div>
-                        <div style={{ display: 'grid', gridTemplateColumns: '70px 1fr', gap: '8px' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                        <div>
+                            <div style={labelStyle}>Father's Name <span style={{ color: '#dc2626' }}>*</span></div>
                             <input
                                 type="text"
-                                value="+91"
-                                disabled
-                                style={{ ...inputStyle, textAlign: 'center', backgroundColor: '#f9fafb', color: '#6b7280' }}
+                                placeholder="Father's Name"
+                                value={formData.father_name}
+                                onChange={(e) => setFormData({ ...formData, father_name: e.target.value })}
+                                style={inputStyle}
+                                required
                             />
+                        </div>
+                        <div>
+                            <div style={labelStyle}>Mother's Name <span style={{ color: '#dc2626' }}>*</span></div>
                             <input
-                                type="tel"
-                                inputMode="numeric"
-                                pattern="[0-9]{10}"
-                                placeholder="10-digit number"
-                                value={parentPhoneDigits}
-                                onChange={(e) => {
-                                    const digits = (e.target.value || '').replace(/\D/g, '').slice(0, 10);
-                                    setFormData({ ...formData, parent_contact_number: digits });
-                                }}
+                                type="text"
+                                placeholder="Mother's Name"
+                                value={formData.mother_name}
+                                onChange={(e) => setFormData({ ...formData, mother_name: e.target.value })}
                                 style={inputStyle}
                                 required
                             />
                         </div>
                     </div>
 
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                        <div>
+                            <div style={labelStyle}>Father's Contact <span style={{ color: '#dc2626' }}>*</span></div>
+                            <div style={{ display: 'grid', gridTemplateColumns: '70px 1fr', gap: '8px' }}>
+                                <input
+                                    type="text"
+                                    value="+91"
+                                    disabled
+                                    style={{ ...inputStyle, textAlign: 'center', backgroundColor: '#f9fafb', color: '#6b7280' }}
+                                />
+                                <input
+                                    type="tel"
+                                    inputMode="numeric"
+                                    pattern="[0-9]{10}"
+                                    placeholder="10-digit number"
+                                    value={fatherPhoneDigits}
+                                    onChange={(e) => {
+                                        const digits = (e.target.value || '').replace(/\D/g, '').slice(0, 10);
+                                        setFormData({ ...formData, father_contact: digits });
+                                    }}
+                                    style={inputStyle}
+                                    required
+                                />
+                            </div>
+                        </div>
+                        <div>
+                            <div style={labelStyle}>Mother's Contact <span style={{ color: '#dc2626' }}>*</span></div>
+                            <div style={{ display: 'grid', gridTemplateColumns: '70px 1fr', gap: '8px' }}>
+                                <input
+                                    type="text"
+                                    value="+91"
+                                    disabled
+                                    style={{ ...inputStyle, textAlign: 'center', backgroundColor: '#f9fafb', color: '#6b7280' }}
+                                />
+                                <input
+                                    type="tel"
+                                    inputMode="numeric"
+                                    pattern="[0-9]{10}"
+                                    placeholder="10-digit number"
+                                    value={motherPhoneDigits}
+                                    onChange={(e) => {
+                                        const digits = (e.target.value || '').replace(/\D/g, '').slice(0, 10);
+                                        setFormData({ ...formData, mother_contact: digits });
+                                    }}
+                                    style={inputStyle}
+                                    required
+                                />
+                            </div>
+                        </div>
+                    </div>
+
                     <div>
-                        <div style={labelStyle}>Residential Address</div>
+                        <div style={labelStyle}>Bus No. (Optional)</div>
+                        <input
+                            type="text"
+                            placeholder="e.g. Bus 5"
+                            value={formData.bus_no}
+                            onChange={(e) => setFormData({ ...formData, bus_no: e.target.value })}
+                            style={inputStyle}
+                        />
+                    </div>
+
+                    <div>
+                        <div style={labelStyle}>Residential Address <span style={{ color: '#dc2626' }}>*</span></div>
                         <input
                             type="text"
                             placeholder="Residential Address"
@@ -366,7 +423,7 @@ const AddStudent = () => {
                     </div>
 
                     <div>
-                        <div style={labelStyle}>Date of Admission</div>
+                        <div style={labelStyle}>Date of Admission <span style={{ color: '#dc2626' }}>*</span></div>
                         <input
                             type="date"
                             value={formData.date_of_admission}
@@ -377,7 +434,7 @@ const AddStudent = () => {
                     </div>
 
                     <div>
-                        <div style={labelStyle}>Category</div>
+                        <div style={labelStyle}>Category <span style={{ color: '#dc2626' }}>*</span></div>
                         <select
                             value={formData.category}
                             onChange={(e) => setFormData({ ...formData, category: e.target.value })}
@@ -396,7 +453,7 @@ const AddStudent = () => {
 
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                         <div>
-                            <div style={labelStyle}>Class</div>
+                            <div style={labelStyle}>Class <span style={{ color: '#dc2626' }}>*</span></div>
                             <select
                                 value={formData.class_id}
                                 onChange={(e) => setFormData({ ...formData, class_id: e.target.value })}
@@ -410,7 +467,7 @@ const AddStudent = () => {
                             </select>
                         </div>
                         <div>
-                            <div style={labelStyle}>Section</div>
+                            <div style={labelStyle}>Section <span style={{ color: '#dc2626' }}>*</span></div>
                             <select
                                 value={formData.section_id}
                                 onChange={(e) => setFormData({ ...formData, section_id: e.target.value })}

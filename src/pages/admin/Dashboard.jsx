@@ -14,8 +14,11 @@ const AdminDashboard = () => {
         dob: '',
         gender: '',
         blood_group: '',
-        parent_guardian_name: '',
-        parent_contact_number: '',
+        father_name: '',
+        mother_name: '',
+        father_contact: '',
+        mother_contact: '',
+        bus_no: '',
         address: '',
         date_of_admission: '',
         category: '',
@@ -115,10 +118,6 @@ const AdminDashboard = () => {
             setMessage('Error: Password and confirm password do not match.');
             return;
         }
-        if (parentPhoneDigits.length !== 10) {
-            setMessage('Error: Parent contact number must be exactly 10 digits.');
-            return;
-        }
         try {
             const payload = { ...formData };
             const first = (formData.first_name || '').trim();
@@ -128,6 +127,12 @@ const AdminDashboard = () => {
             payload.username = emailLocal || 'student';
             payload.name = `${first} ${last}`.trim();
 
+            const f_digits = (formData.father_contact || '').replace(/\D/g, '').slice(0, 10);
+            const m_digits = (formData.mother_contact || '').replace(/\D/g, '').slice(0, 10);
+            
+            payload.father_contact = f_digits ? `+91${f_digits}` : '';
+            payload.mother_contact = m_digits ? `+91${m_digits}` : '';
+
             await api.post('students/admin-create/', payload);
             setMessage('Student created successfully!');
             await fetchCounts();
@@ -135,8 +140,8 @@ const AdminDashboard = () => {
             setFormData({
                 email: '', password: '', first_name: '', last_name: '', name: '',
                 admission_number: '', class_id: '', section_id: '', dob: '',
-                gender: '', blood_group: '', parent_guardian_name: '',
-                parent_contact_number: '', address: '', date_of_admission: '', category: '',
+                gender: '', blood_group: '', father_name: '', mother_name: '',
+                father_contact: '', mother_contact: '', bus_no: '', address: '', date_of_admission: '', category: '',
             });
             setTimeout(() => setMessage(''), 3000);
         } catch (err) {
@@ -459,6 +464,16 @@ const AdminDashboard = () => {
                                         {mainSections.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                                     </select>
                                 </div>
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">Bus No (Optional)</label>
+                                    <input
+                                        type="text"
+                                        placeholder="e.g. BUS-01"
+                                        value={formData.bus_no}
+                                        onChange={(e) => setFormData({ ...formData, bus_no: e.target.value })}
+                                        className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-school-navy/5 outline-none focus:bg-white focus:border-school-navy/20 transition-all"
+                                    />
+                                </div>
                             </div>
                             <div className="space-y-2">
                                 <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">Admission Date</label>
@@ -482,23 +497,45 @@ const AdminDashboard = () => {
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div className="space-y-2">
-                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">Guardian Name</label>
+                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">Father's Name</label>
                                     <input
                                         type="text"
-                                        placeholder="Full name of parent/guardian"
-                                        value={formData.parent_guardian_name}
-                                        onChange={(e) => setFormData({ ...formData, parent_guardian_name: e.target.value })}
+                                        placeholder="Full name of father"
+                                        value={formData.father_name}
+                                        onChange={(e) => setFormData({ ...formData, father_name: e.target.value })}
                                         className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-school-navy/5 outline-none focus:bg-white focus:border-school-navy/20 transition-all"
                                         required
                                     />
                                 </div>
                                 <div className="space-y-2">
-                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">Contact Number</label>
+                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">Father's Contact</label>
                                     <input
                                         type="tel"
-                                        placeholder="Contact phone number"
-                                        value={formData.parent_contact_number}
-                                        onChange={(e) => setFormData({ ...formData, parent_contact_number: e.target.value })}
+                                        placeholder="Father's phone number"
+                                        value={formData.father_contact}
+                                        onChange={(e) => setFormData({ ...formData, father_contact: e.target.value })}
+                                        className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-school-navy/5 outline-none focus:bg-white focus:border-school-navy/20 transition-all font-medium"
+                                        required
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">Mother's Name</label>
+                                    <input
+                                        type="text"
+                                        placeholder="Full name of mother"
+                                        value={formData.mother_name}
+                                        onChange={(e) => setFormData({ ...formData, mother_name: e.target.value })}
+                                        className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-school-navy/5 outline-none focus:bg-white focus:border-school-navy/20 transition-all"
+                                        required
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">Mother's Contact</label>
+                                    <input
+                                        type="tel"
+                                        placeholder="Mother's phone number"
+                                        value={formData.mother_contact}
+                                        onChange={(e) => setFormData({ ...formData, mother_contact: e.target.value })}
                                         className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-school-navy/5 outline-none focus:bg-white focus:border-school-navy/20 transition-all font-medium"
                                         required
                                     />

@@ -43,9 +43,18 @@ const StudentCards = ({ students, refreshStudents }) => {
         e.preventDefault();
         setBusy(true);
         try {
+            const { first_name, last_name, admission_number, email, bus_no, father_name, mother_name, father_contact, mother_contact } = editForm;
             await api.patch(`students/update/${editStudent.id}/`, {
-                ...editForm,
-                parent_contact_number: `+91${parentDigits}`,
+                first_name,
+                last_name,
+                name: `${first_name || ''} ${last_name || ''}`.trim(),
+                admission_number,
+                email,
+                bus_no,
+                father_name,
+                mother_name,
+                father_contact,
+                mother_contact,
             });
             await refreshStudents();
             closeModal();
@@ -171,8 +180,11 @@ const StudentCards = ({ students, refreshStudents }) => {
                                             { label: 'Gender', val: viewStudent.gender },
                                             { label: 'Blood Group', val: viewStudent.blood_group },
                                             { label: 'Category', val: viewStudent.category },
-                                            { label: 'Parent Name', val: viewStudent.parent_guardian_name },
-                                            { label: 'Parent Contact', val: viewStudent.parent_contact_number },
+                                            { label: 'Bus No', val: viewStudent.bus_no || 'N/A' },
+                                            { label: 'Father\'s Name', val: viewStudent.father_name },
+                                            { label: 'Father\'s Contact', val: viewStudent.father_contact },
+                                            { label: 'Mother\'s Name', val: viewStudent.mother_name },
+                                            { label: 'Mother\'s Contact', val: viewStudent.mother_contact },
                                         ].map((item, i) => (
                                             <div key={i} className="space-y-1">
                                                 <p className={labelClasses}>{item.label}</p>
@@ -192,6 +204,11 @@ const StudentCards = ({ students, refreshStudents }) => {
                                         <div><label className={labelClasses}>Last Name</label><input type="text" value={editForm.last_name} onChange={e => setEditForm({...editForm, last_name: e.target.value})} className={inputClasses} /></div>
                                         <div><label className={labelClasses}>Admission No</label><input type="text" value={editForm.admission_number} onChange={e => setEditForm({...editForm, admission_number: e.target.value})} className={inputClasses} /></div>
                                         <div><label className={labelClasses}>Email</label><input type="email" value={editForm.email} onChange={e => setEditForm({...editForm, email: e.target.value})} className={inputClasses} /></div>
+                                        <div><label className={labelClasses}>Bus No.</label><input type="text" value={editForm.bus_no} onChange={e => setEditForm({...editForm, bus_no: e.target.value})} className={inputClasses} /></div>
+                                        <div><label className={labelClasses}>Father's Name</label><input type="text" value={editForm.father_name} onChange={e => setEditForm({...editForm, father_name: e.target.value})} className={inputClasses} /></div>
+                                        <div><label className={labelClasses}>Father's Contact</label><input type="text" value={editForm.father_contact} onChange={e => setEditForm({...editForm, father_contact: e.target.value})} className={inputClasses} /></div>
+                                        <div><label className={labelClasses}>Mother's Name</label><input type="text" value={editForm.mother_name} onChange={e => setEditForm({...editForm, mother_name: e.target.value})} className={inputClasses} /></div>
+                                        <div><label className={labelClasses}>Mother's Contact</label><input type="text" value={editForm.mother_contact} onChange={e => setEditForm({...editForm, mother_contact: e.target.value})} className={inputClasses} /></div>
                                     </div>
                                     <div className="pt-6 border-t border-slate-50 flex justify-end gap-3">
                                         <button type="button" onClick={closeModal} className="px-6 py-2.5 text-xs font-bold text-slate-500 hover:bg-slate-50 rounded-xl transition-colors">Cancel</button>

@@ -86,8 +86,11 @@ class StudentListView(views.APIView):
                 "dob": s.dob,
                 "gender": s.gender,
                 "blood_group": s.blood_group,
-                "parent_guardian_name": s.parent_guardian_name,
-                "parent_contact_number": s.parent_contact_number,
+                "father_name": s.father_name,
+                "mother_name": s.mother_name,
+                "father_contact": s.father_contact,
+                "mother_contact": s.mother_contact,
+                "bus_no": s.bus_no,
                 "address": s.address,
                 "date_of_admission": s.date_of_admission,
                 "category": s.category,
@@ -173,8 +176,11 @@ class StudentDetailView(views.APIView):
                 "dob": s.dob,
                 "gender": s.gender,
                 "blood_group": s.blood_group,
-                "parent_guardian_name": s.parent_guardian_name,
-                "parent_contact_number": s.parent_contact_number,
+                "father_name": s.father_name,
+                "mother_name": s.mother_name,
+                "father_contact": s.father_contact,
+                "mother_contact": s.mother_contact,
+                "bus_no": s.bus_no,
                 "address": s.address,
                 "date_of_admission": s.date_of_admission,
                 "category": s.category,
@@ -233,8 +239,11 @@ class StudentUpdateView(views.APIView):
         s.dob = data.get('dob', s.dob)
         s.gender = data.get('gender', s.gender)
         s.blood_group = data.get('blood_group', s.blood_group)
-        s.parent_guardian_name = data.get('parent_guardian_name', s.parent_guardian_name)
-        s.parent_contact_number = data.get('parent_contact_number', s.parent_contact_number)
+        s.father_name = data.get('father_name', s.father_name)
+        s.mother_name = data.get('mother_name', s.mother_name)
+        s.father_contact = data.get('father_contact', s.father_contact)
+        s.mother_contact = data.get('mother_contact', s.mother_contact)
+        s.bus_no = data.get('bus_no', s.bus_no)
         s.address = data.get('address', s.address)
         s.date_of_admission = data.get('date_of_admission', s.date_of_admission)
         s.category = data.get('category', s.category)
@@ -298,8 +307,11 @@ class AdminStudentCreateView(views.APIView):
                 dob=data.get('dob'),
                 gender=data.get('gender'),
                 blood_group=data.get('blood_group'),
-                parent_guardian_name=data.get('parent_guardian_name'),
-                parent_contact_number=data.get('parent_contact_number'),
+                father_name=data.get('father_name'),
+                mother_name=data.get('mother_name'),
+                father_contact=data.get('father_contact'),
+                mother_contact=data.get('mother_contact'),
+                bus_no=data.get('bus_no'),
                 address=data.get('address'),
                 date_of_admission=data.get('date_of_admission'),
                 category=data.get('category'),
@@ -353,8 +365,11 @@ class StudentProfileView(views.APIView):
             "date_of_admission": s.date_of_admission,
             "dob": s.dob,
             "gender": s.gender,
-            "parent_guardian_name": s.parent_guardian_name,
-            "parent_contact_number": s.parent_contact_number,
+            "father_name": s.father_name,
+            "mother_name": s.mother_name,
+            "father_contact": s.father_contact,
+            "mother_contact": s.mother_contact,
+            "bus_no": s.bus_no,
             "address": s.address,
             "photo_url": photo_url,
             "has_photo": has_photo,
