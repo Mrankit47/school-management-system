@@ -162,15 +162,21 @@ const Fees = () => {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: '12px', marginBottom: '16px' }}>
                 <div style={card}>
                     <div style={{ fontSize: 11, color: '#6b7280', fontWeight: 800, textTransform: 'uppercase' }}>Total Fees</div>
-                    <div style={{ marginTop: 6, fontSize: 22, fontWeight: 900 }}>₹{totals.total.toFixed(2)}</div>
+                    <div style={{ marginTop: 6, fontSize: totals.total > 0 ? 22 : 16, fontWeight: 900, color: totals.total > 0 ? '#111827' : '#94a3b8' }}>
+                        {totals.total > 0 ? `₹${totals.total.toFixed(2)}` : 'Fees Not Assigned'}
+                    </div>
                 </div>
                 <div style={card}>
                     <div style={{ fontSize: 11, color: '#6b7280', fontWeight: 800, textTransform: 'uppercase' }}>Total Paid</div>
-                    <div style={{ marginTop: 6, fontSize: 22, fontWeight: 900, color: '#166534' }}>₹{totals.paid.toFixed(2)}</div>
+                    <div style={{ marginTop: 6, fontSize: 22, fontWeight: 900, color: totals.paid > 0 ? '#166534' : '#94a3b8' }}>
+                        ₹{totals.paid.toFixed(2)}
+                    </div>
                 </div>
                 <div style={card}>
                     <div style={{ fontSize: 11, color: '#6b7280', fontWeight: 800, textTransform: 'uppercase' }}>Total Due</div>
-                    <div style={{ marginTop: 6, fontSize: 22, fontWeight: 900, color: '#b45309' }}>₹{totals.due.toFixed(2)}</div>
+                    <div style={{ marginTop: 6, fontSize: totals.due > 0 ? 22 : 18, fontWeight: 900, color: totals.due > 0 ? '#b45309' : '#166534' }}>
+                        {totals.due > 0 ? `₹${totals.due.toFixed(2)}` : 'No Balance'}
+                    </div>
                 </div>
                 <div style={{ ...card, borderColor: totals.overdueCount > 0 ? '#fecaca' : '#e5e7eb', backgroundColor: totals.overdueCount > 0 ? '#fff7ed' : '#fff' }}>
                     <div style={{ fontSize: 11, color: '#6b7280', fontWeight: 800, textTransform: 'uppercase' }}>Overdue Records</div>
@@ -422,7 +428,15 @@ const Fees = () => {
                     );
                 })}
             </div>
-            {feeRecords.length === 0 && <p style={{ color: '#6b7280' }}>No fee records found. Contact the office if this is unexpected.</p>}
+            {feeRecords.length === 0 && (
+                <div style={{ ...card, textAlign: 'center', padding: '60px 20px', backgroundColor: '#f8fafc' }}>
+                    <div style={{ fontSize: '48px', marginBottom: '20px', opacity: 0.5 }}>💳</div>
+                    <h3 style={{ margin: '0 0 8px', color: '#111827' }}>No Fees Assigned</h3>
+                    <p style={{ margin: 0, color: '#64748b', fontSize: '14px', maxWidth: '300px', mx: 'auto' }}>
+                        Your class fee structure hasn't been set by the administration yet. Please check back later.
+                    </p>
+                </div>
+            )}
         </div>
     );
 };

@@ -224,43 +224,6 @@ const Profile = () => {
         }
     };
 
-    const downloadIdCardPdf = async () => {
-        setIdCardBusy(true);
-        setPhotoError('');
-        try {
-            const blob = await fetchStudentIdCardBlob('attachment');
-            const url = URL.createObjectURL(new Blob([blob], { type: 'application/pdf' }));
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `student-id-card-${profile.admission_number || profile.id || 'student'}.pdf`;
-            a.rel = 'noopener';
-            document.body.appendChild(a);
-            a.click();
-            a.remove();
-            URL.revokeObjectURL(url);
-        } catch (err) {
-            let msg = err?.response?.data?.error || 'Could not download ID card.';
-            if (err?.response?.data instanceof Blob) {
-                try {
-                    const t = await err.response.data.text();
-                    if (t) {
-                        try {
-                            const j = JSON.parse(t);
-                            msg = j.error || j.detail || msg;
-                        } catch {
-                            msg = t.length < 200 ? t : msg;
-                        }
-                    }
-                } catch {
-                    /* ignore */
-                }
-            }
-            setPhotoError(typeof msg === 'string' ? msg : 'Could not download ID card.');
-        } finally {
-            setIdCardBusy(false);
-        }
-    };
-
     return (
         <div style={{ padding: 20, background: '#f8fafc', minHeight: 'calc(100vh - 60px)' }}>
             <h1 style={{ marginTop: 0 }}>My Profile</h1>
@@ -499,23 +462,6 @@ const Profile = () => {
                             }}
                         >
                             {idCardBusy ? 'Preparing…' : 'View ID Card (PDF)'}
-                        </button>
-                        <button
-                            type="button"
-                            onClick={downloadIdCardPdf}
-                            disabled={idCardBusy}
-                            style={{
-                                padding: '10px 12px',
-                                borderRadius: 10,
-                                border: 'none',
-                                background: '#fee2e2',
-                                color: '#991b1b',
-                                fontWeight: 900,
-                                cursor: idCardBusy ? 'not-allowed' : 'pointer',
-                                opacity: idCardBusy ? 0.75 : 1,
-                            }}
-                        >
-                            {idCardBusy ? 'Preparing…' : 'Download ID Card'}
                         </button>
                     </div>
                 </div>

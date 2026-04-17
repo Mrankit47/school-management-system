@@ -43,11 +43,13 @@ const Sidebar = () => {
             subLinks: [
                 { path: '/student/notifications', label: 'Notifications' },
                 { path: '/student/syllabus', label: 'Syllabus' },
-                { path: '/student/profile', label: 'Your Profile' },
                 { path: '/student/Holidays', label: 'Holidays' },
-                { path: '/student/Message', label: 'Message' }
+                { path: '/student/Message', label: 'Message' },
             ]
-        }
+        },
+        { path: '/student/gallery', label: 'Gallery', icon: '🖼️' },
+        { path: '/student/shops', label: 'Shop Locations', icon: '🏪' },
+        { path: '/student/profile', label: 'Your Profile', icon: '👤' },
     ];
 
     const teacherLinks = [
@@ -59,6 +61,7 @@ const Sidebar = () => {
         { path: '/teacher/syllabus', label: 'Syllabus', icon: '📄' },
         { path: '/teacher/students', label: 'My Students', icon: '👥' },
         { path: '/teacher/timetable', label: 'Time Table', icon: '📅' },
+        { path: '/teacher/gallery', label: 'Gallery', icon: '🖼️' },
         { path: '/teacher/notifications', label: 'Notifications', icon: '🔔' },
         { path: '/teacher/Holidays', label: 'Holidays', icon: '🏝️' },
         { path: '/teacher/Profile', label: 'Profile', icon: '🧑🏻‍💻' },
@@ -91,6 +94,7 @@ const Sidebar = () => {
                 { path: '/admin/timetable', label: 'Time Table' },
             ]
         },
+        { path: '/admin/gallery', label: 'Gallery', icon: '🖼️' },
         {
             label: 'Finance',
             icon: '💰',
@@ -99,6 +103,8 @@ const Sidebar = () => {
                 { path: '/admin/finance-cards', label: 'Fee Cards' },
             ]
         },
+        { path: '/admin/reports', label: 'Reports', icon: '📈' },
+        { path: '/admin/shops', label: 'Shop Locations', icon: '🏪' },
     ];
 
     const links = role === 'student' ? studentLinks : (role === 'teacher' ? teacherLinks : adminLinks);

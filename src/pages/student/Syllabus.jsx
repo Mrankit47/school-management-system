@@ -78,7 +78,7 @@ export default function StudentSyllabus() {
         setLoading(true);
         setError('');
         try {
-            const metaRes = await api.get('syllabus/student/filters/');
+            const metaRes = await api.get('syllabus/student-filters/');
             const f = metaRes.data || { class_id: '', class_name: '', subjects: [] };
             setFilters(f);
 
@@ -90,7 +90,7 @@ export default function StudentSyllabus() {
             if (opts.search !== undefined) params.search = opts.search;
             else if (search.trim()) params.search = search.trim();
 
-            const listRes = await api.get('syllabus/student/', { params });
+            const listRes = await api.get('syllabus/', { params });
             setSyllabi(listRes.data || []);
         } catch (e) {
             setError(e?.response?.data?.error || 'Could not load syllabus.');
@@ -114,7 +114,7 @@ export default function StudentSyllabus() {
                 const params = {};
                 if (selectedSubjectId) params.subject_id = selectedSubjectId;
                 if (search.trim()) params.search = search.trim();
-                const listRes = await api.get('syllabus/student/', { params });
+                const listRes = await api.get('syllabus/', { params });
                 setSyllabi(listRes.data || []);
             } catch (e) {
                 setError(e?.response?.data?.error || 'Could not load syllabus.');
@@ -150,7 +150,7 @@ export default function StudentSyllabus() {
             const params = {};
             if (selectedSubjectId) params.subject_id = selectedSubjectId;
             if (search.trim()) params.search = search.trim();
-            const listRes = await api.get('syllabus/student/', { params });
+            const listRes = await api.get('syllabus/', { params });
             setSyllabi(listRes.data || []);
         } catch (e) {
             setError(e?.response?.data?.error || 'Search failed.');
@@ -165,7 +165,7 @@ export default function StudentSyllabus() {
                 <div>
                     <h1 style={{ margin: 0, fontWeight: 1000, color: colors.text }}>Student Syllabus</h1>
                     <div style={{ marginTop: 4, color: colors.muted, fontWeight: 900, fontSize: 13 }}>
-                        Automatically filtered by your class. Download and view PDF.
+                        Your class syllabus. Download and view study material.
                     </div>
                 </div>
                 <div style={{ color: colors.muted, fontWeight: 900, fontSize: 13 }}>
@@ -186,7 +186,7 @@ export default function StudentSyllabus() {
                     <div>
                         <div style={labelStyle}>Subject</div>
                         <select value={selectedSubjectId} onChange={(e) => setSelectedSubjectId(e.target.value)} style={inputStyle}>
-                            {filters.subjects?.length ? null : <option value="">No subjects</option>}
+                            <option value="">All Subjects</option>
                             {filters.subjects.map((s) => (
                                 <option key={s.id} value={String(s.id)}>
                                     {s.name}
@@ -227,9 +227,9 @@ export default function StudentSyllabus() {
                                 <button type="button" onClick={() => openDetails(s)} style={{ padding: '7px 10px', borderRadius: 10, border: `1px solid ${colors.border}`, background: '#fff', cursor: 'pointer', fontWeight: 1000 }}>
                                     View Details
                                 </button>
-                                {s.pdf_url ? (
-                                    <a href={s.pdf_url} target="_blank" rel="noreferrer" download style={{ padding: '7px 10px', borderRadius: 10, border: 'none', background: colors.primary, color: '#fff', fontWeight: 1000, cursor: 'pointer', textDecoration: 'none', display: 'inline-block' }}>
-                                        Download PDF
+                                {s.file_url ? (
+                                    <a href={s.file_url} target="_blank" rel="noreferrer" download style={{ padding: '7px 10px', borderRadius: 10, border: 'none', background: colors.primary, color: '#fff', fontWeight: 1000, cursor: 'pointer', textDecoration: 'none', display: 'inline-block' }}>
+                                        View / Download
                                     </a>
                                 ) : null}
                             </div>
@@ -250,9 +250,9 @@ export default function StudentSyllabus() {
                             {detail.description || '—'}
                         </div>
                         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, flexWrap: 'wrap' }}>
-                            {detail.pdf_url ? (
-                                <a href={detail.pdf_url} target="_blank" rel="noreferrer" download style={{ padding: '10px 14px', borderRadius: 12, border: 'none', background: colors.primary, color: '#fff', fontWeight: 1000, cursor: 'pointer', textDecoration: 'none', display: 'inline-block' }}>
-                                    Download PDF
+                            {detail.file_url ? (
+                                <a href={detail.file_url} target="_blank" rel="noreferrer" download style={{ padding: '10px 14px', borderRadius: 12, border: 'none', background: colors.primary, color: '#fff', fontWeight: 1000, cursor: 'pointer', textDecoration: 'none', display: 'inline-block' }}>
+                                    View / Download
                                 </a>
                             ) : null}
                             <button type="button" onClick={closeDetail} style={{ padding: '10px 14px', borderRadius: 12, border: `1px solid ${colors.border}`, background: '#fff', cursor: 'pointer', fontWeight: 1000 }}>

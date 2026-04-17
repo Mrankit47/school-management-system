@@ -19,6 +19,7 @@ import StudentHolidays from '../pages/student/Holidays';
 import StudentMessaging from '../pages/student/Messaging';
 import StudentSyllabus from '../pages/student/Syllabus';
 import StudentExams from '../pages/student/Exams';
+import GalleryPage from '../pages/common/Gallery';
 
 // Teacher
 import TeacherDashboard from '../pages/teacher/Dashboard';
@@ -48,6 +49,8 @@ import AdminFinanceCards from '../pages/admin/FinanceCards';
 import AdminHolidays from '../pages/admin/Holidays';
 import AdminAnnouncements from '../pages/admin/Announcements';
 import AdminReports from '../pages/admin/Reports';
+import ShopLocations from '../pages/admin/ShopLocations';
+import StudentShops from '../pages/student/Shops';
 import BulkImport from '../pages/admin/BulkImport';
 import SubjectDetails from '../pages/admin/SubjectDetails';
 import TimeTable from '../pages/common/TimeTable';
@@ -107,6 +110,8 @@ const AppRoutes = () => {
                 <Route path="holidays" element={<StudentHolidays />} />
                 <Route path="syllabus" element={<StudentSyllabus />} />
                 <Route path="messaging" element={<StudentMessaging />} />
+                <Route path="shops" element={<StudentShops />} />
+                <Route path="gallery" element={<GalleryPage />} />
               </Routes>
             </ProtectedRoute>} />
 
@@ -125,6 +130,7 @@ const AppRoutes = () => {
                 <Route path="messaging" element={<TeacherMessaging />} />
                 <Route path="holidays" element={<TeacherHolidays />} />
                 <Route path="timetable" element={<TimeTable />} />
+                <Route path="gallery" element={<GalleryPage />} />
               </Routes>
             </ProtectedRoute>} />
 
@@ -147,9 +153,11 @@ const AppRoutes = () => {
                 <Route path="finance-cards" element={<AdminFinanceCards />} />
                 <Route path="holidays" element={<AdminHolidays />} />
                 <Route path="reports" element={<AdminReports />} />
+                <Route path="shops" element={<ShopLocations />} />
                 <Route path="bulk-import" element={<BulkImport />} />
                 <Route path="timetable" element={<TimeTable />} />
                 <Route path="syllabus" element={<AdminSyllabus />} />
+                <Route path="gallery" element={<GalleryPage />} />
               </Routes>
             </ProtectedRoute>} />
 

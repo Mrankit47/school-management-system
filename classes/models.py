@@ -27,6 +27,7 @@ class ClassSection(models.Model):
     class_ref = models.ForeignKey(MainClass, on_delete=models.CASCADE, related_name='sections')
     section_ref = models.ForeignKey(MainSection, on_delete=models.CASCADE, related_name='classes')
     class_teacher = models.ForeignKey('teachers.TeacherProfile', on_delete=models.SET_NULL, null=True, blank=True, related_name='managed_class')
+    assigned_shift = models.ForeignKey('timetable.Shift', on_delete=models.SET_NULL, null=True, blank=True, related_name='sections')
     room_number = models.CharField(max_length=30, blank=True, null=True)
 
     class Meta:

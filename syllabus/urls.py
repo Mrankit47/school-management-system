@@ -1,22 +1,27 @@
 from django.urls import path
 
 from .views import (
+    AdminSyllabusControlView,
     SyllabusDetailView,
     SyllabusListView,
     StudentSyllabusDownloadView,
     StudentSyllabusFiltersView,
-    TeacherSyllabusOptionsView,
-    TeacherSyllabusUploadView,
 )
 
 urlpatterns = [
-    path('teacher/options/', TeacherSyllabusOptionsView.as_view(), name='teacher-syllabus-options'),
-    path('teacher/upload/', TeacherSyllabusUploadView.as_view(), name='teacher-syllabus-upload'),
-    path('teacher/', SyllabusListView.as_view(), name='teacher-syllabus-list'),
-    path('admin/', SyllabusListView.as_view(), name='admin-syllabus-list'),
-    path('student/', SyllabusListView.as_view(), name='student-syllabus-list'),
-    path('student/filters/', StudentSyllabusFiltersView.as_view(), name='student-syllabus-filters'),
+    # General List (Role-based filtering)
+    path('', SyllabusListView.as_view(), name='syllabus-list'),
+    
+    # Filters
+    path('student-filters/', StudentSyllabusFiltersView.as_view(), name='student-syllabus-filters'),
+    
+    # Detail / View
     path('<int:syllabus_id>/', SyllabusDetailView.as_view(), name='syllabus-detail'),
-    path('student/download/<int:syllabus_id>/', StudentSyllabusDownloadView.as_view(), name='student-syllabus-download'),
+    
+    # Admin Control (Upload / Edit / Delete)
+    path('control/', AdminSyllabusControlView.as_view(), name='admin-syllabus-control'),
+    path('control/<int:syllabus_id>/', AdminSyllabusControlView.as_view(), name='admin-syllabus-control-detail'),
+    
+    # Download
+    path('download/<int:syllabus_id>/', StudentSyllabusDownloadView.as_view(), name='syllabus-download'),
 ]
-

@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import api from '../../services/api';
 import StudentCards from './StudentCards';
 import TeacherCards from './TeacherCards';
-import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
 
 const AdminDashboard = () => {
     const [recentStudents, setRecentStudents] = useState([]);
@@ -30,11 +29,10 @@ const AdminDashboard = () => {
     const [teachersCount, setTeachersCount] = useState(0);
     const [studentsCount, setStudentsCount] = useState(0);
     const [studentsLoading, setStudentsLoading] = useState(false);
-    const currentYear = new Date().getFullYear();
-    const [selectedYear, setSelectedYear] = useState(currentYear);
-    const [feesCollection, setFeesCollection] = useState([]);
-    const [feesLoading, setFeesLoading] = useState(false);
-    const [totalCollection, setTotalCollection] = useState(0);
+    const [galleryImages, setGalleryImages] = useState([]);
+    const [galleryLoading, setGalleryLoading] = useState(false);
+    const [currentSlide, setCurrentSlide] = useState(0);
+    const token = localStorage.getItem('access_token');
     const parentPhoneDigits = (formData.parent_contact_number || '').replace(/\D/g, '').slice(0, 10);
 
     const fetchCounts = async () => {
@@ -61,34 +59,35 @@ const AdminDashboard = () => {
         }
     };
 
-    const fetchFeesCollection = async (year) => {
-        setFeesLoading(true);
+    const fetchDashboardGallery = async () => {
+        setGalleryLoading(true);
         try {
-            const res = await api.get(`fees/collection/?year=${year}`);
-            setFeesCollection(res?.data?.monthly || []);
-            setTotalCollection(Number(res?.data?.total_collection || 0));
+            const res = await api.get('gallery/');
+            setGalleryImages(Array.isArray(res?.data) ? res.data : []);
         } catch (e) {
-            console.error("Error fetching fees collection:", e);
-            setFeesCollection([]);
-            setTotalCollection(0);
+            console.error("Error fetching gallery:", e);
+            setGalleryImages([]);
         } finally {
-            setFeesLoading(false);
+            setGalleryLoading(false);
         }
     };
 
     useEffect(() => {
         setStudentsLoading(true);
-        Promise.all([fetchCounts(), fetchClassesAndSections()])
+        Promise.all([fetchCounts(), fetchClassesAndSections(), fetchDashboardGallery()])
             .finally(() => setStudentsLoading(false));
     }, []);
 
     useEffect(() => {
-        fetchFeesCollection(selectedYear);
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [selectedYear]);
-
-    const yearOptions = Array.from({ length: 6 }, (_, i) => currentYear - i);
-    const formatINR = (value) => `₹${Number(value || 0).toLocaleString('en-IN')}`;
+        if (!galleryImages.length) {
+            setCurrentSlide(0);
+            return undefined;
+        }
+        const timer = setInterval(() => {
+            setCurrentSlide((prev) => (prev + 1) % galleryImages.length);
+        }, 4000);
+        return () => clearInterval(timer);
+    }, [galleryImages]);
 
     // Auto refresh dashboard stats (so delete/update actions reflect immediately).
     useEffect(() => {
@@ -188,55 +187,45 @@ const AdminDashboard = () => {
 
                     {/* Chart & Activity Grid */}
                     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-                        {/* Finance Collection Bar Chart */}
+                        {/* Dashboard Gallery Slider */}
                         <div className="lg:col-span-8 bg-white/50 backdrop-blur-md p-8 rounded-[2.5rem] border border-slate-100 shadow-xl shadow-slate-200/30">
                             <div className="flex items-start justify-between mb-8 gap-4 flex-wrap">
                                 <div>
-                                    <h3 className="font-poppins font-bold text-school-text text-lg">Fees Collection Overview</h3>
-                                    <p className="text-xs text-slate-400">Monthly student fees collection analytics</p>
-                                    <p className="text-sm font-black text-school-navy mt-2">
-                                        Total Collection: {formatINR(totalCollection)}
-                                    </p>
-                                </div>
-                                <div className="flex items-center gap-3">
-                                    <select
-                                        value={selectedYear}
-                                        onChange={(e) => setSelectedYear(Number(e.target.value))}
-                                        className="px-4 py-2 bg-white rounded-xl border border-slate-200 text-sm font-bold text-slate-600 outline-none focus:border-school-blue"
-                                    >
-                                        {yearOptions.map((year) => (
-                                            <option key={year} value={year}>{year}</option>
-                                        ))}
-                                    </select>
-                                    <div className="flex items-center gap-3 px-4 py-2 bg-slate-50 rounded-xl border border-slate-100">
-                                        <span className="w-2.5 h-2.5 rounded-full bg-school-navy animate-pulse"></span>
-                                        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Finance</span>
-                                    </div>
+                                    <h3 className="font-poppins font-bold text-school-text text-lg">School Gallery Highlights</h3>
+                                    <p className="text-xs text-slate-400">Auto-rotating highlights from your secure gallery</p>
                                 </div>
                             </div>
                             <div className="h-72 rounded-2xl border border-slate-100 bg-white/70 p-3">
-                                {feesLoading ? (
-                                    <div className="h-full flex items-center justify-center text-slate-400 font-bold">Loading chart...</div>
+                                {galleryLoading ? (
+                                    <div className="h-full flex items-center justify-center text-slate-400 font-bold">Loading gallery...</div>
+                                ) : galleryImages.length === 0 ? (
+                                    <div className="h-full flex items-center justify-center text-slate-400 font-bold">No gallery images uploaded yet.</div>
                                 ) : (
-                                    <ResponsiveContainer width="100%" height="100%">
-                                        <BarChart data={feesCollection} margin={{ top: 8, right: 12, left: 4, bottom: 8 }}>
-                                            <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                                            <XAxis dataKey="month" tick={{ fill: '#64748b', fontWeight: 700, fontSize: 12 }} />
-                                            <YAxis tickFormatter={(v) => `₹${Math.round(v / 1000)}k`} tick={{ fill: '#64748b', fontWeight: 700, fontSize: 12 }} />
-                                            <Tooltip
-                                                formatter={(value) => [formatINR(value), 'Collection']}
-                                                labelStyle={{ color: '#0f172a', fontWeight: 700 }}
-                                                contentStyle={{ borderRadius: 12, border: '1px solid #e2e8f0' }}
+                                    <div className="h-full relative rounded-xl overflow-hidden">
+                                        {galleryImages.map((img, idx) => (
+                                            <img
+                                                key={img.id}
+                                                src={`${img.image_url}${token ? `?token=${token}` : ''}`}
+                                                alt={img.title}
+                                                className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-700 select-none ${idx === currentSlide ? 'opacity-100' : 'opacity-0'}`}
+                                                onContextMenu={(e) => e.preventDefault()}
+                                                onDragStart={(e) => e.preventDefault()}
                                             />
-                                            <Bar
-                                                dataKey="amount"
-                                                fill="#2563eb"
-                                                radius={[8, 8, 0, 0]}
-                                                isAnimationActive={true}
-                                                animationDuration={900}
-                                            />
-                                        </BarChart>
-                                    </ResponsiveContainer>
+                                        ))}
+                                        <div className="absolute inset-x-0 bottom-0 p-3 bg-gradient-to-t from-black/50 to-transparent">
+                                            <p className="text-white font-bold text-sm truncate">{galleryImages[currentSlide]?.title}</p>
+                                        </div>
+                                        <div className="absolute bottom-3 right-3 flex gap-1.5">
+                                            {galleryImages.map((img, idx) => (
+                                                <button
+                                                    key={img.id}
+                                                    type="button"
+                                                    onClick={() => setCurrentSlide(idx)}
+                                                    className={`w-2.5 h-2.5 rounded-full ${idx === currentSlide ? 'bg-white' : 'bg-white/50'}`}
+                                                />
+                                            ))}
+                                        </div>
+                                    </div>
                                 )}
                             </div>
                         </div>
@@ -244,27 +233,51 @@ const AdminDashboard = () => {
                         {/* Recent Activity / Calendar Placeholder (Light Theme) */}
                         <div className="lg:col-span-4 bg-white/80 backdrop-blur-xl p-8 rounded-[2.5rem] border border-slate-100 shadow-xl shadow-slate-200/40 relative overflow-hidden group hover:shadow-2xl hover:shadow-school-blue/10 transition-all duration-500">
                             <div className="absolute top-0 right-0 w-32 h-32 bg-school-blue/5 blur-3xl rounded-full -mr-16 -mt-16 group-hover:bg-school-blue/10 transition-colors"></div>
-                            <h3 className="font-poppins font-bold text-school-text text-lg mb-8 flex items-center gap-2">
-                                <span className="w-2 h-2 rounded-full bg-school-blue animate-pulse"></span>
-                                Academic Calendar
+                            <h3 className="font-poppins font-bold text-school-text text-lg mb-8 flex items-center justify-between gap-2">
+                                <div className="flex items-center gap-2">
+                                    <span className="w-2 h-2 rounded-full bg-school-blue animate-pulse"></span>
+                                    Academic Calendar
+                                </div>
+                                <span className="text-xs font-black text-school-navy bg-school-blue/5 px-3 py-1 rounded-full uppercase tracking-widest">
+                                    {new Date().toLocaleString('default', { month: 'long' })} {new Date().getFullYear()}
+                                </span>
                             </h3>
-                            <div className="grid grid-cols-7 gap-2 text-center mb-6">
-                                {['S','M','T','W','T','F','S'].map(d => (
-                                    <span key={d} className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{d}</span>
+                            <div className="grid grid-cols-7 gap-3 text-center mb-6 px-1">
+                                {['S','M','T','W','T','F','S'].map((day, i) => (
+                                    <span key={i} className="text-[11px] font-black text-slate-400 uppercase tracking-widest">{day}</span>
                                 ))}
                             </div>
                             <div className="grid grid-cols-7 gap-2">
-                                {Array.from({length: 31}, (_, i) => (
-                                    <div 
-                                        key={i} 
-                                        className={`aspect-square flex items-center justify-center text-[11px] rounded-xl transition-all cursor-pointer border
-                                            ${i+1 === new Date().getDate() 
-                                                ? 'bg-gradient-to-br from-school-navy to-school-blue text-white font-black border-transparent shadow-lg shadow-school-blue/30 scale-110 z-10' 
-                                                : 'hover:bg-slate-50 text-slate-600 font-bold border-slate-50 hover:border-slate-100 hover:text-school-navy'}`}
-                                    >
-                                        {i+1}
-                                    </div>
-                                ))}
+                                {(() => {
+                                    const today = new Date();
+                                    const month = today.getMonth();
+                                    const year = today.getFullYear();
+                                    const firstDay = new Date(year, month, 1).getDay();
+                                    const totalDays = new Date(year, month + 1, 0).getDate();
+                                    const cells = [];
+                                    
+                                    // Add spacers for days before the 1st
+                                    for (let i = 0; i < firstDay; i++) {
+                                        cells.push(<div key={`empty-${i}`} className="aspect-square" />);
+                                    }
+                                    
+                                    // Add actual days
+                                    for (let d = 1; d <= totalDays; d++) {
+                                        const isToday = d === today.getDate();
+                                        cells.push(
+                                            <div 
+                                                key={`day-${d}`} 
+                                                className={`aspect-square flex items-center justify-center text-[11px] rounded-xl transition-all cursor-pointer border
+                                                    ${isToday 
+                                                        ? 'bg-gradient-to-br from-school-navy to-school-blue text-white font-black border-transparent shadow-lg shadow-school-blue/30 scale-110 z-10' 
+                                                        : 'hover:bg-slate-50 text-slate-600 font-bold border-slate-50 hover:border-slate-100 hover:text-school-navy'}`}
+                                            >
+                                                {d}
+                                            </div>
+                                        );
+                                    }
+                                    return cells;
+                                })()}
                             </div>
                             <div className="mt-10 space-y-5">
                                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] pl-1">Upcoming Events</p>
