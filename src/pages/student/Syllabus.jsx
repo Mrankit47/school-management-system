@@ -160,32 +160,61 @@ export default function StudentSyllabus() {
     };
 
     return (
-        <div style={{ padding: 20, background: colors.bg, minHeight: 'calc(100vh - 60px)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap', marginBottom: 12 }}>
-                <div>
-                    <h1 style={{ margin: 0, fontWeight: 1000, color: colors.text }}>Student Syllabus</h1>
-                    <div style={{ marginTop: 4, color: colors.muted, fontWeight: 900, fontSize: 13 }}>
-                        Your class syllabus. Download and view study material.
+        <div style={{ padding: '24px', background: colors.bg, minHeight: 'calc(100vh - 60px)' }}>
+            <style>
+                {`
+                @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+                .animate-up { animation: fadeIn 0.4s ease forwards; }
+                .syllabus-card:hover { transform: translateY(-4px); box-shadow: 0 12px 20px -10px rgba(0,0,0,0.1); }
+                `}
+            </style>
+
+            {/* Premium Header Card */}
+            <div className="animate-up" style={{ 
+                backgroundColor: '#fff', 
+                padding: '28px', 
+                borderRadius: '24px', 
+                marginBottom: '20px', 
+                boxShadow: '0 1px 12px rgba(16,24,40,0.08)',
+                border: '1px solid #e5e7eb',
+                background: 'linear-gradient(135deg, #fff 0%, #f8fafc 100%)',
+                position: 'relative',
+                overflow: 'hidden'
+            }}>
+                <div style={{ position: 'absolute', top: -30, right: -30, width: 200, height: 200, background: 'rgba(37, 99, 235, 0.03)', borderRadius: '50%', zIndex: 0 }}></div>
+                <div style={{ position: 'relative', zIndex: 1, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '20px', flexWrap: 'wrap' }}>
+                    <div>
+                        <h1 style={{ margin: 0, fontWeight: 1000, fontSize: '32px', letterSpacing: '-0.02em', background: 'linear-gradient(90deg, #1e293b 0%, #2563eb 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+                            Student Syllabus
+                        </h1>
+                        <p style={{ margin: '8px 0 0', color: colors.muted, fontWeight: 900, fontSize: '15px' }}>
+                            Access your study materials, syllabus outlines, and resources for Class {filters.class_name || '—'}.
+                        </p>
                     </div>
-                </div>
-                <div style={{ color: colors.muted, fontWeight: 900, fontSize: 13 }}>
-                    Total: {syllabi.length}
+                    <div style={{ background: '#eff6ff', padding: '12px 20px', borderRadius: '16px', border: '1px solid #dbeafe' }}>
+                        <div style={{ color: '#1d4ed8', fontWeight: 1000, fontSize: '18px' }}>{syllabi.length}</div>
+                        <div style={{ color: '#1e40af', fontWeight: 900, fontSize: '11px', textTransform: 'uppercase' }}>Resources</div>
+                    </div>
                 </div>
             </div>
 
-            {error ? <div style={{ border: '1px solid #fecaca', background: '#fff7ed', color: '#b91c1c', padding: '10px 12px', borderRadius: 12, fontWeight: 900, marginBottom: 12 }}>{error}</div> : null}
+            {error ? <div style={{ border: '1px solid #fecaca', background: '#fef2f2', color: '#b91c1c', padding: '12px 16px', borderRadius: 16, fontWeight: 900, marginBottom: 20, animation: 'fadeIn 0.3s ease' }}>{error}</div> : null}
 
-            <div style={{ background: colors.card, border: `1px solid ${colors.border}`, borderRadius: 16, padding: 16, boxShadow: colors.shadow }}>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12 }}>
+            <div className="animate-up" style={{ background: '#fff', border: `1px solid ${colors.border}`, borderRadius: '20px', padding: '20px', boxShadow: '0 1px 12px rgba(0,0,0,0.05)', marginBottom: '24px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px' }}>
                     <div>
-                        <div style={labelStyle}>Class</div>
-                        <select value={filters.class_id} disabled style={{ ...inputStyle, opacity: 0.7 }}>
-                            <option value={filters.class_id}>{filters.class_name || '—'}</option>
-                        </select>
+                        <div style={labelStyle}>Selected Class</div>
+                        <div style={{ ...inputStyle, background: '#f8fafc', border: '1px dashed #e2e8f0', color: '#64748b', fontWeight: 900, display: 'flex', alignItems: 'center' }}>
+                            {filters.class_name || '—'}
+                        </div>
                     </div>
                     <div>
-                        <div style={labelStyle}>Subject</div>
-                        <select value={selectedSubjectId} onChange={(e) => setSelectedSubjectId(e.target.value)} style={inputStyle}>
+                        <div style={labelStyle}>Filter Subject</div>
+                        <select 
+                            value={selectedSubjectId} 
+                            onChange={(e) => setSelectedSubjectId(e.target.value)} 
+                            style={{ ...inputStyle, cursor: 'pointer', fontWeight: 900 }}
+                        >
                             <option value="">All Subjects</option>
                             {filters.subjects.map((s) => (
                                 <option key={s.id} value={String(s.id)}>
@@ -195,14 +224,38 @@ export default function StudentSyllabus() {
                         </select>
                     </div>
                     <div>
-                        <div style={labelStyle}>Search</div>
-                        <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder={searchHint} style={inputStyle} />
+                        <div style={labelStyle}>Quick Search</div>
+                        <div style={{ position: 'relative' }}>
+                            <input 
+                                value={search} 
+                                onChange={(e) => setSearch(e.target.value)} 
+                                onKeyDown={(e) => e.key === 'Enter' && applySearch()}
+                                placeholder="Search by title..." 
+                                style={{ ...inputStyle, paddingRight: '100px', fontWeight: 900 }} 
+                            />
+                            <button 
+                                type="button" 
+                                onClick={applySearch} 
+                                style={{ 
+                                    position: 'absolute',
+                                    top: '4px',
+                                    right: '4px',
+                                    bottom: '4px',
+                                    padding: '0 16px', 
+                                    borderRadius: '8px', 
+                                    border: 'none', 
+                                    background: colors.primary, 
+                                    color: '#fff', 
+                                    fontWeight: 1000, 
+                                    cursor: 'pointer',
+                                    fontSize: '12px',
+                                    boxShadow: '0 2px 4px rgba(37, 99, 235, 0.2)'
+                                }}
+                            >
+                                Search
+                            </button>
+                        </div>
                     </div>
-                </div>
-                <div style={{ marginTop: 12, display: 'flex', justifyContent: 'flex-end' }}>
-                    <button type="button" onClick={applySearch} style={{ padding: '10px 14px', borderRadius: 12, border: 'none', background: colors.primary, color: '#fff', fontWeight: 1000, cursor: 'pointer' }}>
-                        Search
-                    </button>
                 </div>
             </div>
 

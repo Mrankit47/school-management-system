@@ -359,33 +359,68 @@ const TeacherProfile = () => {
     }
 
     return (
-        <div style={{ padding: 20, backgroundColor: colors.bg, minHeight: 'calc(100vh - 60px)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'flex-start', flexWrap: 'wrap', marginBottom: 12 }}>
-                <div>
-                    <div style={{ fontWeight: 1000, fontSize: 22, color: colors.text }}>Teacher Profile</div>
-                    <div style={{ marginTop: 4, color: colors.muted, fontWeight: 900, fontSize: 13 }}>
-                        Manage your personal and professional details.
+        <div style={{ padding: '24px', backgroundColor: colors.bg, minHeight: 'calc(100vh - 60px)' }}>
+            <style>
+                {`
+                @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+                .animate-up { animation: fadeIn 0.4s ease forwards; }
+                `}
+            </style>
+
+            {/* Premium Header Card */}
+            <div className="animate-up" style={{ 
+                backgroundColor: colors.card, 
+                padding: '28px', 
+                borderRadius: '24px', 
+                marginBottom: '20px', 
+                boxShadow: '0 1px 12px rgba(16,24,40,0.08)',
+                border: `1px solid ${colors.border}`,
+                background: 'linear-gradient(135deg, #fff 0%, #f8fafc 100%)',
+                position: 'relative',
+                overflow: 'hidden'
+            }}>
+                <div style={{ position: 'absolute', top: -30, right: -30, width: 200, height: 200, background: 'rgba(37, 99, 235, 0.03)', borderRadius: '50%', zIndex: 0 }}></div>
+                <div style={{ position: 'relative', zIndex: 1, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '20px', flexWrap: 'wrap' }}>
+                    <div>
+                        <h1 style={{ margin: 0, fontWeight: 1000, fontSize: '32px', letterSpacing: '-0.02em', background: 'linear-gradient(90deg, #1e293b 0%, #2563eb 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+                            Teacher Profile
+                        </h1>
+                        <p style={{ margin: '8px 0 0', color: colors.muted, fontWeight: 900, fontSize: '15px' }}>
+                            Manage your personal identity, academic records, and account security.
+                        </p>
                     </div>
-                </div>
-                <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-                    <button
-                        type="button"
-                        onClick={handleSave}
-                        disabled={saving}
-                        style={{
-                            padding: '10px 14px',
-                            borderRadius: 12,
-                            border: 'none',
-                            backgroundColor: colors.primary,
-                            color: '#fff',
-                            cursor: saving ? 'not-allowed' : 'pointer',
-                            fontWeight: 1000,
-                            minWidth: 160,
-                            opacity: saving ? 0.75 : 1,
-                        }}
-                    >
-                        {saving ? 'Saving...' : 'Save Changes'}
-                    </button>
+                    <div style={{ display: 'flex', gap: 12 }}>
+                        <button
+                            type="button"
+                            onClick={handleSave}
+                            disabled={saving}
+                            style={{
+                                padding: '12px 24px',
+                                borderRadius: '14px',
+                                border: 'none',
+                                backgroundColor: colors.primary,
+                                color: '#fff',
+                                cursor: saving ? 'not-allowed' : 'pointer',
+                                fontWeight: 1000,
+                                fontSize: '15px',
+                                minWidth: 160,
+                                opacity: saving ? 0.75 : 1,
+                                boxShadow: '0 4px 12px rgba(37, 99, 235, 0.2)',
+                                transition: 'all 0.2s',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                gap: '8px'
+                            }}
+                        >
+                            {saving ? 'Saving...' : (
+                                <>
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+                                    Save Changes
+                                </>
+                            )}
+                        </button>
+                    </div>
                 </div>
             </div>
 

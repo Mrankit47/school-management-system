@@ -150,11 +150,37 @@ const StudentLedger = () => {
     if (loading) return <div style={{ padding: 20, color: '#6b7280' }}>Loading ledger...</div>;
 
     return (
-        <div style={{ padding: 20 }}>
-            <h1 style={{ margin: '0 0 8px' }}>Student Ledger</h1>
-            <p style={{ margin: '0 0 14px', color: '#6b7280', fontSize: 14 }}>
-                Admission, Exam and Activities fees with payment history and running balance.
-            </p>
+        <div style={{ padding: '24px', background: '#f8fafc', minHeight: 'calc(100vh - 60px)' }}>
+            <style>
+                {`
+                @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+                .animate-up { animation: fadeIn 0.4s ease forwards; }
+                .ledger-row:hover { background-color: #f8fafc; }
+                `}
+            </style>
+
+            {/* Premium Header Card */}
+            <div className="animate-up" style={{ 
+                backgroundColor: '#fff', 
+                padding: '28px', 
+                borderRadius: '24px', 
+                marginBottom: '20px', 
+                boxShadow: '0 1px 12px rgba(16,24,40,0.08)',
+                border: '1px solid #e5e7eb',
+                background: 'linear-gradient(135deg, #fff 0%, #f8fafc 100%)',
+                position: 'relative',
+                overflow: 'hidden'
+            }}>
+                <div style={{ position: 'absolute', top: -30, right: -30, width: 200, height: 200, background: 'rgba(37, 99, 235, 0.03)', borderRadius: '50%', zIndex: 0 }}></div>
+                <div style={{ position: 'relative', zIndex: 1 }}>
+                    <h1 style={{ margin: 0, fontWeight: 1000, fontSize: '32px', letterSpacing: '-0.02em', background: 'linear-gradient(90deg, #1e293b 0%, #2563eb 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+                        Student Ledger
+                    </h1>
+                    <p style={{ margin: '8px 0 0', color: '#64748b', fontWeight: 900, fontSize: '15px' }}>
+                        Comprehensive history of fees, exam charges, and activities with a running balance.
+                    </p>
+                </div>
+            </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: 12, marginBottom: 14 }}>
                 <div style={card}>

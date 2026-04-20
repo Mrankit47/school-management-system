@@ -584,6 +584,11 @@ const AdminModal = ({ entry, onClose, onSuccess, onDelete, meta, selectedShift }
         }
     }, [formData.period_number, entry?.id]);
 
+    const filteredSubjects = useMemo(() => {
+        if (!formData.class_name) return [];
+        return (meta.subjects || []).filter(s => s.class_name === formData.class_name);
+    }, [meta.subjects, formData.class_name]);
+
     const handleSectionChange = (e) => {
         const sectionId = e.target.value;
         const section = meta.sections.find(s => s.id === parseInt(sectionId));
@@ -593,7 +598,8 @@ const AdminModal = ({ entry, onClose, onSuccess, onDelete, meta, selectedShift }
                 class_name: section.class_name,
                 section: section.section_name,
                 room: section.room_number || formData.room,
-                shift_ref: section.assigned_shift || formData.shift_ref
+                shift_ref: section.assigned_shift || formData.shift_ref,
+                subject: '' // Clear subject when class changes
             });
         }
     };
@@ -717,13 +723,14 @@ const AdminModal = ({ entry, onClose, onSuccess, onDelete, meta, selectedShift }
                                 value={formData.subject}
                                 onChange={e => setFormData({ ...formData, subject: e.target.value })}
                                 className="w-full px-3 py-2 bg-slate-50 border border-slate-100 rounded-xl text-xs font-bold text-slate-700 outline-none focus:border-school-blue focus:ring-2 focus:ring-school-blue/10 transition-all"
-                                placeholder="Maths, Science..."
+                                placeholder={filteredSubjects.length > 0 ? "Select Subject..." : "No subjects found for this class"}
                                 required
                             />
                             <datalist id="subject-options">
-                                {meta.subjects.map(s => <option key={s.id} value={s.name} />)}
+                                {filteredSubjects.map(s => <option key={s.id} value={s.name} />)}
                             </datalist>
                         </div>
+
                         <div className="space-y-1">
                             <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest pl-1">Room</label>
                             <input

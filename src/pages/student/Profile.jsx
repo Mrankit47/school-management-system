@@ -233,8 +233,36 @@ const Profile = () => {
     };
 
     return (
-        <div style={{ padding: 20, background: '#f8fafc', minHeight: 'calc(100vh - 60px)' }}>
-            <h1 style={{ marginTop: 0 }}>My Profile</h1>
+        <div style={{ padding: '24px', background: '#f8fafc', minHeight: 'calc(100vh - 60px)' }}>
+            <style>
+                {`
+                @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+                .animate-up { animation: fadeIn 0.4s ease forwards; }
+                `}
+            </style>
+
+            {/* Premium Header Card */}
+            <div className="animate-up" style={{ 
+                backgroundColor: '#fff', 
+                padding: '28px', 
+                borderRadius: '24px', 
+                marginBottom: '20px', 
+                boxShadow: '0 1px 12px rgba(16,24,40,0.08)',
+                border: '1px solid #e5e7eb',
+                background: 'linear-gradient(135deg, #fff 0%, #f8fafc 100%)',
+                position: 'relative',
+                overflow: 'hidden'
+            }}>
+                <div style={{ position: 'absolute', top: -30, right: -30, width: 200, height: 200, background: 'rgba(37, 99, 235, 0.03)', borderRadius: '50%', zIndex: 0 }}></div>
+                <div style={{ position: 'relative', zIndex: 1 }}>
+                    <h1 style={{ margin: 0, fontWeight: 1000, fontSize: '32px', letterSpacing: '-0.02em', background: 'linear-gradient(90deg, #1e293b 0%, #2563eb 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+                        My Profile
+                    </h1>
+                    <p style={{ margin: '8px 0 0', color: '#64748b', fontWeight: 900, fontSize: '15px' }}>
+                        Manage your student identity, view academic history, and track your progress.
+                    </p>
+                </div>
+            </div>
             {error ? <div style={{ color: '#b91c1c', fontWeight: 900, marginBottom: 12 }}>{error}</div> : null}
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(12, minmax(0, 1fr))', gap: 12, marginBottom: 14 }}>

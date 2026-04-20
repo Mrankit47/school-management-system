@@ -49,12 +49,38 @@ const StudentFinanceCards = () => {
     const myCard = cards.find((row) => myClassKey && normalizeClassLabel(row.class_name) === myClassKey);
 
     return (
-        <div style={pageWrap}>
-            <div style={{ marginBottom: 16 }}>
-                <h1 style={{ margin: 0, fontSize: 30, fontWeight: 800, color: '#0f172a' }}>Class-wise Fees Card</h1>
-                <p style={{ marginTop: 8, color: '#64748b', fontSize: 14 }}>
-                    View class fee details in card and table format. {myClass ? `Your class: ${myClass}` : ''}
-                </p>
+        <div style={{ ...pageWrap, background: '#f8fafc', minHeight: 'calc(100vh - 60px)' }}>
+            <style>
+                {`
+                @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+                .animate-up { animation: fadeIn 0.4s ease forwards; }
+                .fee-table-row:hover { background-color: #f1f5f9 !important; }
+                `}
+            </style>
+
+            {/* Premium Header Card */}
+            <div className="animate-up" style={{ 
+                backgroundColor: '#fff', 
+                padding: '28px', 
+                borderRadius: '24px', 
+                marginBottom: '20px', 
+                boxShadow: '0 1px 12px rgba(16,24,40,0.08)',
+                border: '1px solid #e5e7eb',
+                background: 'linear-gradient(135deg, #fff 0%, #f8fafc 100%)',
+                position: 'relative',
+                overflow: 'hidden'
+            }}>
+                <div style={{ position: 'absolute', top: -30, right: -30, width: 200, height: 200, background: 'rgba(37, 99, 235, 0.03)', borderRadius: '50%', zIndex: 0 }}></div>
+                <div style={{ position: 'relative', zIndex: 1, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '20px', flexWrap: 'wrap' }}>
+                    <div>
+                        <h1 style={{ margin: 0, fontWeight: 1000, fontSize: '32px', letterSpacing: '-0.02em', background: 'linear-gradient(90deg, #1e293b 0%, #2563eb 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+                            Class-wise Fees Card
+                        </h1>
+                        <p style={{ margin: '8px 0 0', color: '#64748b', fontWeight: 900, fontSize: '15px' }}>
+                            View and compare fee structures across all classes. {myClass ? `Your current class is ${myClass}.` : ''}
+                        </p>
+                    </div>
+                </div>
             </div>
 
             {myCard ? (
