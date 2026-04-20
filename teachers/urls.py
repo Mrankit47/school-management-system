@@ -8,8 +8,11 @@ from .views import (
     TeacherProfileView,
     TeacherProfilePhotoView,
     TeacherIdCardPdfView,
+    TeacherIdCardPdfView,
     TeacherDocumentsView,
+    TeacherListAllView,
 )
+
 
 urlpatterns = [
     path('', TeacherListView.as_view(), name='teachers-list'),
@@ -21,4 +24,6 @@ urlpatterns = [
     path('detail/<int:teacher_id>/', TeacherDetailView.as_view(), name='teacher-detail'),
     path('delete/<int:teacher_id>/', TeacherDeleteView.as_view(), name='teacher-delete'),
     path('update/<int:teacher_id>/', TeacherUpdateView.as_view(), name='teacher-update'),
+    path('list-all/', TeacherListAllView.as_view(), name='teachers-list-all'),
 ]
+

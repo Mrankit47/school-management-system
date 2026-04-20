@@ -44,7 +44,7 @@ const Sidebar = () => {
                 { path: '/student/notifications', label: 'Notifications' },
                 { path: '/student/syllabus', label: 'Syllabus' },
                 { path: '/student/Holidays', label: 'Holidays' },
-                { path: '/student/Message', label: 'Message' },
+                { path: '/student/messaging', label: 'Messaging' },
             ]
         },
         { path: '/student/gallery', label: 'Gallery', icon: '🖼️' },
@@ -61,6 +61,7 @@ const Sidebar = () => {
         { path: '/teacher/syllabus', label: 'Syllabus', icon: '📄' },
         { path: '/teacher/students', label: 'My Students', icon: '👥' },
         { path: '/teacher/timetable', label: 'Time Table', icon: '📅' },
+        { path: '/teacher/messaging', label: 'Messaging', icon: '💬' },
         { path: '/teacher/gallery', label: 'Gallery', icon: '🖼️' },
         { path: '/teacher/notifications', label: 'Notifications', icon: '🔔' },
         { path: '/teacher/Holidays', label: 'Holidays', icon: '🏝️' },
@@ -93,8 +94,10 @@ const Sidebar = () => {
                 { path: '/admin/syllabus', label: 'Syllabus' },
                 { path: '/admin/holidays', label: 'Holidays' },
                 { path: '/admin/timetable', label: 'Time Table' },
+                { path: '/admin/messaging', label: 'Monitor Doubts' },
             ]
         },
+
         { path: '/admin/gallery', label: 'Gallery', icon: '🖼️' },
         {
             label: 'Finance',

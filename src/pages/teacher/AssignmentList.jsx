@@ -44,6 +44,9 @@ export default function TeacherAssignmentList() {
     const [viewRow, setViewRow] = useState(null);
     const [editRow, setEditRow] = useState(null);
     const [saving, setSaving] = useState(false);
+    const [viewSubmissions, setViewSubmissions] = useState([]);
+    const [loadingSubmissions, setLoadingSubmissions] = useState(false);
+
 
     const load = async () => {
         setLoading(true);
@@ -66,9 +69,10 @@ export default function TeacherAssignmentList() {
     const summary = useMemo(() => {
         const total = rows.length;
         const active = rows.filter((r) => r.computed_status === 'Active').length;
-        const closed = total - active;
-        return { total, active, closed };
+        const totalSubmissions = rows.reduce((acc, r) => acc + (r.submission_count || 0), 0);
+        return { total, active, totalSubmissions };
     }, [rows]);
+
 
     const classOptions = useMemo(
         () => Array.from(new Set(rows.map((r) => `${r.class_name || ''}-${r.section_name || ''}`))).filter(Boolean),
@@ -149,27 +153,34 @@ export default function TeacherAssignmentList() {
             <div style={{ marginTop: 14, display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 12 }}>
                 <div style={{ border: '1px solid #e5e7eb', borderRadius: 14, padding: 14, background: '#fff' }}><div style={{ fontSize: 12, color: '#6b7280', fontWeight: 900 }}>Total Assignments</div><div style={{ marginTop: 6, fontSize: 26, fontWeight: 1000 }}>{summary.total}</div></div>
                 <div style={{ border: '1px solid #e5e7eb', borderRadius: 14, padding: 14, background: '#fff' }}><div style={{ fontSize: 12, color: '#6b7280', fontWeight: 900 }}>Active Assignments</div><div style={{ marginTop: 6, fontSize: 26, fontWeight: 1000, color: '#16a34a' }}>{summary.active}</div></div>
-                <div style={{ border: '1px solid #e5e7eb', borderRadius: 14, padding: 14, background: '#fff' }}><div style={{ fontSize: 12, color: '#6b7280', fontWeight: 900 }}>Completed Assignments</div><div style={{ marginTop: 6, fontSize: 26, fontWeight: 1000, color: '#ef4444' }}>{summary.closed}</div></div>
+                <div style={{ border: '1px solid #e5e7eb', borderRadius: 14, padding: 14, background: '#fff' }}><div style={{ fontSize: 12, color: '#6b7280', fontWeight: 900 }}>Total Submissions</div><div style={{ marginTop: 6, fontSize: 26, fontWeight: 1000, color: '#2563eb' }}>{summary.totalSubmissions}</div></div>
             </div>
+
 
             <div style={{ marginTop: 12, border: '1px solid #e5e7eb', borderRadius: 14, background: '#fff', padding: 12, display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr 1fr', gap: 10 }}>
                 <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search by title" style={{ padding: '10px 12px', border: '1px solid #e5e7eb', borderRadius: 10 }} />
                 <select value={classFilter} onChange={(e) => setClassFilter(e.target.value)} style={{ padding: '10px 12px', border: '1px solid #e5e7eb', borderRadius: 10 }}><option value="">All Classes</option>{classOptions.map((c) => <option key={c} value={c}>{c}</option>)}</select>
                 <select value={subjectFilter} onChange={(e) => setSubjectFilter(e.target.value)} style={{ padding: '10px 12px', border: '1px solid #e5e7eb', borderRadius: 10 }}><option value="">All Subjects</option>{subjectOptions.map((s) => <option key={s} value={s}>{s}</option>)}</select>
                 <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} style={{ padding: '10px 12px', border: '1px solid #e5e7eb', borderRadius: 10 }}><option value="">All Status</option><option value="Active">Active</option><option value="Closed">Closed</option></select>
-                <input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} style={{ padding: '10px 12px', border: '1px solid #e5e7eb', borderRadius: 10 }} />
-                <input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} style={{ padding: '10px 12px', border: '1px solid #e5e7eb', borderRadius: 10 }} />
+                <div style={{ display: 'flex', gap: 6 }}>
+                    <input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} style={{ width: '100%', padding: '10px 12px', border: '1px solid #e5e7eb', borderRadius: 10 }} />
+                </div>
+                <div style={{ display: 'flex', gap: 6 }}>
+                    <input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} style={{ width: '100%', padding: '10px 12px', border: '1px solid #e5e7eb', borderRadius: 10 }} />
+                </div>
             </div>
+
 
             <div style={{ marginTop: 12, border: '1px solid #e5e7eb', borderRadius: 14, background: '#fff', overflowX: 'auto' }}>
                 {error ? <div style={{ padding: 12, color: '#b91c1c', fontWeight: 900 }}>{error}</div> : null}
                 <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 1200 }}>
                     <thead>
                         <tr style={{ background: '#f8fafc' }}>
-                            {['Title', 'Subject', 'Class', 'Section', 'Start Date', 'Due Date', 'Total Marks', 'Submission Type', 'Status', 'Actions'].map((h) => (
+                            {['Title', 'Subject', 'Class', 'Section', 'Start Date', 'Due Date', 'Total Marks', 'Submissions', 'Status', 'Actions'].map((h) => (
                                 <th key={h} style={{ textAlign: 'left', padding: 10, fontSize: 12, color: '#6b7280' }}>{h}</th>
                             ))}
                         </tr>
+
                     </thead>
                     <tbody>
                         {loading ? (
@@ -184,15 +195,37 @@ export default function TeacherAssignmentList() {
                                     <td style={{ padding: 10 }}>{r.start_date || '-'}</td>
                                     <td style={{ padding: 10 }}>{r.due_date || '-'}</td>
                                     <td style={{ padding: 10 }}>{r.total_marks}</td>
-                                    <td style={{ padding: 10, textTransform: 'capitalize' }}>{r.submission_type}</td>
+                                    <td style={{ padding: 10 }}>
+                                        <span style={{ fontWeight: 1000, color: r.submission_count > 0 ? '#16a34a' : '#6b7280' }}>
+                                            {r.submission_count} Submitted
+                                        </span>
+                                    </td>
                                     <td style={{ padding: 10 }}><span style={badgeStyle(r.computed_status)}>{r.computed_status}</span></td>
+
                                     <td style={{ padding: 10 }}>
                                         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                                            <button onClick={() => setViewRow(r)} style={{ border: '1px solid #e5e7eb', background: '#fff', borderRadius: 8, padding: '6px 10px', cursor: 'pointer', fontWeight: 900 }}>View</button>
+                                            <button 
+                                                onClick={async () => {
+                                                    setViewRow(r);
+                                                    setLoadingSubmissions(true);
+                                                    try {
+                                                        const res = await api.get(`assignments/${r.id}/submissions/`);
+                                                        setViewSubmissions(res.data || []);
+                                                    } catch (e) {
+                                                        console.error(e);
+                                                    } finally {
+                                                        setLoadingSubmissions(false);
+                                                    }
+                                                }} 
+                                                style={{ border: '1px solid #e5e7eb', background: '#fff', borderRadius: 8, padding: '6px 10px', cursor: 'pointer', fontWeight: 900 }}
+                                            >
+                                                View
+                                            </button>
                                             <button onClick={() => setEditRow({ ...r })} style={{ border: 'none', background: '#16a34a', color: '#fff', borderRadius: 8, padding: '6px 10px', cursor: 'pointer', fontWeight: 900 }}>Edit</button>
                                             <button onClick={() => onDelete(r.id)} style={{ border: 'none', background: '#ef4444', color: '#fff', borderRadius: 8, padding: '6px 10px', cursor: 'pointer', fontWeight: 900 }}>Delete</button>
                                         </div>
                                     </td>
+
                                 </tr>
                             ))
                         ) : (
@@ -223,10 +256,48 @@ export default function TeacherAssignmentList() {
                             <div><strong>Status:</strong> {viewRow.computed_status}</div>
                         </div>
                         <div style={{ marginTop: 10 }}><strong>Description:</strong><div style={{ marginTop: 4, color: '#4b5563' }}>{viewRow.description || '-'}</div></div>
-                        <div style={{ marginTop: 12, textAlign: 'right' }}><button onClick={() => setViewRow(null)} style={{ border: '1px solid #e5e7eb', background: '#fff', borderRadius: 10, padding: '8px 12px', cursor: 'pointer', fontWeight: 900 }}>Close</button></div>
+                        
+                        <div style={{ marginTop: 16, borderTop: '1px solid #e5e7eb', paddingTop: 16 }}>
+                            <h4 style={{ margin: 0 }}>Student Submissions</h4>
+                            {loadingSubmissions ? (
+                                <div style={{ marginTop: 10, color: '#6b7280' }}>Loading submissions...</div>
+                            ) : viewSubmissions.length ? (
+                                <div style={{ marginTop: 10, maxHeight: 300, overflowY: 'auto', border: '1px solid #e5e7eb', borderRadius: 12 }}>
+                                    <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                                        <thead style={{ background: '#f8fafc', position: 'sticky', top: 0 }}>
+                                            <tr>
+                                                <th style={{ textAlign: 'left', padding: 8, fontSize: 11, color: '#6b7280' }}>Student</th>
+                                                <th style={{ textAlign: 'left', padding: 8, fontSize: 11, color: '#6b7280' }}>Roll</th>
+                                                <th style={{ textAlign: 'left', padding: 8, fontSize: 11, color: '#6b7280' }}>Date</th>
+                                                <th style={{ textAlign: 'left', padding: 8, fontSize: 11, color: '#6b7280' }}>Action</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {viewSubmissions.map((s) => (
+                                                <tr key={s.id} style={{ borderTop: '1px solid #eef2f7' }}>
+                                                    <td style={{ padding: 8, fontWeight: 900, fontSize: 13 }}>{s.student_name}</td>
+                                                    <td style={{ padding: 8, fontSize: 13 }}>{s.student_roll}</td>
+                                                    <td style={{ padding: 8, fontSize: 12 }}>{new Date(s.submission_date).toLocaleString()}</td>
+                                                    <td style={{ padding: 8 }}>
+                                                        {s.file_url ? (
+                                                            <a href={s.file_url} target="_blank" rel="noreferrer" style={{ color: '#2563eb', fontWeight: 900, fontSize: 12, textDecoration: 'none' }}>View File</a>
+                                                        ) : '-'}
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            ) : (
+                                <div style={{ marginTop: 10, color: '#6b7280', fontSize: 13 }}>No submissions yet.</div>
+                            )}
+                        </div>
+
+                        <div style={{ marginTop: 20, textAlign: 'right' }}><button onClick={() => setViewRow(null)} style={{ border: '1px solid #e5e7eb', background: '#fff', borderRadius: 10, padding: '8px 12px', cursor: 'pointer', fontWeight: 900 }}>Close</button></div>
                     </div>
                 </div>
             ) : null}
+
 
             {editRow ? (
                 <div onClick={() => setEditRow(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16, zIndex: 1000 }}>
