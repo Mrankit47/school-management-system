@@ -411,11 +411,11 @@ const StudentAttendance = () => {
             </style>
 
             {/* Premium Header Card */}
-            <div className="animate-up" style={{ 
-                backgroundColor: '#fff', 
-                padding: '28px', 
-                borderRadius: '24px', 
-                marginBottom: '20px', 
+            <div className="animate-up" style={{
+                backgroundColor: '#fff',
+                padding: '28px',
+                borderRadius: '24px',
+                marginBottom: '20px',
                 boxShadow: '0 1px 12px rgba(16,24,40,0.08)',
                 border: '1px solid #e5e7eb',
                 background: 'linear-gradient(135deg, #fff 0%, #f8fafc 100%)',
@@ -432,7 +432,7 @@ const StudentAttendance = () => {
                             Monitor your presence, view subject-wise analysis, and download academic reports.
                         </p>
                     </div>
-                    
+
                     <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: '#fff', padding: '6px 12px', borderRadius: '16px', border: '1px solid #e5e7eb' }}>
                             <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 900, textTransform: 'uppercase' }}>Month</span>
@@ -582,13 +582,13 @@ const StudentAttendance = () => {
 
                     <div style={{ marginTop: 12, overflowX: 'auto' }}>
                         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                <thead>
+                            <thead>
                                 <tr style={{ backgroundColor: '#f2f4f7' }}>
                                     <th style={{ padding: '12px 10px', textAlign: 'left', color: colors.muted, fontWeight: 1000, fontSize: 12 }}>Date</th>
                                     <th style={{ padding: '12px 10px', textAlign: 'left', color: colors.muted, fontWeight: 1000, fontSize: 12 }}>Status</th>
                                 </tr>
-                </thead>
-                <tbody>
+                            </thead>
+                            <tbody>
                                 {loading ? (
                                     <tr>
                                         <td colSpan={2} style={{ padding: 14, color: colors.muted, fontWeight: 900 }}>
@@ -622,7 +622,7 @@ const StudentAttendance = () => {
                                         <td colSpan={2} style={{ padding: 14, color: colors.muted, fontWeight: 900 }}>
                                             No attendance records for this month.
                                         </td>
-                        </tr>
+                                    </tr>
                                 )}
                             </tbody>
                         </table>
@@ -662,36 +662,36 @@ const StudentAttendance = () => {
                                 const borderColor = isHoliday
                                     ? colors.holiday
                                     : v === 'pending'
-                                      ? colors.late
-                                      : v === 'rejected'
-                                        ? colors.absent
-                                        : st === 'present'
-                                          ? colors.present
-                                          : st === 'late'
-                                            ? colors.late
-                                            : st === 'absent'
-                                              ? colors.absent
-                                              : colors.border;
+                                        ? colors.late
+                                        : v === 'rejected'
+                                            ? colors.absent
+                                            : st === 'present'
+                                                ? colors.present
+                                                : st === 'late'
+                                                    ? colors.late
+                                                    : st === 'absent'
+                                                        ? colors.absent
+                                                        : colors.border;
 
                                 const bg = isHoliday
                                     ? '#f3f4f6'
                                     : v === 'pending'
-                                      ? '#fffbeb'
-                                      : v === 'rejected'
-                                        ? '#fef2f2'
-                                        : st === 'present'
-                                          ? '#ecfdf5'
-                                          : st === 'late'
-                                            ? '#fffbeb'
-                                            : st === 'absent'
-                                              ? '#fef2f2'
-                                              : '#fff';
+                                        ? '#fffbeb'
+                                        : v === 'rejected'
+                                            ? '#fef2f2'
+                                            : st === 'present'
+                                                ? '#ecfdf5'
+                                                : st === 'late'
+                                                    ? '#fffbeb'
+                                                    : st === 'absent'
+                                                        ? '#fef2f2'
+                                                        : '#fff';
 
                                 const text = isHoliday
                                     ? 'H'
                                     : rec
-                                      ? (v === 'pending' ? 'Pending' : formatAttendanceStatus(rec)).split(' ')[0]
-                                      : '';
+                                        ? (v === 'pending' ? 'Pending' : formatAttendanceStatus(rec)).split(' ')[0]
+                                        : '';
                                 const dayNum = parseInt(key.slice(-2), 10);
 
                                 return (
@@ -765,8 +765,8 @@ const StudentAttendance = () => {
                                         </td>
                                     </tr>
                                 )}
-                </tbody>
-            </table>
+                            </tbody>
+                        </table>
                     </div>
                 </div>
 
