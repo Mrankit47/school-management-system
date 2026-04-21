@@ -44,12 +44,12 @@ const Sidebar = () => {
                 { path: '/student/notifications', label: 'Notifications' },
                 { path: '/student/syllabus', label: 'Syllabus' },
                 { path: '/student/Holidays', label: 'Holidays' },
-                { path: '/student/Message', label: 'Message' },
+                { path: '/student/messaging', label: 'Messaging' },
             ]
         },
         { path: '/student/gallery', label: 'Gallery', icon: '🖼️' },
         { path: '/student/shops', label: 'Shop Locations', icon: '🏪' },
-        { path: '/student/profile', label: 'Your Profile', icon: '👤' },
+        { path: '/student/profile', label: 'Your Profile', icon: '🧑🏻‍🎓' },
     ];
 
     const teacherLinks = [
@@ -61,6 +61,7 @@ const Sidebar = () => {
         { path: '/teacher/syllabus', label: 'Syllabus', icon: '📄' },
         { path: '/teacher/students', label: 'My Students', icon: '👥' },
         { path: '/teacher/timetable', label: 'Time Table', icon: '📅' },
+        { path: '/teacher/messaging', label: 'Messaging', icon: '💬' },
         { path: '/teacher/gallery', label: 'Gallery', icon: '🖼️' },
         { path: '/teacher/notifications', label: 'Notifications', icon: '🔔' },
         { path: '/teacher/Holidays', label: 'Holidays', icon: '🏝️' },
@@ -88,12 +89,15 @@ const Sidebar = () => {
                 { path: '/admin/subjects', label: 'Subjects' },
                 { path: '/admin/assign-teacher', label: 'Assign Teacher' },
                 { path: '/admin/exams', label: 'Exams' },
+                { path: '/admin/publish-results', label: 'Publish Results' },
                 { path: '/admin/announcements', label: 'Announcements' },
                 { path: '/admin/syllabus', label: 'Syllabus' },
                 { path: '/admin/holidays', label: 'Holidays' },
                 { path: '/admin/timetable', label: 'Time Table' },
+                { path: '/admin/messaging', label: 'Monitor Doubts' },
             ]
         },
+
         { path: '/admin/gallery', label: 'Gallery', icon: '🖼️' },
         {
             label: 'Finance',

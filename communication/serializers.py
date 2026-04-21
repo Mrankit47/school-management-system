@@ -1,5 +1,6 @@
 from rest_framework import serializers
-from .models import Notification, Message
+from .models import Notification, Message, Conversation
+
 
 class NotificationSerializer(serializers.ModelSerializer):
     announcement_type = serializers.SerializerMethodField()
@@ -41,6 +42,7 @@ class MessageSerializer(serializers.ModelSerializer):
         model = Message
         fields = [
             'id',
+            'conversation',
             'sender',
             'sender_name',
             'sender_role',
@@ -54,6 +56,7 @@ class MessageSerializer(serializers.ModelSerializer):
             'created_at',
         ]
         read_only_fields = ['sender', 'receiver', 'is_read', 'created_at', 'attachment_url']
+
 
     def get_sender_name(self, obj):
         return obj.sender.name or obj.sender.username
@@ -76,3 +79,39 @@ class MessageSerializer(serializers.ModelSerializer):
         if file_obj.size > 10 * 1024 * 1024:
             raise serializers.ValidationError('Attachment size must be <= 10 MB')
         return file_obj
+
+class ConversationSerializer(serializers.ModelSerializer):
+    student_name = serializers.CharField(source='student.user.name', read_only=True)
+    teacher_name = serializers.CharField(source='teacher.user.name', read_only=True)
+    last_message = serializers.SerializerMethodField()
+    unread_count = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Conversation
+        fields = [
+            'id',
+            'student',
+            'student_name',
+            'teacher',
+            'teacher_name',
+            'subject',
+            'is_active',
+            'created_at',
+            'last_message',
+            'unread_count',
+        ]
+
+    def get_last_message(self, obj):
+        last = obj.messages.order_by('-created_at').first()
+        if last:
+            return {
+                'content': last.content,
+                'created_at': last.created_at,
+                'sender_id': last.sender_id
+            }
+        return None
+
+    def get_unread_count(self, obj):
+        user = self.context.get('request').user
+        return obj.messages.filter(receiver=user, is_read=False).count()
+

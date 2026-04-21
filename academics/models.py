@@ -1,32 +1,14 @@
 from django.db import models
 from django.utils import timezone
+from django.conf import settings
 
-class Subject(models.Model):
-    name = models.CharField(max_length=150)
-    class_ref = models.ForeignKey('classes.MainClass', on_delete=models.CASCADE, related_name='academics_subjects', null=True, blank=True)
-    status = models.CharField(max_length=20, default='Active')
-
-    def __str__(self):
-        return f"{self.name} - {self.class_ref.name if self.class_ref else 'Common'}"
-
-class SubjectTeacherMapping(models.Model):
-    subject = models.ForeignKey(Subject, on_delete=models.CASCADE, related_name='teacher_mappings')
-    class_section = models.ForeignKey('classes.ClassSection', on_delete=models.CASCADE, related_name='subject_teachers')
-    teacher = models.ForeignKey('teachers.TeacherProfile', on_delete=models.CASCADE, related_name='assigned_subjects')
-    
-    class Meta:
-        unique_together = ('subject', 'class_section')
-
-    def __str__(self):
-        return f"{self.subject.name} -> {self.teacher.user.username} ({self.class_section})"
 
 class Exam(models.Model):
     EXAM_TYPES = (
-        ('Midterm', 'Midterm'),
-        ('Final', 'Final'),
-        ('Unit Test', 'Unit Test'),
-        ('Practical', 'Practical'),
-        ('Other', 'Other'),
+        ('unit_test', 'Unit Test'),
+        ('class_test', 'Class Test'),
+        ('mst', 'MST'),
+        ('final', 'Final'),
     )
     STATUS_CHOICES = (
         ('Draft', 'Draft'),
@@ -35,7 +17,7 @@ class Exam(models.Model):
 
     name = models.CharField(max_length=150)
     class_section = models.ForeignKey('classes.ClassSection', on_delete=models.CASCADE, related_name='exams')
-    exam_type = models.CharField(max_length=30, choices=EXAM_TYPES, default='Midterm')
+    exam_type = models.CharField(max_length=30, choices=EXAM_TYPES, default='unit_test')
     start_date = models.DateField(null=True, blank=True)
     end_date = models.DateField(null=True, blank=True)
     total_marks = models.DecimalField(max_digits=7, decimal_places=2, default=0)
@@ -87,3 +69,48 @@ class Result(models.Model):
 
     def __str__(self):
         return f"{self.student.user.username} - {self.exam.name} ({self.subject})"
+
+
+class Marks(models.Model):
+    EXAM_TYPE_CHOICES = [
+        ('unit_test', 'Unit Test'),
+        ('class_test', 'Class Test'),
+        ('mst', 'MST'),
+        ('final', 'Final'),
+    ]
+    student = models.ForeignKey('students.StudentProfile', on_delete=models.CASCADE, related_name='marks_entries')
+    subject = models.ForeignKey('subjects.Subject', on_delete=models.CASCADE, related_name='marks_entries')
+    class_section = models.ForeignKey('classes.ClassSection', on_delete=models.CASCADE, related_name='marks_entries')
+    exam_type = models.CharField(max_length=30, choices=EXAM_TYPE_CHOICES)
+    marks = models.FloatField()
+    max_marks = models.FloatField(default=100.0)
+    is_uploaded = models.BooleanField(default=False)
+    is_locked = models.BooleanField(default=False)
+    uploaded_by = models.ForeignKey('teachers.TeacherProfile', on_delete=models.SET_NULL, null=True, blank=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ('student', 'subject', 'exam_type')
+
+    def __str__(self):
+        return f"{self.student.user.username} - {self.subject.name} ({self.exam_type})"
+
+
+class ResultStatus(models.Model):
+    EXAM_TYPE_CHOICES = [
+        ('unit_test', 'Unit Test'),
+        ('class_test', 'Class Test'),
+        ('mst', 'MST'),
+        ('final', 'Final'),
+    ]
+    class_section = models.ForeignKey('classes.ClassSection', on_delete=models.CASCADE, related_name='result_statuses')
+    exam_type = models.CharField(max_length=30, choices=EXAM_TYPE_CHOICES)
+    is_published = models.BooleanField(default=False)
+    published_at = models.DateTimeField(null=True, blank=True)
+    published_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True)
+
+    class Meta:
+        unique_together = ('class_section', 'exam_type')
+
+    def __str__(self):
+        return f"{self.class_section} - {self.exam_type} ({'Published' if self.is_published else 'Draft'})"

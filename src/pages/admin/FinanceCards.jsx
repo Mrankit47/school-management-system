@@ -179,12 +179,52 @@ const FinanceCards = () => {
     };
 
     return (
-        <div style={{ padding: 20 }}>
-            <h1 style={{ margin: 0 }}>Finance Fee Cards</h1>
-            <p style={{ color: '#6b7280', marginTop: 8 }}>Create class-wise fee cards for students. Existing fee structure module remains unchanged.</p>
-            {msg && <p style={{ color: '#166534', fontWeight: 700 }}>{msg}</p>}
-            {error && <p style={{ color: '#b91c1c', fontWeight: 700 }}>{error}</p>}
-            {loading && <p style={{ color: '#6b7280' }}>Loading...</p>}
+        <div style={{ padding: '24px', background: '#f8fafc', minHeight: 'calc(100vh - 60px)' }}>
+            <style>
+                {`
+                @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+                .animate-up { animation: fadeIn 0.4s ease forwards; }
+                .admin-card { transition: all 0.2s ease; }
+                .admin-card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+                `}
+            </style>
+
+            {/* Premium Header Card */}
+            <div className="animate-up" style={{ 
+                backgroundColor: '#fff', 
+                padding: '28px', 
+                borderRadius: '24px', 
+                marginBottom: '20px', 
+                boxShadow: '0 1px 12px rgba(16,24,40,0.08)',
+                border: '1px solid #e5e7eb',
+                background: 'linear-gradient(135deg, #fff 0%, #f8fafc 100%)',
+                position: 'relative',
+                overflow: 'hidden'
+            }}>
+                <div style={{ position: 'absolute', top: -30, right: -30, width: 200, height: 200, background: 'rgba(37, 99, 235, 0.03)', borderRadius: '50%', zIndex: 0 }}></div>
+                <div style={{ position: 'relative', zIndex: 1, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '20px', flexWrap: 'wrap' }}>
+                    <div>
+                        <h1 style={{ margin: 0, fontWeight: 1000, fontSize: '32px', letterSpacing: '-0.02em', background: 'linear-gradient(90deg, #1e293b 0%, #2563eb 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+                            Finance Fee Cards
+                        </h1>
+                        <p style={{ margin: '8px 0 0', color: '#64748b', fontWeight: 900, fontSize: '15px' }}>
+                            Define and manage class-wise fee structures, bulk upload configurations, and financial cards.
+                        </p>
+                    </div>
+                    <div style={{ display: 'flex', gap: '10px' }}>
+                        <button onClick={bootstrapCards} style={{ padding: '10px 16px', borderRadius: '12px', border: '1px solid #e5e7eb', backgroundColor: '#fff', fontWeight: 1000, cursor: 'pointer', fontSize: '13px' }}>
+                            Bootstrap Defaults
+                        </button>
+                        <button onClick={rollbackLastChange} style={{ padding: '10px 16px', borderRadius: '12px', border: '1px solid #e5e7eb', backgroundColor: '#fff', fontWeight: 1000, cursor: 'pointer', fontSize: '13px', color: '#64748b' }}>
+                            Rollback
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            {msg && <div className="animate-up" style={{ marginBottom: 16, padding: '12px 16px', borderRadius: 12, backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0', color: '#166534', fontWeight: 1000 }}>{msg}</div>}
+            {error && <div className="animate-up" style={{ marginBottom: 16, padding: '12px 16px', borderRadius: 12, backgroundColor: '#fef2f2', border: '1px solid #fecaca', color: '#b91c1c', fontWeight: 1000 }}>{error}</div>}
+            {loading && <div style={{ marginBottom: 16, color: '#64748b', fontWeight: 900 }}>Processing request...</div>}
 
             <div style={{ ...cardStyle, marginTop: 12 }}>
                 <h3 style={{ marginTop: 0 }}>Create Single Card</h3>

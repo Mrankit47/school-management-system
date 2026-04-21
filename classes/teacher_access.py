@@ -67,16 +67,22 @@ def teacher_accessible_class_sections_queryset(teacher_profile, school):
     """ClassSection rows this teacher may use (attendance, students list, etc.)."""
     from subjects.models import TeacherAssignment, Subject
 
-    class_ids = set(
-        TeacherAssignment.objects.filter(teacher=teacher_profile).values_list('class_ref_id', flat=True)
-    )
-    class_ids.update(
-        Subject.objects.filter(teachers=teacher_profile, status='Active').values_list('class_ref_id', flat=True)
-    )
-
+    # 1. Sections where teacher is the primary Class Teacher (legacy/direct)
     q = Q(class_teacher=teacher_profile)
-    if class_ids:
-        q |= Q(class_ref_id__in=class_ids)
+
+    # 2. Explicit assignments from TeacherAssignment model
+    ta_qs = TeacherAssignment.objects.filter(teacher=teacher_profile)
+    
+    # - Specific sections assigned to this teacher
+    section_ids = set(ta_qs.filter(section__isnull=False).values_list('section_id', flat=True))
+    if section_ids:
+        q |= Q(id__in=section_ids)
+        
+    # - Class-wide assignments (applies to all sections of that class)
+    combined_class_ids = set(ta_qs.filter(section__isnull=True).values_list('class_ref_id', flat=True))
+    
+    if combined_class_ids:
+        q |= Q(class_ref_id__in=combined_class_ids)
 
     qs = ClassSection.objects.select_related('class_ref', 'section_ref', 'class_teacher__user').filter(q)
     if school is not None:

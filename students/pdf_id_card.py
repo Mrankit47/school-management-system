@@ -106,13 +106,13 @@ def build_student_id_card_pdf(
     label_x = lx + 22 * mm
 
     name = _clip(student.user.name or student.user.username, 38)
-    father = _clip(student.parent_guardian_name, 36)
-    class_n = '—'
-    section_n = '—'
+    father = _clip(student.father_name, 36)
+    class_full = '—'
     if student.class_section_id:
-        class_n = _clip(student.class_section.class_ref.name, 14)
-        section_n = _clip(student.class_section.section_ref.name, 8)
-    phone = _clip(student.user.phone or student.parent_contact_number or '', 24)
+        c_name = student.class_section.class_ref.name
+        s_name = student.class_section.section_ref.name
+        class_full = f"{c_name} {s_name}"
+    phone = _clip(student.user.phone or student.father_contact or '', 24)
     blood_group = _clip(student.blood_group or '', 8)
     addr = _clip(student.address or '', 46)
     adm = _clip(student.admission_number, 18)
@@ -129,8 +129,7 @@ def build_student_id_card_pdf(
     row('Name:', name)
     row('Father Name:', father)
     row('Admission No:', adm)
-    row('Class:', class_n)
-    row('Section:', section_n)
+    row('Class:', class_full)
     row('Blood Group:', blood_group)
     row('Phone:', phone)
     row('Address:', addr, bold_val=False)

@@ -79,15 +79,17 @@ class TimeTableViewSet(viewsets.ModelViewSet):
             return queryset
         
         if user.role == 'teacher':
-            return queryset.filter(teacher=user).order_by('day', 'period_number')
+            return queryset.filter(teacher=user, shift_ref__isnull=False).order_by('day', 'period_number')
         
         if user.role == 'student':
             student = getattr(user, 'student_profile', None)
             if student and student.class_section:
                 qs = queryset.filter(
                     class_name=student.class_section.class_ref.name,
-                    section=student.class_section.section_ref.name
+                    section=student.class_section.section_ref.name,
+                    shift_ref__isnull=False
                 )
+
                 # If student is assigned to a specific shift, filter by it
                 if student.class_section.assigned_shift_id:
                     qs = qs.filter(shift_ref_id=student.class_section.assigned_shift_id)
