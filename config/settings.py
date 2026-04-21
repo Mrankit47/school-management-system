@@ -50,7 +50,9 @@ INSTALLED_APPS = [
     'gallery',
     'reports',
     'shops',
+    'enquiries',
 ]
+
 
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
@@ -158,3 +160,16 @@ DATABASES = {
         },
     }
 }
+
+# Email Configuration
+# Using Console backend for demonstration. 
+# Swap to 'django.core.mail.backends.smtp.EmailBackend' for production.
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend' 
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER', 'your-email@gmail.com')
+EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD', 'your-app-password')
+
+DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
+CONTACT_EMAIL = os.getenv('CONTACT_EMAIL', 'admin-email@gmail.com')

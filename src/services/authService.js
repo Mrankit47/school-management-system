@@ -13,6 +13,7 @@ const authService = {
             localStorage.setItem('user_name', userData.name);
             if (userData.school_id) localStorage.setItem('school_id', userData.school_id);
             if (userData.school_name) localStorage.setItem('school_name', userData.school_name);
+            if (userData.school_logo) localStorage.setItem('school_logo', userData.school_logo);
             
             return userData;
         }
@@ -26,6 +27,7 @@ const authService = {
         localStorage.removeItem('user_name');
         localStorage.removeItem('school_id');
         localStorage.removeItem('school_name');
+        localStorage.removeItem('school_logo');
     },
 
     getCurrentUser: () => {
@@ -33,7 +35,8 @@ const authService = {
             role: localStorage.getItem('user_role'),
             name: localStorage.getItem('user_name'),
             school_id: localStorage.getItem('school_id'),
-            school_name: localStorage.getItem('school_name')
+            school_name: localStorage.getItem('school_name'),
+            school_logo: localStorage.getItem('school_logo')
         };
     }
 };

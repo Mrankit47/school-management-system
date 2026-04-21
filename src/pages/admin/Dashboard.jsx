@@ -123,13 +123,13 @@ const AdminDashboard = () => {
             const first = (formData.first_name || '').trim();
             const last = (formData.last_name || '').trim();
             const emailLocal = (formData.email || '').split('@')[0].trim().toLowerCase();
-            
+
             payload.username = emailLocal || 'student';
             payload.name = `${first} ${last}`.trim();
 
             const f_digits = (formData.father_contact || '').replace(/\D/g, '').slice(0, 10);
             const m_digits = (formData.mother_contact || '').replace(/\D/g, '').slice(0, 10);
-            
+
             payload.father_contact = f_digits ? `+91${f_digits}` : '';
             payload.mother_contact = m_digits ? `+91${m_digits}` : '';
 
@@ -258,7 +258,7 @@ const AdminDashboard = () => {
                                 </span>
                             </h3>
                             <div className="grid grid-cols-7 gap-3 text-center mb-6 px-1">
-                                {['S','M','T','W','T','F','S'].map((day, i) => (
+                                {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((day, i) => (
                                     <span key={i} className="text-[11px] font-black text-slate-400 uppercase tracking-widest">{day}</span>
                                 ))}
                             </div>
@@ -270,21 +270,21 @@ const AdminDashboard = () => {
                                     const firstDay = new Date(year, month, 1).getDay();
                                     const totalDays = new Date(year, month + 1, 0).getDate();
                                     const cells = [];
-                                    
+
                                     // Add spacers for days before the 1st
                                     for (let i = 0; i < firstDay; i++) {
                                         cells.push(<div key={`empty-${i}`} className="aspect-square" />);
                                     }
-                                    
+
                                     // Add actual days
                                     for (let d = 1; d <= totalDays; d++) {
                                         const isToday = d === today.getDate();
                                         cells.push(
-                                            <div 
-                                                key={`day-${d}`} 
+                                            <div
+                                                key={`day-${d}`}
                                                 className={`aspect-square flex items-center justify-center text-[11px] rounded-xl transition-all cursor-pointer border
-                                                    ${isToday 
-                                                        ? 'bg-gradient-to-br from-school-navy to-school-blue text-white font-black border-transparent shadow-lg shadow-school-blue/30 scale-110 z-10' 
+                                                    ${isToday
+                                                        ? 'bg-gradient-to-br from-school-navy to-school-blue text-white font-black border-transparent shadow-lg shadow-school-blue/30 scale-110 z-10'
                                                         : 'hover:bg-slate-50 text-slate-600 font-bold border-slate-50 hover:border-slate-100 hover:text-school-navy'}`}
                                             >
                                                 {d}
@@ -322,7 +322,7 @@ const AdminDashboard = () => {
                         <p className="text-slate-400 text-sm mt-1">Fill in the details to create a new student account.</p>
                         <div className="absolute right-8 top-8 opacity-20 text-6xl">🎓</div>
                     </div>
-                    
+
                     <form onSubmit={handleSubmit} className="p-8 space-y-8">
                         {/* Section: Personal Info */}
                         <div className="space-y-6">
@@ -331,7 +331,7 @@ const AdminDashboard = () => {
                                 <h4 className="font-bold text-school-text uppercase tracking-wider text-sm">Personal Information</h4>
                                 <div className="flex-1 h-px bg-slate-100"></div>
                             </div>
-                            
+
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div className="space-y-2">
                                     <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">First Name</label>
@@ -413,7 +413,7 @@ const AdminDashboard = () => {
                                         required
                                     >
                                         <option value="">Select Group</option>
-                                        {['A+','A-','B+','B-','AB+','AB-','O+','O-'].map(bg => <option key={bg} value={bg}>{bg}</option>)}
+                                        {['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'].map(bg => <option key={bg} value={bg}>{bg}</option>)}
                                     </select>
                                 </div>
                             </div>
@@ -426,7 +426,7 @@ const AdminDashboard = () => {
                                 <h4 className="font-bold text-school-text uppercase tracking-wider text-sm">Academic Details</h4>
                                 <div className="flex-1 h-px bg-slate-100"></div>
                             </div>
-                            
+
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                                 <div className="space-y-2">
                                     <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">Admission No</label>

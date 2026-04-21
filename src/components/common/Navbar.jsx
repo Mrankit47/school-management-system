@@ -43,8 +43,29 @@ const Navbar = () => {
         <header className="h-20 bg-white border-b border-slate-200 sticky top-0 z-40 flex items-center justify-between px-8">
             {/* Left Section: Branding */}
             <div className="flex items-center gap-4 min-w-[200px]">
-                <div className="w-11 h-11 bg-school-navy rounded-2xl flex items-center justify-center text-white text-2xl font-black shadow-xl shadow-school-navy/20 animate-in fade-in zoom-in duration-700">
-                    {user.role === 'superadmin' ? 'S' : user.role === 'dealer' ? 'D' : (user.school_name ? user.school_name[0].toUpperCase() : 'S')}
+                <div className="w-11 h-11 bg-school-navy rounded-2xl flex items-center justify-center text-white text-2xl font-black shadow-xl shadow-school-navy/20 animate-in fade-in zoom-in duration-700 overflow-hidden">
+                    {user.school_logo ? (
+                        <img 
+                            src={user.school_logo}
+                            alt="Logo" 
+                            className="w-full h-full object-contain bg-white rounded-xl border border-slate-100 shadow-sm transition-opacity duration-500"
+                            onLoad={(e) => {
+                                console.log("✅ LOGO LOADED:", e.target.src);
+                                e.target.style.opacity = '1';
+                            }}
+                            onError={(e) => {
+                                console.error("❌ LOGO FAILED:", e.target.src);
+                                // Fallback only if absolutely necessary
+                                if (!e.target.dataset.triedFallback) {
+                                    e.target.dataset.triedFallback = 'true';
+                                    e.target.style.display = 'none';
+                                    e.target.parentElement.innerText = user.school_name ? user.school_name[0].toUpperCase() : 'S';
+                                }
+                            }}
+                        />
+                    ) : (
+                        user.role === 'superadmin' ? 'S' : user.role === 'dealer' ? 'D' : (user.school_name ? user.school_name[0].toUpperCase() : 'S')
+                    )}
                 </div>
                 <div className="flex flex-col">
                     <h1 className="text-[13px] sm:text-base font-black text-slate-900 leading-tight tracking-tight uppercase truncate max-w-[150px] sm:max-w-xs">

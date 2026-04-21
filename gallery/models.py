@@ -12,6 +12,7 @@ class GalleryImage(models.Model):
         on_delete=models.CASCADE,
         related_name='gallery_images',
     )
+    school = models.ForeignKey('tenants.School', on_delete=models.CASCADE, null=True, blank=True, related_name='gallery_images')
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
