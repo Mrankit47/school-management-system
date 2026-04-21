@@ -40,6 +40,7 @@ urlpatterns = [
     path('api/bulk-upload/', include('bulk_upload.urls')),
     path('api/reports/', include('reports.urls')),
     path('api/shops/', include('shops.urls')),
+    path('api/enquiries/', include('enquiries.urls')),
 
     # Admin Dashboard stats (used by the React admin dashboard cards)
     path('api/admin/dashboard/stats', AdminDashboardStatsView.as_view(), name='admin-dashboard-stats'),

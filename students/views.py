@@ -12,6 +12,8 @@ from core.permissions import IsAdmin
 from classes.models import ClassSection, MainClass, MainSection
 from classes.teacher_access import teacher_teaches_class_section
 import re
+from accounts.utils import get_unique_username
+
 
 
 def _roll_suffix_for_section(class_section):
@@ -41,8 +43,8 @@ def _next_roll_number_for_class_section(class_section):
     return f"{max_numeric + 1}{suffix}"
 
 
-def _next_admission_number():
-    existing = StudentProfile.objects.values_list('admission_number', flat=True)
+def _next_admission_number(school):
+    existing = StudentProfile.objects.filter(school=school).values_list('admission_number', flat=True)
     used = set()
     for adm in existing:
         match = re.match(r'^ADM(\d+)$', str(adm or '').strip().upper())
@@ -54,6 +56,7 @@ def _next_admission_number():
     while n in used:
         n += 1
     return f"ADM{n}"
+
 
 class StudentListView(views.APIView):
     """
@@ -76,11 +79,14 @@ class StudentListView(views.APIView):
         return Response([
             {
                 "id": s.id,
-                "admission_number": s.admission_number,
+                "admission_number": f"{s.school.school_id if s.school else 'NS'}-{s.admission_number}",
                 "roll_number": s.roll_number,
+
                 "name": s.user.name or s.user.username,
+
                 "first_name": s.user.first_name,
                 "last_name": s.user.last_name,
+
                 "username": s.user.username,
                 "email": s.user.email,
                 "dob": s.dob,
@@ -134,10 +140,13 @@ class StudentsByClassSectionView(views.APIView):
         return Response([
             {
                 "id": s.id,
-                "admission_number": s.admission_number,
+                "admission_number": f"{s.school.school_id if s.school else 'NS'}-{s.admission_number}",
                 "roll_number": s.roll_number,
+
                 "name": s.user.name or s.user.username,
+
                 "username": s.user.username,
+
                 "email": s.user.email,
                 "class_name": s.class_section.class_ref.name if s.class_section else None,
                 "section_name": s.class_section.section_ref.name if s.class_section else None,
@@ -166,9 +175,11 @@ class StudentDetailView(views.APIView):
         return Response(
             {
                 "id": s.id,
-                "admission_number": s.admission_number,
+                "admission_number": f"{s.school.school_id if s.school else 'NS'}-{s.admission_number}",
                 "roll_number": s.roll_number,
                 "name": s.user.name or s.user.username,
+
+
                 "first_name": s.user.first_name,
                 "last_name": s.user.last_name,
                 "username": s.user.username,
@@ -233,8 +244,15 @@ class StudentUpdateView(views.APIView):
         u.save()
 
         # Update StudentProfile fields.
-        s.admission_number = data.get('admission_number', s.admission_number)
+        raw_admission = data.get('admission_number')
+        if raw_admission:
+            # Strip school prefix if present
+            if '-' in raw_admission:
+                raw_admission = raw_admission.split('-', 1)[1]
+            s.admission_number = raw_admission
+        
         if data.get('roll_number') is not None:
+
             s.roll_number = data.get('roll_number')
         s.dob = data.get('dob', s.dob)
         s.gender = data.get('gender', s.gender)
@@ -263,7 +281,7 @@ class AdminStudentCreateView(views.APIView):
                 school = School.objects.first()
 
             user = User.objects.create_user(
-                username=data['username'],
+                username=get_unique_username(data['username']),
                 email=data['email'],
                 password=data['password'],
                 # First/Last name are stored on the User model; `name` is kept for backward compatibility.
@@ -273,6 +291,7 @@ class AdminStudentCreateView(views.APIView):
                 role='student',
                 school=school
             )
+
 
             class_section_id = data.get('class_section_id')
             if not class_section_id:
@@ -296,9 +315,14 @@ class AdminStudentCreateView(views.APIView):
 
             roll_number = (data.get('roll_number') or '').strip() or _next_roll_number_for_class_section(class_section)
 
-            admission_number = (data.get('admission_number') or '').strip() or _next_admission_number()
+            admission_number = (data.get('admission_number') or '').strip()
+            if admission_number and '-' in admission_number:
+                admission_number = admission_number.split('-', 1)[1]
+            
+            admission_number = admission_number or _next_admission_number(school)
 
             profile = StudentProfile.objects.create(
+
                 user=user,
                 admission_number=admission_number,
                 roll_number=roll_number,
@@ -350,9 +374,11 @@ class StudentProfileView(views.APIView):
 
         return Response({
             "id": s.id,
-            "admission_number": s.admission_number,
+            "admission_number": f"{s.school.school_id if s.school else 'NS'}-{s.admission_number}",
             "roll_number": s.roll_number,
             "name": s.user.name or s.user.username,
+
+
             "username": s.user.username,
             "email": s.user.email,
             "phone": s.user.phone,

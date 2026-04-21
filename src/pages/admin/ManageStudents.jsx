@@ -393,7 +393,9 @@ const ManageStudents = () => {
                         <thead>
                                 <tr>
                                     <th style={th}>S.No</th>
+                                    <th style={th}>Student ID</th>
                                     <th style={th}>Student Name</th>
+
                                     <th style={th}>Session Name</th>
                                     <th style={th}>Gender</th>
                                     <th style={th}>DOB</th>
@@ -407,11 +409,14 @@ const ManageStudents = () => {
                         </thead>
                         <tbody>
                                 {pagedRows.length === 0 ? (
-                                    <tr><td colSpan={12} style={{ ...td, textAlign: 'center', padding: 20 }}>No students found.</td></tr>
+                                    <tr><td colSpan={13} style={{ ...td, textAlign: 'center', padding: 20 }}>No students found.</td></tr>
+
                                 ) : pagedRows.map((s, idx) => (
                                     <tr key={s.id} style={{ background: idx % 2 === 0 ? '#ffffff' : '#f8fafc' }}>
                                         <td style={td}>{start + idx + 1}</td>
+                                        <td style={td}>{s.admission_number || '—'}</td>
                                         <td style={{ ...td, fontWeight: 700 }}>{s.name || '—'}</td>
+
                                         <td style={td}>{s.sessionName}</td>
                                         <td style={td}>{s.gender || 'Unknown'}</td>
                                         <td style={td}>{formatDate(s.dob)}</td>

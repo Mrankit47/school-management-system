@@ -17,10 +17,12 @@ from assignments.models import Assignment as AssignmentModel
 from attendance.models import Attendance as AttendanceModel
 from django.db import transaction
 import re
+from accounts.utils import get_unique_username
 
 
-def _next_employee_id():
-    existing = TeacherProfile.objects.values_list('employee_id', flat=True)
+
+def _next_employee_id(school):
+    existing = TeacherProfile.objects.filter(school=school).values_list('employee_id', flat=True)
     used = set()
     for eid in existing:
         match = re.match(r'^T(\d+)$', str(eid or '').strip().upper())
@@ -30,6 +32,7 @@ def _next_employee_id():
     while n in used:
         n += 1
     return f"T{n:03d}"
+
 
 
 def _teacher_role_label(profile: TeacherProfile) -> str:
@@ -45,7 +48,8 @@ def ensure_teacher_profile(user):
         return profile
     return TeacherProfile.objects.create(
         user=user,
-        employee_id=_next_employee_id(),
+        employee_id=_next_employee_id(user.school),
+
         subject_specialization='',
         status='Active',
     )
@@ -275,7 +279,8 @@ class TeacherDocumentsView(views.APIView):
 
         return TeacherProfile.objects.create(
             user=user,
-            employee_id=_next_employee_id(),
+            employee_id=_next_employee_id(user.school),
+
             subject_specialization='',
             status='Active',
         )
@@ -323,9 +328,12 @@ class TeacherListView(views.APIView):
             {
                 "id": p.id,
                 "user_id": p.user.id,
-                "employee_id": p.employee_id,
+                "employee_id": f"{p.school.school_id if p.school else 'NS'}-{p.employee_id}",
                 "name": p.user.name or p.user.username,
+
+
                 "subject_specialization": p.subject_specialization,
+
                 "email": p.user.email,
                 "phone_number": p.phone_number,
                 "gender": p.gender,
@@ -356,9 +364,12 @@ class TeacherDetailView(views.APIView):
         return Response({
             "id": p.id,
             "user_id": p.user.id,
-            "employee_id": p.employee_id,
-            "name": name,
+            "employee_id": f"{p.school.school_id if p.school else 'NS'}-{p.employee_id}",
+            "name": p.user.name or p.user.username,
+
+
             "email": p.user.email,
+
             "subject_specialization": p.subject_specialization,
             "phone_number": p.phone_number,
             "gender": p.gender,
@@ -436,8 +447,14 @@ class TeacherUpdateView(views.APIView):
             return val if val != "" else None
 
         # Update TeacherProfile fields
-        p.employee_id = data.get('employee_id', p.employee_id)
+        raw_emp_id = data.get('employee_id')
+        if raw_emp_id:
+            if '-' in raw_emp_id:
+                raw_emp_id = raw_emp_id.split('-', 1)[1]
+            p.employee_id = raw_emp_id
+        
         p.subject_specialization = data.get('subject_specialization', p.subject_specialization)
+
 
         p.phone_number = data.get('phone_number', p.phone_number)
         p.gender = data.get('gender', p.gender)
@@ -463,15 +480,21 @@ class AdminTeacherCreateView(views.APIView):
                 return Response({"error": "A user with this email already exists."}, status=status.HTTP_400_BAD_REQUEST)
 
             # Check if username already exists
-            if User.objects.filter(username=data.get('username')).exists():
-                return Response({"error": "A user with this username already exists."}, status=status.HTTP_400_BAD_REQUEST)
+            # (We will suffix it anyway, but we allow initial check to decide behavior)
+            # Actually, per requirement 4, we auto-adjust with incremental suffix.
+            # So we don't need this restrictive error check anymore.
+            pass
 
             # Check if employee_id already exists
             requested_employee_id = (data.get('employee_id') or '').strip().upper()
+            if requested_employee_id and '-' in requested_employee_id:
+                requested_employee_id = requested_employee_id.split('-', 1)[1]
+                
             if requested_employee_id and TeacherProfile.objects.filter(user__school=request.user.school, employee_id=requested_employee_id).exists():
                 return Response({"error": "A teacher with this Employee ID already exists."}, status=status.HTTP_400_BAD_REQUEST)
 
-            employee_id = requested_employee_id or _next_employee_id()
+            employee_id = requested_employee_id or _next_employee_id(request.user.school)
+
 
             school = request.user.school
             if not school and getattr(request.user, 'is_superuser', False):
@@ -479,7 +502,8 @@ class AdminTeacherCreateView(views.APIView):
                 school = School.objects.first()
 
             user = User.objects.create_user(
-                username=data['username'],
+                username=get_unique_username(data['username']),
+
                 email=email,
                 password=data['password'],
                 name=data.get('name', ''),
@@ -533,8 +557,10 @@ class TeacherListAllView(views.APIView):
             data.append({
                 'id': p.id,
                 'user_name': p.user.name or p.user.username,
+
                 'subjects': subjects_list
             })
+
             
         return Response(data)
 

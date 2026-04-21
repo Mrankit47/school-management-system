@@ -118,6 +118,37 @@ export default function SaaSLanding() {
     }
   };
 
+  const [enquiryForm, setEnquiryForm] = useState({ name: '', email: '', subject: '', message: '' });
+  const [enquiryStatus, setEnquiryStatus] = useState(null); // 'loading', 'success', 'error'
+  const [enquiryMsg, setEnquiryMsg] = useState('');
+
+  const handleEnquirySubmit = async (e) => {
+    e.preventDefault();
+    setEnquiryStatus('loading');
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api/'}enquiries/submit/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(enquiryForm),
+      });
+      const data = await response.json();
+      if (response.ok) {
+        setEnquiryStatus('success');
+        setEnquiryMsg(data.message);
+        setEnquiryForm({ name: '', email: '', subject: '', message: '' });
+      } else {
+        setEnquiryStatus('error');
+        setEnquiryMsg(data.message || 'Submission failed');
+      }
+    } catch (err) {
+      setEnquiryStatus('error');
+      setEnquiryMsg('Failed to connect to server');
+    }
+  };
+
+
   return (
     <div className="min-h-screen bg-white font-inter text-slate-800 hero-gradient selection:bg-blue-100 selection:text-blue-900">
 
@@ -312,12 +343,87 @@ export default function SaaSLanding() {
         </div>
       </section>
 
+      <section className="py-24 bg-slate-50 border-t border-slate-100">
+        <div className="max-w-3xl mx-auto px-6">
+          <div className="text-center mb-12">
+            <h2 className="font-outfit text-3xl font-bold text-slate-900 mb-4">Have Questions?</h2>
+            <p className="text-slate-500">Send us an enquiry and our team will get back to you within 24 hours.</p>
+          </div>
+
+          <form onSubmit={handleEnquirySubmit} className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-white p-8 md:p-10 rounded-[2.5rem] shadow-xl shadow-slate-200/50 border border-slate-100">
+            <div className="space-y-2">
+              <label className="text-[10px] uppercase tracking-widest font-bold text-slate-400 ml-1">Full Name</label>
+              <input
+                type="text"
+                required
+                value={enquiryForm.name}
+                onChange={(e) => setEnquiryForm({ ...enquiryForm, name: e.target.value })}
+                placeholder="Rahul Sharma"
+                className="w-full bg-slate-50 border-none rounded-2xl py-3.5 px-6 text-sm focus:ring-2 focus:ring-school-navy/10 transition-all"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-[10px] uppercase tracking-widest font-bold text-slate-400 ml-1">Email Address</label>
+              <input
+                type="email"
+                required
+                value={enquiryForm.email}
+                onChange={(e) => setEnquiryForm({ ...enquiryForm, email: e.target.value })}
+                placeholder="rahul@example.com"
+                className="w-full bg-slate-50 border-none rounded-2xl py-3.5 px-6 text-sm focus:ring-2 focus:ring-school-navy/10 transition-all"
+              />
+            </div>
+            <div className="md:col-span-2 space-y-2">
+              <label className="text-[10px] uppercase tracking-widest font-bold text-slate-400 ml-1">Subject</label>
+              <input
+                type="text"
+                required
+                value={enquiryForm.subject}
+                onChange={(e) => setEnquiryForm({ ...enquiryForm, subject: e.target.value })}
+                placeholder="Pricing or Technical Query"
+                className="w-full bg-slate-50 border-none rounded-2xl py-3.5 px-6 text-sm focus:ring-2 focus:ring-school-navy/10 transition-all"
+              />
+            </div>
+            <div className="md:col-span-2 space-y-2">
+              <label className="text-[10px] uppercase tracking-widest font-bold text-slate-400 ml-1">Message</label>
+              <textarea
+                required
+                rows="4"
+                value={enquiryForm.message}
+                onChange={(e) => setEnquiryForm({ ...enquiryForm, message: e.target.value })}
+                placeholder="How can we help your institution?"
+                className="w-full bg-slate-50 border-none rounded-2xl py-3.5 px-6 text-sm focus:ring-2 focus:ring-school-navy/10 transition-all"
+              ></textarea>
+            </div>
+            
+            <div className="md:col-span-2 mt-2">
+              <button
+                type="submit"
+                disabled={enquiryStatus === 'loading'}
+                className="w-full btn-premium py-4 rounded-2xl font-bold flex items-center justify-center gap-3 disabled:opacity-70"
+              >
+                {enquiryStatus === 'loading' ? 'Sending...' : 'Send Message'}
+                <span>→</span>
+              </button>
+              
+              {enquiryStatus === 'success' && (
+                <p className="text-center text-green-600 text-xs font-bold mt-4 animate-float">✓ {enquiryMsg}</p>
+              )}
+              {enquiryStatus === 'error' && (
+                <p className="text-center text-red-500 text-xs font-bold mt-4">⚠ {enquiryMsg}</p>
+              )}
+            </div>
+          </form>
+        </div>
+      </section>
+
       <footer className="py-12 border-t border-slate-100 text-center">
         <p className="text-xs font-bold text-slate-400 uppercase tracking-widest leading-loose">
           © {new Date().getFullYear()} School Conduct Multi-Tenant Infrastructure. <br />
           Built for Global Educational Excellence.
         </p>
       </footer>
+
 
     </div>
   );
