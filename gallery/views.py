@@ -25,7 +25,13 @@ class GalleryListCreateView(views.APIView):
         if not _can_view_gallery(request.user):
             return Response({'error': 'Not allowed'}, status=status.HTTP_403_FORBIDDEN)
 
-        rows = GalleryImage.objects.select_related('uploaded_by').order_by('-created_at')
+        # 🔒 Data Isolation: Only show images belonging to the user's school.
+        # Superadmins and Dealers retain global visibility if they have no school context.
+        qs = GalleryImage.objects.select_related('uploaded_by', 'school').order_by('-created_at')
+        if not (request.user.is_superuser or request.user.role in ['superadmin', 'dealer']):
+            qs = qs.filter(school=request.user.school)
+        
+        rows = qs.all()
         return Response(
             [
                 {
@@ -34,6 +40,7 @@ class GalleryListCreateView(views.APIView):
                     'image_url': request.build_absolute_uri(f'/api/gallery/{img.id}/image/'),
                     'created_at': img.created_at,
                     'uploaded_by': img.uploaded_by.username,
+                    'school_name': img.school.name if img.school else 'Global',
                 }
                 for img in rows
             ]
@@ -78,7 +85,8 @@ class GalleryListCreateView(views.APIView):
                 obj = GalleryImage.objects.create(
                     title=current_title,
                     image=image,
-                    uploaded_by=request.user
+                    uploaded_by=request.user,
+                    school=request.user.school # 🔒 Automatically isolate to user's school
                 )
                 created_objects.append({
                     'id': obj.id,
@@ -107,7 +115,12 @@ class GalleryDeleteView(views.APIView):
         if not _is_admin(request.user):
             return Response({'error': 'Only admin can delete images'}, status=status.HTTP_403_FORBIDDEN)
 
-        obj = get_object_or_404(GalleryImage, id=image_id)
+        # 🔒 Ensure the image belongs to the user's school before deletion
+        qs = GalleryImage.objects.all()
+        if not (request.user.is_superuser or request.user.role in ['superadmin', 'dealer']):
+            qs = qs.filter(school=request.user.school)
+            
+        obj = get_object_or_404(qs, id=image_id)
         if obj.image:
             obj.image.delete(save=False)
         obj.delete()
@@ -125,25 +138,50 @@ class GalleryImageProtectedView(views.APIView):
                 from rest_framework_simplejwt.authentication import JWTAuthentication
                 auth = JWTAuthentication()
                 validated_token = auth.get_validated_token(token)
-                user = auth.get_user(validated_token)
-                request.user = user
-            except Exception:
-                pass
+                request.user = auth.get_user(validated_token)
+                print(f"DEBUG [Gallery]: Authenticated user {request.user} ({request.user.role}) via token")
+            except Exception as e:
+                print(f"DEBUG [Gallery]: Token auth failed for image {image_id}: {str(e)}")
 
-        if not _can_view_gallery(request.user):
-            return Response({'error': 'Not allowed'}, status=status.HTTP_403_FORBIDDEN)
+        # 🔒 Data isolation check
+        user = request.user
+        qs = GalleryImage.objects.all()
+        
+        # Check privileges (Superadmin/Dealer/Superuser)
+        is_privileged = user.is_authenticated and (
+            user.is_superuser or 
+            getattr(user, 'role', None) in ['superadmin', 'dealer']
+        )
 
-        obj = get_object_or_404(GalleryImage, id=image_id)
+        if not is_privileged:
+            if not user.is_authenticated:
+                print(f"DEBUG [Gallery]: Anonymous access denied for image {image_id}")
+                return Response({'error': 'Authentication required'}, status=status.HTTP_401_UNAUTHORIZED)
+            
+            user_school = getattr(user, 'school', None)
+            if not user_school:
+                print(f"DEBUG [Gallery]: User {user.username} has no school assigned")
+                return Response({'error': 'No school assigned to user'}, status=status.HTTP_403_FORBIDDEN)
+            
+            # Filter specifically for this user's school
+            qs = qs.filter(school=user_school)
+
+        try:
+            obj = qs.get(id=image_id)
+        except GalleryImage.DoesNotExist:
+            print(f"DEBUG [Gallery]: Image {image_id} not found or not authorized for school {getattr(user, 'school', 'N/A')}")
+            return Response({'error': 'Image not found or unauthorized'}, status=status.HTTP_404_NOT_FOUND)
+
         if not obj.image:
-            return Response({'error': 'Image not found'}, status=status.HTTP_404_NOT_FOUND)
+            return Response({'error': 'No image file associated with this record'}, status=status.HTTP_404_NOT_FOUND)
 
         file_path = obj.image.path
         if not os.path.exists(file_path):
-            return Response({'error': 'Image file missing'}, status=status.HTTP_404_NOT_FOUND)
+            print(f"DEBUG [Gallery]: Physical file missing at {file_path}")
+            return Response({'error': 'Physical image file missing on server'}, status=status.HTTP_404_NOT_FOUND)
 
         content_type = mimetypes.guess_type(file_path)[0] or 'application/octet-stream'
         response = FileResponse(open(file_path, 'rb'), content_type=content_type)
-        # Inline display to discourage direct file download behavior.
         response['Content-Disposition'] = f'inline; filename="{obj.filename()}"'
         response['X-Content-Type-Options'] = 'nosniff'
         response['Cache-Control'] = 'private, max-age=3600'

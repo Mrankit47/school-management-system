@@ -22,7 +22,7 @@ from classes.models import ClassSection, MainClass, MainSection # type: ignore
 from academics.models import Exam, Result # type: ignore
 from fees.models import StudentFee # type: ignore
 from assignments.models import Assignment # type: ignore
-from timetable.models import Timetable # type: ignore
+from timetable.models import TimeTableEntry # type: ignore
 from django.db import transaction # type: ignore
 from rest_framework_simplejwt.tokens import AccessToken # type: ignore
 app = FastAPI(
@@ -159,6 +159,18 @@ class FeeStructureCreateSchema(BaseModel):
     due_date: Optional[date] = None
     description: Optional[str] = None
 
+# --- SECURITY & UTILS ---
+from fastapi.security import OAuth2PasswordBearer # type: ignore
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/auth/login/")
+
+def get_current_user(token: str = Depends(oauth2_scheme)):
+    try:
+        access_token = AccessToken(token)
+        user = User.objects.get(id=access_token['user_id'])
+        return user
+    except Exception as e:
+        raise HTTPException(status_code=401, detail="Invalid or expired token")
+
 # --- ENDPOINTS ---
 
 @app.get("/", tags=["General"])
@@ -186,7 +198,8 @@ def login(data: LoginSchema):
                 "role": 'superadmin' if getattr(user, 'is_superuser', False) else user.role,
                 "name": user.name or user.username,
                 "school_id": getattr(user.school, 'school_id', None) if getattr(user, 'school', None) else None,
-                "school_name": getattr(user.school, 'name', None) if getattr(user, 'school', None) else None
+                "school_name": getattr(user.school, 'name', None) if getattr(user, 'school', None) else None,
+                "school_logo": f"/media/{user.school.logo.name}" if getattr(user, 'school', None) and user.school.logo else None
             }
         }
     raise HTTPException(status_code=401, detail="Invalid credentials")
@@ -756,18 +769,6 @@ def create_fee_structure(data: FeeStructureCreateSchema, user = Depends(get_curr
     )
     return {"success": True, "message": "Fee structure added successfully", "data": {"id": fs.id}}
 
-# --- SECURITY & UTILS ---
-from fastapi.security import OAuth2PasswordBearer # type: ignore
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/auth/login/")
-
-def get_current_user(token: str = Depends(oauth2_scheme)):
-    try:
-        access_token = AccessToken(token)
-        user = User.objects.get(id=access_token['user_id'])
-        return user
-    except Exception as e:
-        raise HTTPException(status_code=401, detail="Invalid or expired token")
-
 # --- MASTER DASHBOARDS ---
 @app.get("/api/teacher/dashboard", tags=["Teacher Dashboard"])
 def teacher_dashboard(user = Depends(get_current_user)):
@@ -831,12 +832,12 @@ def teacher_timetable_today(user = Depends(get_current_user)):
     if user.role != 'teacher':
         raise HTTPException(status_code=403, detail="Not authorized")
     from teachers.models import TeacherProfile # type: ignore
-    from timetable.models import Timetable # type: ignore
+    from timetable.models import TimeTableEntry # type: ignore
     from datetime import date
     
     teacher = TeacherProfile.objects.get(user=user)
     day_name = date.today().strftime('%A')
-    timetables = Timetable.objects.filter(teacher=teacher, day=day_name).select_related('class_section__class_ref', 'class_section__section_ref')
+    timetables = TimeTableEntry.objects.filter(teacher=teacher, day=day_name).select_related('class_section__class_ref', 'class_section__section_ref')
     
     data = []
     for t in timetables:
@@ -851,6 +852,11 @@ def teacher_timetable_today(user = Depends(get_current_user)):
 # --- Static File Serving (Frontend) ---
 
 # This will serve the React frontend from the 'dist' folder
+media_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "media")
+if os.path.exists(media_dir):
+    app.mount("/media", StaticFiles(directory=media_dir), name="media")
+
+# Serve React assets
 if os.path.exists("dist"):
     app.mount("/assets", StaticFiles(directory="dist/assets"), name="assets")
 
@@ -878,7 +884,7 @@ import subprocess
 import threading
 
 def start_frontend():
-    print("🚀 Starting Frontend (Vite) on http://localhost:5173 ...")
+    print("Starting Frontend (Vite) on http://localhost:5173 ...")
     try:
         # Use npx to ensure we find the local vite
         subprocess.Popen(["npx", "vite", "--port", "5173", "--host", "127.0.0.1"], shell=True)
@@ -891,5 +897,5 @@ if __name__ == "__main__":
     frontend_thread.start()
     
     # 2. Start Backend
-    print("🚀 Starting Backend (FastAPI) on http://127.0.0.1:8000 ...")
+    print("Starting Backend (FastAPI) on http://127.0.0.1:8000 ...")
     uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=True)
