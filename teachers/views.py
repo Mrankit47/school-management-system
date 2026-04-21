@@ -82,17 +82,21 @@ class TeacherProfileView(views.APIView):
                     }
                 )
 
-            subjects_assigned_qs = profile.subjects.select_related('class_ref').all().order_by('name')
+            # Strictly pull subjects from the TeacherAssignment model
+            from subjects.models import TeacherAssignment
+            assignments_qs = TeacherAssignment.objects.filter(teacher=profile).select_related('subject', 'class_ref').order_by('subject__name')
+            
             subjects_assigned = []
-            for s in subjects_assigned_qs:
-                subjects_assigned.append(
-                    {
-                        'id': s.id,
-                        'name': s.name,
-                        'code': s.code,
-                        'class_name': s.class_ref.name if s.class_ref else None,
-                    }
-                )
+            seen_subject_ids = set()
+            for ta in assignments_qs:
+                if ta.subject_id not in seen_subject_ids:
+                    subjects_assigned.append({
+                        'id': ta.subject.id,
+                        'name': ta.subject.name,
+                        'code': ta.subject.code,
+                        'class_name': ta.class_ref.name,
+                    })
+                    seen_subject_ids.add(ta.subject_id)
 
             role_label = _teacher_role_label(profile)
 
@@ -502,3 +506,35 @@ class AdminTeacherCreateView(views.APIView):
             return Response({"message": "Teacher created successfully"}, status=status.HTTP_201_CREATED)
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+class TeacherListAllView(views.APIView):
+    """
+    Returns a simplified list of all teachers for selection in Doubts.
+    Accessible to Students, Admins, and Teachers.
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        school = request.user.school
+        qs = TeacherProfile.objects.select_related('user').filter(status='Active')
+        
+        if school and not request.user.is_superuser:
+            qs = qs.filter(user__school=school)
+            
+        profiles = qs.order_by('user__name')
+        
+        data = []
+        for p in profiles:
+            # Get subjects for this teacher
+            from subjects.models import TeacherAssignment
+            subjects_qs = TeacherAssignment.objects.filter(teacher=p).select_related('subject')
+            subjects_list = [{'id': s.subject.id, 'name': s.subject.name} for s in subjects_qs]
+            
+            data.append({
+                'id': p.id,
+                'user_name': p.user.name or p.user.username,
+                'subjects': subjects_list
+            })
+            
+        return Response(data)
+

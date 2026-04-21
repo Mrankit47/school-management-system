@@ -154,15 +154,25 @@ const AdminDashboard = () => {
     return (
         <div className="space-y-8 animate-in fade-in duration-500">
             {/* Header Section */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 pb-4">
-                <div>
-                    <h1 className="text-4xl font-poppins font-black text-school-text tracking-tight">
-                        Admin <span className="text-transparent bg-clip-text bg-gradient-to-r from-school-navy to-school-blue">Dashboard</span>
-                    </h1>
-                    <p className="text-sm text-school-body font-medium mt-1">Management Overview & Academic Control Center</p>
+            <div className="relative overflow-hidden bg-white/80 backdrop-blur-xl p-10 rounded-[2.5rem] border border-slate-100 shadow-xl shadow-slate-200/40 mb-10 group transition-all duration-500 hover:shadow-2xl hover:shadow-school-blue/5">
+                <div className="absolute top-0 right-0 w-64 h-64 bg-school-blue/5 blur-3xl rounded-full -mr-32 -mt-32 transition-colors group-hover:bg-school-blue/10"></div>
+                <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+                    <div className="flex items-center gap-6">
+                        <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-school-navy to-school-blue flex items-center justify-center text-3xl shadow-xl shadow-school-navy/20">
+                            🛡️
+                        </div>
+                        <div>
+                            <h1 className="text-4xl font-poppins font-black text-school-text tracking-tight">
+                                Welcome <span className="text-transparent bg-clip-text bg-gradient-to-r from-school-navy to-school-blue">Admin Dashboard</span>
+                            </h1>
+                            <p className="text-sm text-school-body font-bold mt-1 opacity-70">
+                                Management Overview & Academic Control Center • {new Date().toLocaleDateString('default', { weekday: 'long', month: 'long', day: 'numeric' })}
+                            </p>
+                        </div>
+                    </div>
                 </div>
-                {/* Registration button removed from dashboard as requested */}
             </div>
+
 
             {/* Dashboard Stats & Overview */}
             {!isFormOpen && (

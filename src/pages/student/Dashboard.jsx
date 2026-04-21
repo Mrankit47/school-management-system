@@ -564,23 +564,29 @@ export default function StudentDashboard() {
 
     return (
         <div style={wrapperStyle}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap', marginBottom: 14 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                    <div style={{ width: 56, height: 56, borderRadius: 18, backgroundColor: '#e0e7ff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 1000, color: colors.primary }}>
-                        {profile?.name ? profile.name.slice(0, 1).toUpperCase() : 'S'}
-                    </div>
-                    <div>
-                        <div style={{ fontWeight: 1000, fontSize: 18 }}>Student Dashboard</div>
-                        <div style={{ marginTop: 4, color: themeStyles.muted, fontWeight: 900, fontSize: 13 }}>
-                            {profile ? `${profile.name || 'Student'} | ${profile.class_name} - ${profile.section_name}` : ''}
+            <div style={{ ...cardStyle, padding: 24, borderRadius: 20, marginBottom: 20, background: 'linear-gradient(135deg, #fff 0%, #f8fafc 100%)', border: 'none', position: 'relative', overflow: 'hidden' }}>
+                <div style={{ position: 'absolute', top: -30, right: -30, width: 200, height: 200, background: 'rgba(37, 99, 235, 0.03)', borderRadius: '50%', zIndex: 0 }}></div>
+                <div style={{ position: 'relative', zIndex: 1, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
+                        <div style={{ width: 64, height: 64, borderRadius: 20, backgroundColor: colors.primary, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 1000, color: '#fff', fontSize: 24, boxShadow: '0 4px 12px rgba(37, 99, 235, 0.2)' }}>
+                            {profile?.name ? profile.name.slice(0, 1).toUpperCase() : 'S'}
                         </div>
-                        {profile?.admission_number ? (
-                            <div style={{ marginTop: 2, color: themeStyles.muted, fontWeight: 900, fontSize: 12 }}>
-                                Roll No: {profile.admission_number}
-                            </div>
-                        ) : null}
+                        <div>
+                            <h1 style={{ margin: 0, fontWeight: 1000, fontSize: 30, letterSpacing: '-0.02em', background: 'linear-gradient(90deg, #1e293b 0%, #2563eb 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+                                Welcome Student Dashboard
+                            </h1>
+                            <p style={{ margin: '4px 0 0', color: themeStyles.muted, fontWeight: 900, fontSize: 16 }}>
+                                Hello, <span style={{ color: colors.primary }}>{profile?.name || 'Student'}</span>! {profile ? `(${profile.class_section_display || profile.class_name})` : ''}
+                            </p>
+
+                            {profile?.admission_number ? (
+                                <div style={{ marginTop: 2, color: themeStyles.muted, fontWeight: 900, fontSize: 12, opacity: 0.8 }}>
+                                    Roll No: {profile.admission_number}
+                                </div>
+                            ) : null}
+                        </div>
                     </div>
-                </div>
+
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
                     <button
@@ -618,9 +624,12 @@ export default function StudentDashboard() {
                     </button>
                 </div>
             </div>
+        </div>
+
+
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(12, minmax(0, 1fr))', gap: 12 }}>
-                <div style={{ gridColumn: 'span 4' }}>
+                <div style={{ gridColumn: 'span 6' }}>
                     <Card style={{ ...topCardStyle }}>
                         <SectionHeader
                             icon={
@@ -660,7 +669,7 @@ export default function StudentDashboard() {
                     </Card>
                 </div>
 
-                <div style={{ gridColumn: 'span 4' }}>
+                <div style={{ gridColumn: 'span 6' }}>
                     <Card style={{ ...topCardStyle }}>
                         <SectionHeader
                             icon={
@@ -688,53 +697,6 @@ export default function StudentDashboard() {
                     </Card>
                 </div>
 
-                <div style={{ gridColumn: 'span 4' }}>
-                    <Card style={{ ...topCardStyle, display: 'flex', flexDirection: 'column' }}>
-                        <SectionHeader
-                            icon={
-                                <Icon>
-                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                        <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
-                                        <path d="M9 17v-2" />
-                                        <path d="M14 17v-4" />
-                                        <path d="M19 17v-7" />
-                                        <path d="M3 17V6a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v11" />
-                                    </svg>
-                                </Icon>
-                            }
-                            title="Academic Quick Stats"
-                            subtitle="Overview"
-                        />
-                        <div style={{ marginTop: 12, display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0,1fr))', gap: 10 }}>
-                            <div style={{ border: `1px solid ${themeStyles.cardBorder}`, borderRadius: 14, padding: 12, backgroundColor: themeStyles.cardBg }}>
-                                <div style={{ color: themeStyles.muted, fontWeight: 900, fontSize: 12, textTransform: 'uppercase' }}>Total Subjects</div>
-                                <div style={{ marginTop: 6, fontWeight: 1000, fontSize: 22 }}>{subjectsCount}</div>
-                            </div>
-                            <div style={{ border: `1px solid ${themeStyles.cardBorder}`, borderRadius: 14, padding: 12, backgroundColor: themeStyles.cardBg }}>
-                                <div style={{ color: themeStyles.muted, fontWeight: 900, fontSize: 12, textTransform: 'uppercase' }}>Upcoming Exams</div>
-                                <div style={{ marginTop: 6, fontWeight: 1000, fontSize: 22 }}>{examsCount}</div>
-                            </div>
-                        </div>
-                        <div style={{ marginTop: 'auto' }}>
-                            <button
-                                type="button"
-                                onClick={() => navigate('/student/attendance')}
-                                style={{
-                                    width: '100%',
-                                    padding: '10px 12px',
-                                    borderRadius: 12,
-                                    border: `1px solid ${colors.border}`,
-                                    backgroundColor: colors.primary,
-                                    color: '#fff',
-                                    cursor: 'pointer',
-                                    fontWeight: 1000,
-                                }}
-                            >
-                                View Full Attendance
-                            </button>
-                        </div>
-                    </Card>
-                </div>
             </div>
 
             {/* Main grid */}
@@ -755,46 +717,124 @@ export default function StudentDashboard() {
                             title="Today's Timetable"
                             subtitle={todayDayName}
                         />
-                        <div style={{ marginTop: 12, display: 'grid', gap: 10 }}>
+                        <div style={{ marginTop: 12, display: 'grid', gap: 12 }}>
                             {todayTimetable.length ? (
-                                todayTimetable
-                                    .slice()
-                                    .sort((a, b) => String(a.start_time).localeCompare(String(b.start_time)))
-                                    .map((t) => {
-                                        const isCurrent = currentClass && currentClass.id === t.id;
-                                        return (
-                                            <div
-                                                key={t.id}
-                                                style={{
-                                                    padding: '12px 12px',
-                                                    borderRadius: 14,
-                                                    border: `1px solid ${isCurrent ? '#7c3aed' : themeStyles.cardBorder}`,
-                                                    backgroundColor: isCurrent ? '#f5f3ff' : themeStyles.cardBg,
-                                                    display: 'flex',
-                                                    justifyContent: 'space-between',
-                                                    alignItems: 'flex-start',
-                                                    gap: 12,
-                                                    flexWrap: 'wrap',
-                                                }}
-                                            >
-                                                <div>
-                                                    <div style={{ fontWeight: 1000, color: themeStyles.text }}>
-                                                        {t.subject || '—'} {isCurrent ? <span style={{ marginLeft: 8, fontSize: 11, color: '#4c1d95', fontWeight: 1000 }}>Ongoing</span> : null}
+                                <>
+                                    {todayTimetable
+                                        .slice()
+                                        .sort((a, b) => String(a.start_time).localeCompare(String(b.start_time)))
+                                        .map((t) => {
+                                            const isCurrent = currentClass && currentClass.id === t.id;
+                                            return (
+                                                <div
+                                                    key={t.id}
+                                                    style={{
+                                                        padding: '16px',
+                                                        borderRadius: 16,
+                                                        border: `1px solid ${isCurrent ? colors.primary : themeStyles.cardBorder}`,
+                                                        backgroundColor: isCurrent ? (theme === 'dark' ? '#1e293b' : '#eff6ff') : themeStyles.cardBg,
+                                                        display: 'flex',
+                                                        justifyContent: 'space-between',
+                                                        alignItems: 'center',
+                                                        gap: 12,
+                                                        position: 'relative',
+                                                        transition: 'transform 0.2s',
+                                                        boxShadow: isCurrent ? '0 4px 12px rgba(37, 99, 235, 0.1)' : 'none',
+                                                    }}
+                                                >
+                                                    {isCurrent && (
+                                                        <div style={{ position: 'absolute', left: 0, top: '20%', bottom: '20%', width: 4, backgroundColor: colors.primary, borderRadius: '0 4px 4px 0' }}></div>
+                                                    )}
+                                                    <div style={{ flex: 1 }}>
+                                                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                                            <div style={{ fontWeight: 1000, color: isCurrent ? colors.primary : themeStyles.text, fontSize: 15 }}>
+                                                                {t.subject || '—'}
+                                                            </div>
+                                                            {isCurrent && (
+                                                                <span style={{ 
+                                                                    padding: '2px 8px', 
+                                                                    borderRadius: 99, 
+                                                                    backgroundColor: colors.primary, 
+                                                                    color: '#fff', 
+                                                                    fontSize: 10, 
+                                                                    fontWeight: 1000, 
+                                                                    textTransform: 'uppercase',
+                                                                    animation: 'pulse 2s infinite'
+                                                                }}>
+                                                                    Live Now
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                        <div style={{ marginTop: 4, color: themeStyles.muted, fontWeight: 900, fontSize: 13, display: 'flex', alignItems: 'center', gap: 6 }}>
+                                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                                                            {t.teacher_name || t.teacher || '—'}
+                                                        </div>
                                                     </div>
-                                                    <div style={{ marginTop: 4, color: themeStyles.muted, fontWeight: 900, fontSize: 12 }}>
-                                                        Teacher: {t.teacher_name || t.teacher || '—'}
+                                                    <div style={{ textAlign: 'right' }}>
+                                                        <div style={{ fontWeight: 1000, color: isCurrent ? colors.primary : themeStyles.text, fontSize: 14 }}>
+                                                            {t.start_time_display || t.start_time}
+                                                        </div>
+                                                        <div style={{ color: themeStyles.muted, fontWeight: 900, fontSize: 12 }}>
+                                                            to {t.end_time_display || t.end_time}
+                                                        </div>
                                                     </div>
                                                 </div>
-                                                <div style={{ color: themeStyles.muted, fontWeight: 900, fontSize: 12 }}>
-                                                    {t.start_time} - {t.end_time}
-                                                </div>
-                                            </div>
-                                        );
-                                    })
+                                            );
+                                        })}
+                                    <button
+                                        type="button"
+                                        onClick={() => navigate('/student/timetable')}
+                                        style={{
+                                            marginTop: 8,
+                                            width: '100%',
+                                            padding: '12px',
+                                            borderRadius: 14,
+                                            border: `1px solid ${themeStyles.cardBorder}`,
+                                            backgroundColor: 'transparent',
+                                            color: colors.primary,
+                                            cursor: 'pointer',
+                                            fontWeight: 1000,
+                                            fontSize: 13,
+                                            transition: 'all 0.2s',
+                                        }}
+                                        onMouseOver={(e) => e.target.style.backgroundColor = '#eff6ff'}
+                                        onMouseOut={(e) => e.target.style.backgroundColor = 'transparent'}
+                                    >
+                                        View Full Weekly Schedule
+                                    </button>
+                                </>
                             ) : (
-                                <div style={{ color: themeStyles.muted, fontWeight: 900, padding: 12 }}>Timetable not scheduled for today.</div>
+                                <div style={{ 
+                                    padding: '40px 20px', 
+                                    textAlign: 'center', 
+                                    color: themeStyles.muted, 
+                                    backgroundColor: theme === 'dark' ? '#0f172a' : '#f8fafc',
+                                    borderRadius: 20,
+                                    border: `2px dashed ${themeStyles.cardBorder}`
+                                }}>
+                                    <div style={{ fontSize: 40, marginBottom: 12 }}>🗓️</div>
+                                    <div style={{ fontWeight: 1000, color: themeStyles.text }}>No classes today</div>
+                                    <div style={{ fontSize: 13, fontWeight: 900, marginTop: 4 }}>Enjoy your time or check other days</div>
+                                    <button
+                                        type="button"
+                                        onClick={() => navigate('/student/timetable')}
+                                        style={{
+                                            marginTop: 16,
+                                            padding: '8px 20px',
+                                            borderRadius: 12,
+                                            backgroundColor: colors.primary,
+                                            color: '#fff',
+                                            border: 'none',
+                                            fontWeight: 1000,
+                                            cursor: 'pointer'
+                                        }}
+                                    >
+                                        Check Weekly Timetable
+                                    </button>
+                                </div>
                             )}
                         </div>
+
                     </Card>
                 </div>
 
@@ -1165,47 +1205,7 @@ export default function StudentDashboard() {
                     </Card>
                 </div>
 
-                <div style={{ gridColumn: 'span 12' }}>
-                    <Card style={{ ...cardStyle }}>
-                        <SectionHeader
-                            icon={
-                                <Icon>
-                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                        <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 7h18s-3 0-3-7" />
-                                        <path d="M13.73 21a2 2 0 0 1-3.46 0" />
-                                    </svg>
-                                </Icon>
-                            }
-                            title="Notifications Panel"
-                            subtitle="Alerts"
-                        />
-                        <div style={{ marginTop: 12, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 12 }}>
-                            {studentAlerts.length ? (
-                                studentAlerts.map((a, idx) => {
-                                    const isWarn = a.kind === 'warning';
-                                    return (
-                                        <div
-                                            key={`${a.title}-${idx}`}
-                                            style={{
-                                                border: `1px solid ${isWarn ? '#fecaca' : themeStyles.cardBorder}`,
-                                                backgroundColor: isWarn ? '#fff7ed' : themeStyles.cardBg,
-                                                borderRadius: 14,
-                                                padding: 12,
-                                            }}
-                                        >
-                                            <div style={{ fontWeight: 1000, color: isWarn ? colors.warnText : themeStyles.text }}>{a.title}</div>
-                                            <div style={{ marginTop: 6, color: themeStyles.muted, fontWeight: 800, fontSize: 13 }}>
-                                                {a.message}
-                                            </div>
-                                        </div>
-                                    );
-                                })
-                            ) : (
-                                <div style={{ color: themeStyles.muted, fontWeight: 900, padding: 12 }}>No alerts available.</div>
-                            )}
-                        </div>
-                    </Card>
-                </div>
+
             </div>
         </div>
     );

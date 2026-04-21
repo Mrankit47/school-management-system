@@ -44,6 +44,7 @@ import AdminClasses from '../pages/admin/Classes';
 import AdminSubjects from '../pages/admin/Subjects';
 import AssignTeacher from '../pages/admin/AssignTeacher';
 import AdminExams from '../pages/admin/Exams';
+import PublishResults from '../pages/admin/PublishResults';
 import AdminFees from '../pages/admin/Fees';
 import AdminFinanceCards from '../pages/admin/FinanceCards';
 import AdminHolidays from '../pages/admin/Holidays';
@@ -55,6 +56,8 @@ import BulkImport from '../pages/admin/BulkImport';
 import SubjectDetails from '../pages/admin/SubjectDetails';
 import TimeTable from '../pages/common/TimeTable';
 import AdminSyllabus from '../pages/admin/Syllabus';
+import AdminMessaging from '../pages/admin/Messaging';
+
 
 import SaaSLanding from '../pages/SaaSLanding';
 import SuperAdminLogin from '../pages/superadmin/Login';
@@ -150,6 +153,7 @@ const AppRoutes = () => {
                 <Route path="subjects" element={<AdminSubjects />} />
                 <Route path="subjects/:subjectId" element={<SubjectDetails />} />
                 <Route path="exams" element={<AdminExams />} />
+                <Route path="publish-results" element={<PublishResults />} />
                 <Route path="announcements" element={<AdminAnnouncements />} />
                 <Route path="fees" element={<AdminFees />} />
                 <Route path="finance-cards" element={<AdminFinanceCards />} />
@@ -159,7 +163,9 @@ const AppRoutes = () => {
                 <Route path="bulk-import" element={<BulkImport />} />
                 <Route path="timetable" element={<TimeTable />} />
                 <Route path="syllabus" element={<AdminSyllabus />} />
+                <Route path="messaging" element={<AdminMessaging />} />
                 <Route path="gallery" element={<GalleryPage />} />
+
               </Routes>
             </ProtectedRoute>} />
 

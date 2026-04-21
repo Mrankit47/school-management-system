@@ -2,6 +2,23 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import api from '../../services/api';
 
+const colors = {
+    primary: '#2563eb',
+    primaryLight: '#eff6ff',
+    secondary: '#0f172a',
+    success: '#10b981',
+    successLight: '#ecfdf5',
+    warning: '#f59e0b',
+    warningLight: '#fffbeb',
+    danger: '#ef4444',
+    dangerLight: '#fef2f2',
+    border: '#e2e8f0',
+    text: '#1e293b',
+    textMuted: '#64748b',
+    white: '#ffffff',
+    bg: '#f8fafc',
+};
+
 function parseYmd(s) {
     if (!s) return null;
     const m = String(s).match(/^(\d{4})-(\d{2})-(\d{2})$/);
@@ -21,6 +38,7 @@ export default function StudentExams() {
     const [loading, setLoading] = useState(true);
 
     const loadSchedule = async (examId) => {
+        if (schedulesById[examId]) return; // Already loaded
         setLoadingSched((prev) => ({ ...prev, [examId]: true }));
         try {
             const res = await api.get(`academics/exams/${examId}/schedule/`);
@@ -72,103 +90,164 @@ export default function StudentExams() {
         const start = parseYmd(exam.start_date || exam.date);
         const end = parseYmd(exam.end_date || exam.start_date || exam.date);
         if (start && end) {
-            if (today < start) return { label: 'Upcoming', cls: 'bg-blue-100 text-blue-800' };
-            if (today > end) return { label: 'Finished', cls: 'bg-gray-100 text-gray-700' };
-            return { label: 'Ongoing', cls: 'bg-amber-100 text-amber-900' };
+            if (today < start) return { label: 'Upcoming', color: colors.primary, bg: colors.primaryLight };
+            if (today > end) return { label: 'Finished', color: colors.textMuted, bg: colors.border };
+            return { label: 'Ongoing', color: colors.warning, bg: colors.warningLight };
         }
-        return { label: exam.status || '—', cls: 'bg-slate-100 text-slate-700' };
+        return { label: exam.status || '—', color: colors.textMuted, bg: colors.bg };
     };
 
     if (loading) {
         return (
-            <div className="rounded-2xl border border-gray-200 bg-white p-8 text-center text-gray-500">Loading exams…</div>
+            <div style={{ padding: '40px', textAlign: 'center', color: colors.textMuted, fontWeight: 700 }}>
+                Synthesizing examination data...
+            </div>
         );
     }
 
     if (!exams.length) {
         return (
-            <div className="rounded-2xl border border-dashed border-gray-300 bg-gray-50 p-10 text-center">
-                <div className="text-3xl">📅</div>
-                <h1 className="mt-2 text-lg font-bold text-gray-900">No exams for your class</h1>
-                <p className="mt-1 text-sm text-gray-600">When your school schedules exams, they will appear here.</p>
+            <div style={{ padding: '60px 20px', textAlign: 'center', border: `2px dashed ${colors.border}`, borderRadius: '24px', backgroundColor: colors.bg }}>
+                <div style={{ fontSize: '48px', marginBottom: '16px' }}>📅</div>
+                <h1 style={{ fontSize: '24px', fontWeight: 1000, color: colors.secondary }}>No exams scheduled yet</h1>
+                <p style={{ color: colors.textMuted, marginTop: '8px', fontWeight: 700 }}>
+                    When your timetable is published, you'll see it here.
+                </p>
             </div>
         );
     }
 
     return (
-        <div className="mx-auto max-w-4xl space-y-4 pb-8">
-            <div>
-                <h1 className="text-2xl font-bold text-gray-900">My Exams</h1>
-                <p className="mt-1 text-sm text-gray-600">Upcoming and ongoing exams for your class — open a card to see subject-wise dates.</p>
+        <div style={{ padding: '20px', maxWidth: '900px', margin: '0 auto' }}>
+            <div style={{ marginBottom: '32px' }}>
+                <h1 style={{ fontSize: '36px', fontWeight: 1000, color: colors.secondary, letterSpacing: '-1px' }}>My Exams</h1>
+                <p style={{ color: colors.textMuted, marginTop: '6px', fontWeight: 700, fontSize: '15px' }}>
+                    View your upcoming assessments, dates, and subject-wise timetable.
+                </p>
             </div>
 
-            <div className="space-y-3">
+            <div style={{ display: 'grid', gap: '20px' }}>
                 {exams.map((e) => {
                     const chip = statusChip(e);
                     const isHi = highlightId && String(e.id) === String(highlightId);
+                    const isOpen = openExamIds[e.id];
+
                     return (
                         <div
                             key={e.id}
                             ref={isHi ? highlightRef : null}
-                            className={`rounded-2xl border bg-white p-4 shadow-sm transition-shadow ${
-                                isHi ? 'border-blue-400 ring-2 ring-blue-200' : 'border-gray-200 hover:shadow-md'
-                            }`}
+                            style={{
+                                backgroundColor: colors.white,
+                                borderRadius: '24px',
+                                border: `1px solid ${isHi ? colors.primary : colors.border}`,
+                                boxShadow: isHi ? `0 0 0 4px ${colors.primary}22` : '0 4px 6px -1px rgba(0,0,0,0.05)',
+                                overflow: 'hidden',
+                                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
+                            }}
                         >
-                            <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-                                <div>
-                                    <div className="flex flex-wrap items-center gap-2">
-                                        <h2 className="text-lg font-semibold text-gray-900">{e.name}</h2>
-                                        <span className={`rounded-full px-2 py-0.5 text-xs font-bold ${chip.cls}`}>{chip.label}</span>
+                            <div style={{ padding: '24px' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '16px', flexWrap: 'wrap' }}>
+                                    <div>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
+                                            <span style={{ 
+                                                fontSize: '10px', 
+                                                fontWeight: 1000, 
+                                                textTransform: 'uppercase', 
+                                                letterSpacing: '0.05em',
+                                                padding: '4px 10px',
+                                                borderRadius: '8px',
+                                                backgroundColor: chip.bg,
+                                                color: chip.color
+                                            }}>
+                                                {chip.label}
+                                            </span>
+                                            <span style={{ color: colors.textMuted, fontSize: '12px', fontWeight: 800 }}>{e.exam_type?.toUpperCase()}</span>
+                                        </div>
+                                        <h2 style={{ fontSize: '22px', fontWeight: 1000, color: colors.secondary, margin: 0 }}>{e.name}</h2>
+                                        <div style={{ display: 'flex', gap: '16px', marginTop: '12px', flexWrap: 'wrap' }}>
+                                            <div style={{ fontSize: '13px', fontWeight: 700, color: colors.text, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                📅 {e.start_date} <span style={{ color: colors.textMuted }}>→</span> {e.end_date}
+                                            </div>
+                                            <div style={{ fontSize: '13px', fontWeight: 700, color: colors.text, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                📊 {e.total_marks} Total Marks
+                                            </div>
+                                        </div>
                                     </div>
-                                    <p className="mt-1 text-sm text-gray-600">
-                                        <span className="font-semibold text-gray-800">{e.exam_type}</span>
-                                        {e.class_section_display ? ` · ${e.class_section_display}` : null}
-                                    </p>
-                                    <p className="mt-1 text-sm text-gray-600">
-                                        {e.start_date && e.end_date ? (
-                                            <>
-                                                <span className="font-medium">Dates:</span> {e.start_date} → {e.end_date}
-                                            </>
-                                        ) : (
-                                            <span>{e.start_date || e.date || '—'}</span>
-                                        )}
-                                    </p>
-                                    {e.description ? <p className="mt-2 text-sm text-gray-500">{e.description}</p> : null}
+                                    <button
+                                        onClick={() => {
+                                            const next = !openExamIds[e.id];
+                                            setOpenExamIds(prev => ({ ...prev, [e.id]: next }));
+                                            if (next) loadSchedule(e.id);
+                                        }}
+                                        style={{
+                                            padding: '12px 20px',
+                                            borderRadius: '12px',
+                                            border: 'none',
+                                            backgroundColor: isOpen ? colors.secondary : colors.primary,
+                                            color: '#fff',
+                                            fontWeight: 900,
+                                            fontSize: '14px',
+                                            cursor: 'pointer',
+                                            transition: 'all 0.2s',
+                                            boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+                                        }}
+                                    >
+                                        {isOpen ? 'Hide Timetable' : 'View Timetable'}
+                                    </button>
                                 </div>
-                                <button
-                                    type="button"
-                                    onClick={() => {
-                                        const next = !openExamIds[e.id];
-                                        setOpenExamIds((prev) => ({ ...prev, [e.id]: next }));
-                                        if (next) loadSchedule(e.id);
-                                    }}
-                                    className="shrink-0 rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
-                                >
-                                    {openExamIds[e.id] ? 'Hide timetable' : 'Show timetable'}
-                                </button>
-                            </div>
 
-                            {openExamIds[e.id] ? (
-                                <div className="mt-4 rounded-xl border border-gray-100 bg-gray-50 p-3">
-                                    {loadingSched[e.id] ? (
-                                        <p className="text-sm text-gray-500">Loading schedule…</p>
-                                    ) : (schedulesById[e.id] || []).length === 0 ? (
-                                        <p className="text-sm text-gray-500">No subject slots added yet.</p>
-                                    ) : (
-                                        <ul className="divide-y divide-gray-200 rounded-lg border border-gray-200 bg-white">
-                                            {(schedulesById[e.id] || []).map((row) => (
-                                                <li key={row.id} className="flex flex-col gap-1 px-3 py-2 text-sm sm:flex-row sm:items-center sm:justify-between">
-                                                    <span className="font-semibold text-gray-900">{row.subject}</span>
-                                                    <span className="text-gray-600">
-                                                        {row.exam_date} · {row.start_time?.slice?.(0, 5) || row.start_time} –{' '}
-                                                        {row.end_time?.slice?.(0, 5) || row.end_time}
-                                                    </span>
-                                                </li>
-                                            ))}
-                                        </ul>
-                                    )}
-                                </div>
-                            ) : null}
+                                {e.description && (
+                                    <div style={{ 
+                                        marginTop: '20px', 
+                                        padding: '12px 16px', 
+                                        borderRadius: '16px', 
+                                        backgroundColor: colors.bg, 
+                                        fontSize: '13px', 
+                                        color: colors.textMuted,
+                                        fontWeight: 600,
+                                        lineHeight: '1.5',
+                                        borderLeft: `4px solid ${colors.primary}`
+                                    }}>
+                                        {e.description}
+                                    </div>
+                                )}
+
+                                {isOpen && (
+                                    <div style={{ marginTop: '24px', animation: 'slideIn 0.3s ease-out' }}>
+                                        <div style={{ fontSize: '15px', fontWeight: 1000, color: colors.secondary, marginBottom: '16px' }}>Subject-wise Schedule</div>
+                                        {loadingSched[e.id] ? (
+                                            <div style={{ padding: '20px', textAlign: 'center', color: colors.textMuted }}>Loading schedule...</div>
+                                        ) : (schedulesById[e.id] || []).length === 0 ? (
+                                            <div style={{ padding: '20px', textAlign: 'center', color: colors.textMuted, border: `1px dashed ${colors.border}`, borderRadius: '16px' }}>
+                                                Timetable details are not yet available.
+                                            </div>
+                                        ) : (
+                                            <div style={{ overflowX: 'auto', borderRadius: '16px', border: `1px solid ${colors.border}` }}>
+                                                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                                                    <thead>
+                                                        <tr style={{ backgroundColor: colors.bg }}>
+                                                            <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '12px', color: colors.textMuted, fontWeight: 800 }}>SUBJECT</th>
+                                                            <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '12px', color: colors.textMuted, fontWeight: 800 }}>DATE</th>
+                                                            <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '12px', color: colors.textMuted, fontWeight: 800 }}>TIME</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        {schedulesById[e.id].map((row) => (
+                                                            <tr key={row.id} style={{ borderTop: `1px solid ${colors.border}` }}>
+                                                                <td style={{ padding: '14px 16px', fontWeight: 900, color: colors.text }}>{row.subject}</td>
+                                                                <td style={{ padding: '14px 16px', fontWeight: 700, color: colors.text }}>{row.exam_date}</td>
+                                                                <td style={{ padding: '14px 16px', fontWeight: 700, color: colors.primary }}>
+                                                                    {row.start_time?.slice(0, 5)} – {row.end_time?.slice(0, 5)}
+                                                                </td>
+                                                            </tr>
+                                                        ))}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     );
                 })}

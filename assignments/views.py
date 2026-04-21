@@ -2,7 +2,8 @@ from rest_framework import status, views, permissions
 from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from .models import Assignment, Submission
-from .serializers import AssignmentSerializer, SubmissionSerializer
+from .serializers import AssignmentSerializer, SubmissionSerializer, SubmissionDetailSerializer
+
 from core.permissions import IsTeacher, IsStudent
 from students.models import StudentProfile
 from teachers.models import TeacherProfile
@@ -220,3 +221,23 @@ class StudentAssignmentSubmissionCreateView(views.APIView):
             },
             status=status.HTTP_201_CREATED,
         )
+
+class AssignmentSubmissionsListView(views.APIView):
+    """
+    Teacher can GET all submissions for a specific assignment they created.
+    """
+    permission_classes = [IsTeacher]
+
+    def get(self, request, assignment_id):
+        teacher_profile = TeacherProfile.objects.filter(user=request.user).first()
+        if not teacher_profile:
+            return Response({'error': 'Teacher profile not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        assignment = Assignment.objects.filter(id=assignment_id, created_by=teacher_profile).first()
+        if not assignment:
+            return Response({'error': 'Assignment not found or access denied'}, status=status.HTTP_404_NOT_FOUND)
+
+        submissions = Submission.objects.filter(assignment=assignment).select_related('student__user').order_by('-submission_date')
+        serializer = SubmissionDetailSerializer(submissions, many=True)
+        return Response(serializer.data)
+

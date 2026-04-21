@@ -142,6 +142,29 @@ class SubjectUpdateDeleteView(APIView):
         if teacher_ids is not None:
             teachers = TeacherProfile.objects.filter(user__school=school, id__in=teacher_ids)
             subject.teachers.set(teachers)
+            
+            # Dynamic Sync: Ensure TeacherAssignment records are updated for all sections of this class
+            # This ensures that changing a teacher on the Subject edit page reflects in the Teacher's access immediately.
+            from classes.models import ClassSection
+            sections = ClassSection.objects.filter(class_ref=subject.class_ref)
+            
+            # For each teacher selected, ensure they are assigned as 'Subject Teacher' for all sections if not already.
+            # (Simplification: if many teachers are assigned to a subject, they all get access to all sections of that class)
+            for teacher in teachers:
+                for section in sections:
+                    TeacherAssignment.objects.get_or_create(
+                        teacher=teacher,
+                        class_ref=subject.class_ref,
+                        section=section,
+                        subject=subject,
+                        defaults={'role': 'Subject Teacher'}
+                    )
+            
+            # Clean up old assignments for teachers NOT in the new list for this specific subject/class
+            TeacherAssignment.objects.filter(
+                class_ref=subject.class_ref,
+                subject=subject
+            ).exclude(teacher__id__in=teacher_ids).delete()
 
         subject.save()
         serializer = SubjectListSerializer(subject)

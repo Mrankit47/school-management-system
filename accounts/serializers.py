@@ -6,7 +6,8 @@ from .models import User
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ['id', 'username', 'email', 'name', 'role', 'phone', 'school']
+        fields = ['id', 'username', 'email', 'name', 'role', 'phone', 'school', 'profile_photo']
+
 
 
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
@@ -47,6 +48,8 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
             'role': 'superadmin' if user.is_superuser else user.role,
             'school_id': getattr(user.school, 'school_id', None),
             'school_name': getattr(user.school, 'name', None),
+            'profile_photo': request.build_absolute_uri(user.profile_photo.url) if user.profile_photo else None,
         }
+
 
         return data

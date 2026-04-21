@@ -7,10 +7,12 @@ from django.utils import timezone
 from rest_framework import status, views, permissions
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from rest_framework.response import Response
-from .models import Notification, Message
-from .serializers import NotificationSerializer, MessageSerializer
+from .models import Notification, Message, Conversation
+from .serializers import NotificationSerializer, MessageSerializer, ConversationSerializer
+
 from students.models import StudentProfile
 from teachers.models import TeacherProfile
+from core.permissions import IsTeacher, IsStudent, IsAdmin
 from classes.teacher_access import teacher_accessible_class_sections_queryset, teacher_user_ids_for_student_class_section
 from academics.models import Exam
 
@@ -309,3 +311,186 @@ class ConversationView(views.APIView):
 
         msg = serializer.save(sender=request.user, receiver_id=other_user_id, is_read=False)
         return Response(MessageSerializer(msg).data, status=status.HTTP_201_CREATED)
+
+class DoubtConversationListView(views.APIView):
+    """
+    List conversations.
+    - Students: see their own conversations.
+    - Teachers: see conversations with them (filterable by class_section_id).
+    - Admins: see all conversations.
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        if request.user.role == 'student':
+            qs = Conversation.objects.filter(student=request.user.student_profile)
+        elif request.user.role == 'teacher':
+            qs = Conversation.objects.filter(teacher=request.user.teacher_profile)
+            class_section_id = request.query_params.get('class_section_id')
+            if class_section_id:
+                qs = qs.filter(student__class_section_id=class_section_id)
+        elif request.user.role == 'admin' or request.user.is_superuser:
+            qs = Conversation.objects.all()
+            class_section_id = request.query_params.get('class_section_id')
+            if class_section_id:
+                qs = qs.filter(student__class_section_id=class_section_id)
+        else:
+            return Response({'error': 'Not allowed'}, status=status.HTTP_403_FORBIDDEN)
+
+        # Filters
+        subject = request.query_params.get('subject')
+        if subject:
+            qs = qs.filter(subject__icontains=subject)
+        
+        status_filter = request.query_params.get('status')
+        if status_filter == 'active':
+            qs = qs.filter(is_active=True)
+        elif status_filter == 'resolved':
+            qs = qs.filter(is_active=False)
+
+        qs = qs.order_by('-created_at')
+        serializer = ConversationSerializer(qs, many=True, context={'request': request})
+        return Response(serializer.data)
+
+    def post(self, request):
+        """
+        Student starts a new doubt conversation.
+        """
+        if request.user.role != 'student':
+            return Response({'error': 'Only students can start doubts'}, status=status.HTTP_403_FORBIDDEN)
+        
+        teacher_id = request.data.get('teacher_id')
+        subject = request.data.get('subject')
+        message_text = request.data.get('message')
+        attachment = request.FILES.get('attachment')
+
+        if not teacher_id:
+            return Response({'error': 'teacher_id is required'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            teacher_profile = TeacherProfile.objects.get(id=teacher_id)
+        except TeacherProfile.DoesNotExist:
+            return Response({'error': 'Teacher not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        conv = Conversation.objects.create(
+            student=request.user.student_profile,
+            teacher=teacher_profile,
+            subject=subject
+        )
+
+        if message_text or attachment:
+            Message.objects.create(
+                conversation=conv,
+                sender=request.user,
+                receiver=teacher_profile.user,
+                content=message_text,
+                attachment=attachment
+            )
+            
+            # Notify teacher
+            Notification.objects.create(
+                user=teacher_profile.user,
+                target_role='teacher',
+                title='New Doubt',
+                message=f'Student {request.user.name or request.user.username} sent a doubt: {subject or "No Subject"}'
+            )
+
+        return Response(ConversationSerializer(conv, context={'request': request}).data, status=status.HTTP_201_CREATED)
+
+class DoubtConversationDetailView(views.APIView):
+    permission_classes = [permissions.IsAuthenticated]
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
+
+    def get(self, request, conversation_id):
+        conv = Conversation.objects.filter(id=conversation_id).first()
+        if not conv:
+            return Response({'error': 'Conversation not found'}, status=status.HTTP_404_NOT_FOUND)
+        
+        # Check permission
+        if request.user.role == 'student' and conv.student.user_id != request.user.id:
+            return Response({'error': 'Access denied'}, status=status.HTTP_403_FORBIDDEN)
+        if request.user.role == 'teacher' and conv.teacher.user_id != request.user.id:
+            return Response({'error': 'Access denied'}, status=status.HTTP_403_FORBIDDEN)
+
+        messages = conv.messages.all().order_by('created_at')
+        
+        # Mark as read
+        conv.messages.filter(receiver=request.user, is_read=False).update(is_read=True)
+        
+        return Response({
+            'conversation': ConversationSerializer(conv, context={'request': request}).data,
+            'messages': MessageSerializer(messages, many=True).data
+        })
+
+    def post(self, request, conversation_id):
+        conv = Conversation.objects.filter(id=conversation_id).first()
+        if not conv:
+            return Response({'error': 'Conversation not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        content = request.data.get('content')
+        attachment = request.FILES.get('attachment')
+
+        if not content and not attachment:
+            return Response({'error': 'Content or attachment required'}, status=status.HTTP_400_BAD_REQUEST)
+
+        receiver = conv.teacher.user if request.user.role == 'student' else conv.student.user
+        
+        msg = Message.objects.create(
+            conversation=conv,
+            sender=request.user,
+            receiver=receiver,
+            content=content,
+            attachment=attachment
+        )
+
+        # Notify receiver
+        Notification.objects.create(
+            user=receiver,
+            target_role=receiver.role,
+            title='New Message' if request.user.role == 'teacher' else 'Student Reply',
+            message=f'New message in doubt chat: {conv.subject or "General"}'
+        )
+
+        return Response(MessageSerializer(msg).data, status=status.HTTP_201_CREATED)
+
+class MarkResolvedView(views.APIView):
+    permission_classes = [IsTeacher]
+
+    def post(self, request, conversation_id):
+        conv = Conversation.objects.filter(id=conversation_id, teacher=request.user.teacher_profile).first()
+        if not conv:
+            return Response({'error': 'Conversation not found'}, status=status.HTTP_404_NOT_FOUND)
+        
+        conv.is_active = False
+        conv.save()
+        return Response({'message': 'Conversation marked as resolved'})
+
+class DoubtMessageDetailView(views.APIView):
+    """
+    Handle Edit/Delete of individual messages in the Doubt system.
+    Only the sender of the message can perform these actions.
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    def patch(self, request, message_id):
+        msg = Message.objects.filter(id=message_id, sender=request.user).first()
+        if not msg:
+            return Response({'error': 'Message not found or you are not the sender'}, status=status.HTTP_404_NOT_FOUND)
+        
+        content = request.data.get('content')
+        if not content:
+            return Response({'error': 'Content is required to edit'}, status=status.HTTP_400_BAD_REQUEST)
+            
+        msg.content = content
+        msg.save()
+        return Response(MessageSerializer(msg).data)
+
+    def delete(self, request, message_id):
+        msg = Message.objects.filter(id=message_id, sender=request.user).first()
+        if not msg:
+            return Response({'error': 'Message not found or you are not the sender'}, status=status.HTTP_404_NOT_FOUND)
+        
+        msg.delete()
+        return Response({'message': 'Message deleted successfully'}, status=status.HTTP_200_OK)
+
+

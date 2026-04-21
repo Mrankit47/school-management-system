@@ -360,6 +360,10 @@ class StudentProfileView(views.APIView):
                 f"{s.class_section.class_ref.name} - {s.class_section.section_ref.name}"
                 if s.class_section else "N/A"
             ),
+            "class_section_display": (
+                f"{s.class_section.class_ref.name} - {s.class_section.section_ref.name}"
+                if s.class_section else None
+            ),
             "section_name": s.class_section.section_ref.name if s.class_section else "N/A",
             "class_ref_name": s.class_section.class_ref.name if s.class_section else "N/A",
             "date_of_admission": s.date_of_admission,
@@ -371,6 +375,7 @@ class StudentProfileView(views.APIView):
             "mother_contact": s.mother_contact,
             "bus_no": s.bus_no,
             "address": s.address,
+            "blood_group": s.blood_group,
             "photo_url": photo_url,
             "has_photo": has_photo,
         })

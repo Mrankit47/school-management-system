@@ -30,6 +30,34 @@ class UserProfileView(views.APIView):
         serializer = UserSerializer(request.user)
         return Response(serializer.data)
 
+from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
+
+class UpdateProfileView(views.APIView):
+    """
+    PATCH or PUT to update user details (name, phone, profile_photo).
+    """
+    permission_classes = [permissions.IsAuthenticated]
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
+
+
+    def patch(self, request):
+        user = request.user
+        
+        # Handle 'delete_photo' flag
+        if request.data.get('delete_photo') == 'true':
+            if user.profile_photo:
+                user.profile_photo.delete(save=False)
+            user.profile_photo = None
+            user.save()
+            return Response(UserSerializer(user).data)
+
+        serializer = UserSerializer(user, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
 
 class ChangePasswordView(views.APIView):
     """

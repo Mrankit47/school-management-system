@@ -29,7 +29,6 @@ const AdminSubjects = () => {
         name: '',
         code: '',
         class_id: '',
-        teacher_ids: [],
         description: '',
         status: 'Active',
     });
@@ -60,7 +59,6 @@ const AdminSubjects = () => {
             name: '',
             code: '',
             class_id: classOptions[0]?.id || '',
-            teacher_ids: [],
             description: '',
             status: 'Active',
         });
@@ -73,7 +71,6 @@ const AdminSubjects = () => {
             name: s.name || '',
             code: s.code || '',
             class_id: s.class_ref?.id ? s.class_ref.id : s.class_ref || '',
-            teacher_ids: (s.teachers || []).map((t) => t.id),
             description: s.description || '',
             status: s.status || 'Active',
         });
@@ -136,7 +133,6 @@ const AdminSubjects = () => {
             name: form.name,
             code: form.code || null,
             class_id: form.class_id,
-            teacher_ids: form.teacher_ids,
             description: form.description || null,
             status: form.status,
         };
@@ -178,14 +174,12 @@ const AdminSubjects = () => {
                         <tr style={{ backgroundColor: '#f2f4f7' }}>
                             <th style={{ padding: '12px 10px', textAlign: 'left' }}>Subject</th>
                             <th style={{ padding: '12px 10px', textAlign: 'left' }}>Code</th>
-                            <th style={{ padding: '12px 10px', textAlign: 'left' }}>Teacher(s)</th>
                             <th style={{ padding: '12px 10px', textAlign: 'left' }}>Status</th>
                             <th style={{ padding: '12px 10px', textAlign: 'left' }}>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
                         {items.map((s) => {
-                            const teacherNames = (s.teachers || []).map((t) => t.name).filter(Boolean).join(', ') || 'N/A';
                             return (
                                 <tr key={s.id} style={{ borderTop: '1px solid #eef2f7' }}>
                                     <td style={{ padding: '12px 10px', fontWeight: 800 }}>
@@ -211,7 +205,6 @@ const AdminSubjects = () => {
                                         </div>
                                     </td>
                                     <td style={{ padding: '12px 10px' }}>{s.code || '-'}</td>
-                                    <td style={{ padding: '12px 10px', color: '#374151', fontSize: '13px' }}>{teacherNames}</td>
                                     <td style={{ padding: '12px 10px' }}>
                                         <span
                                             style={{
@@ -281,7 +274,7 @@ const AdminSubjects = () => {
                         })}
                         {items.length === 0 && (
                             <tr>
-                                <td style={{ padding: '16px 10px', color: '#6b7280' }} colSpan={5}>
+                                <td style={{ padding: '16px 10px', color: '#6b7280' }} colSpan={4}>
                                     No subjects found.
                                 </td>
                             </tr>
@@ -298,7 +291,7 @@ const AdminSubjects = () => {
                 <div>
                     <h1 style={{ margin: 0, fontSize: '32px', fontWeight: 1000, color: '#0f172a' }}>Subjects</h1>
                     <div style={{ color: '#6b7280', fontSize: '13px', marginTop: '6px' }}>
-                        Manage subjects class-wise and connect them with teachers.
+                        Manage subjects class-wise for each academic grade.
                     </div>
                 </div>
 
@@ -472,30 +465,6 @@ const AdminSubjects = () => {
                                 </div>
                             </div>
 
-                            <div>
-                                <div style={labelStyle}>Assigned Teacher(s)</div>
-                                <select
-                                    multiple
-                                    value={form.teacher_ids.map(String)}
-                                    onChange={(e) => {
-                                        const values = Array.from(e.target.selectedOptions).map((o) => Number(o.value));
-                                        setForm({ ...form, teacher_ids: values });
-                                    }}
-                                    style={{
-                                        ...inputStyle,
-                                        minHeight: '120px',
-                                    }}
-                                >
-                                    {teacherOptions.map((t) => (
-                                        <option key={t.id} value={t.id}>
-                                            {t.name || t.employee_id} ({t.subject_specialization || 'Teacher'})
-                                        </option>
-                                    ))}
-                                </select>
-                                <div style={{ marginTop: '6px', color: '#6b7280', fontSize: '12px' }}>
-                                    Tip: hold Ctrl (or Cmd) to select multiple teachers.
-                                </div>
-                            </div>
 
                             <div>
                                 <div style={labelStyle}>Description (optional)</div>
