@@ -17,10 +17,12 @@ from assignments.models import Assignment as AssignmentModel
 from attendance.models import Attendance as AttendanceModel
 from django.db import transaction
 import re
+from accounts.utils import get_unique_username
 
 
-def _next_employee_id():
-    existing = TeacherProfile.objects.values_list('employee_id', flat=True)
+
+def _next_employee_id(school):
+    existing = TeacherProfile.objects.filter(school=school).values_list('employee_id', flat=True)
     used = set()
     for eid in existing:
         match = re.match(r'^T(\d+)$', str(eid or '').strip().upper())
@@ -32,15 +34,11 @@ def _next_employee_id():
     return f"T{n:03d}"
 
 
+
 def _teacher_role_label(profile: TeacherProfile) -> str:
     has_class = ClassSection.objects.filter(class_teacher=profile).exists()
-    has_subjects = profile.subjects.exists() or TeacherAssignment.objects.filter(teacher=profile).exists()
-    if has_class and has_subjects:
-        return 'Class Teacher & Subject Teacher'
     if has_class:
         return 'Class Teacher'
-    if has_subjects:
-        return 'Subject Teacher'
     return 'Teacher'
 
 
@@ -50,7 +48,8 @@ def ensure_teacher_profile(user):
         return profile
     return TeacherProfile.objects.create(
         user=user,
-        employee_id=_next_employee_id(),
+        employee_id=_next_employee_id(user.school),
+
         subject_specialization='',
         status='Active',
     )
@@ -87,17 +86,21 @@ class TeacherProfileView(views.APIView):
                     }
                 )
 
-            subjects_assigned_qs = profile.subjects.select_related('class_ref').all().order_by('name')
+            # Strictly pull subjects from the TeacherAssignment model
+            from subjects.models import TeacherAssignment
+            assignments_qs = TeacherAssignment.objects.filter(teacher=profile).select_related('subject', 'class_ref').order_by('subject__name')
+            
             subjects_assigned = []
-            for s in subjects_assigned_qs:
-                subjects_assigned.append(
-                    {
-                        'id': s.id,
-                        'name': s.name,
-                        'code': s.code,
-                        'class_name': s.class_ref.name if s.class_ref else None,
-                    }
-                )
+            seen_subject_ids = set()
+            for ta in assignments_qs:
+                if ta.subject_id not in seen_subject_ids:
+                    subjects_assigned.append({
+                        'id': ta.subject.id,
+                        'name': ta.subject.name,
+                        'code': ta.subject.code,
+                        'class_name': ta.class_ref.name,
+                    })
+                    seen_subject_ids.add(ta.subject_id)
 
             role_label = _teacher_role_label(profile)
 
@@ -237,26 +240,36 @@ class TeacherIdCardPdfView(views.APIView):
         if not profile:
             return Response({'error': 'Teacher profile not found'}, status=status.HTTP_404_NOT_FOUND)
         role_label = _teacher_role_label(profile)
-        school_name = getattr(settings, 'SCHOOL_NAME', 'School Management System')
+        # Use the logged-in teacher's school branding for multi-school setups.
+        school_obj = getattr(request.user, 'school', None)
+        school_name = (
+            getattr(school_obj, 'name', None)
+            or getattr(settings, 'SCHOOL_NAME', 'School Management System')
+        )
         pdf_bytes = build_teacher_id_card_pdf(
             profile,
             school_name=school_name,
             role_label=role_label,
-            school_address=getattr(settings, 'SCHOOL_ADDRESS', ''),
+            school_address=(
+                getattr(school_obj, 'location', None)
+                or getattr(settings, 'SCHOOL_ADDRESS', '')
+            ),
             school_phone=getattr(settings, 'SCHOOL_PHONE', ''),
-            school_email=getattr(settings, 'SCHOOL_EMAIL', ''),
+            school_email=(
+                getattr(school_obj, 'contact_email', None)
+                or getattr(settings, 'SCHOOL_EMAIL', '')
+            ),
             school_website=getattr(settings, 'SCHOOL_WEBSITE', ''),
+            logo_path=school_obj.logo.path if school_obj and school_obj.logo and os.path.exists(school_obj.logo.path) else None,
+            hero_image_path=school_obj.hero_image.path if school_obj and school_obj.hero_image and os.path.exists(school_obj.hero_image.path) else None,
         )
 
-        filename = f"teacher-id-card-{profile.employee_id or profile.id}.pdf"
-        disposition = (request.query_params.get('disposition') or 'attachment').lower()
-        if disposition == 'inline':
-            disp = f'inline; filename="{filename}"'
-        else:
-            disp = f'attachment; filename="{filename}"'
-
+        prefix = profile.school.school_id if profile.school else 'NS'
+        full_id = f"{prefix}-{profile.employee_id}" if profile.employee_id else profile.id
+        filename = f"teacher-id-card-{full_id}.pdf"
         response = HttpResponse(pdf_bytes, content_type='application/pdf')
-        response['Content-Disposition'] = disp
+        # Teachers are allowed to view only, not download.
+        response['Content-Disposition'] = f'inline; filename="{filename}"'
         return response
 
 
@@ -270,7 +283,8 @@ class TeacherDocumentsView(views.APIView):
 
         return TeacherProfile.objects.create(
             user=user,
-            employee_id=_next_employee_id(),
+            employee_id=_next_employee_id(user.school),
+
             subject_specialization='',
             status='Active',
         )
@@ -318,9 +332,12 @@ class TeacherListView(views.APIView):
             {
                 "id": p.id,
                 "user_id": p.user.id,
-                "employee_id": p.employee_id,
+                "employee_id": f"{p.school.school_id if p.school else 'NS'}-{p.employee_id}",
                 "name": p.user.name or p.user.username,
+
+
                 "subject_specialization": p.subject_specialization,
+
                 "email": p.user.email,
                 "phone_number": p.phone_number,
                 "gender": p.gender,
@@ -351,9 +368,12 @@ class TeacherDetailView(views.APIView):
         return Response({
             "id": p.id,
             "user_id": p.user.id,
-            "employee_id": p.employee_id,
-            "name": name,
+            "employee_id": f"{p.school.school_id if p.school else 'NS'}-{p.employee_id}",
+            "name": p.user.name or p.user.username,
+
+
             "email": p.user.email,
+
             "subject_specialization": p.subject_specialization,
             "phone_number": p.phone_number,
             "gender": p.gender,
@@ -431,8 +451,14 @@ class TeacherUpdateView(views.APIView):
             return val if val != "" else None
 
         # Update TeacherProfile fields
-        p.employee_id = data.get('employee_id', p.employee_id)
+        raw_emp_id = data.get('employee_id')
+        if raw_emp_id:
+            if '-' in raw_emp_id:
+                raw_emp_id = raw_emp_id.split('-', 1)[1]
+            p.employee_id = raw_emp_id
+        
         p.subject_specialization = data.get('subject_specialization', p.subject_specialization)
+
 
         p.phone_number = data.get('phone_number', p.phone_number)
         p.gender = data.get('gender', p.gender)
@@ -452,20 +478,27 @@ class AdminTeacherCreateView(views.APIView):
     def post(self, request):
         data = request.data
         try:
-            # Check if email already exists
-            if User.objects.filter(email=data.get('email')).exists():
+            # Check if email already exists (only if provided)
+            email = data.get('email', '').strip() or None
+            if email and User.objects.filter(email=email).exists():
                 return Response({"error": "A user with this email already exists."}, status=status.HTTP_400_BAD_REQUEST)
 
             # Check if username already exists
-            if User.objects.filter(username=data.get('username')).exists():
-                return Response({"error": "A user with this username already exists."}, status=status.HTTP_400_BAD_REQUEST)
+            # (We will suffix it anyway, but we allow initial check to decide behavior)
+            # Actually, per requirement 4, we auto-adjust with incremental suffix.
+            # So we don't need this restrictive error check anymore.
+            pass
 
             # Check if employee_id already exists
             requested_employee_id = (data.get('employee_id') or '').strip().upper()
+            if requested_employee_id and '-' in requested_employee_id:
+                requested_employee_id = requested_employee_id.split('-', 1)[1]
+                
             if requested_employee_id and TeacherProfile.objects.filter(user__school=request.user.school, employee_id=requested_employee_id).exists():
                 return Response({"error": "A teacher with this Employee ID already exists."}, status=status.HTTP_400_BAD_REQUEST)
 
-            employee_id = requested_employee_id or _next_employee_id()
+            employee_id = requested_employee_id or _next_employee_id(request.user.school)
+
 
             school = request.user.school
             if not school and getattr(request.user, 'is_superuser', False):
@@ -473,8 +506,9 @@ class AdminTeacherCreateView(views.APIView):
                 school = School.objects.first()
 
             user = User.objects.create_user(
-                username=data['username'],
-                email=data['email'],
+                username=get_unique_username(data['username']),
+
+                email=email,
                 password=data['password'],
                 name=data.get('name', ''),
                 role='teacher',
@@ -500,3 +534,37 @@ class AdminTeacherCreateView(views.APIView):
             return Response({"message": "Teacher created successfully"}, status=status.HTTP_201_CREATED)
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+class TeacherListAllView(views.APIView):
+    """
+    Returns a simplified list of all teachers for selection in Doubts.
+    Accessible to Students, Admins, and Teachers.
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        school = request.user.school
+        qs = TeacherProfile.objects.select_related('user').filter(status='Active')
+        
+        if school and not request.user.is_superuser:
+            qs = qs.filter(user__school=school)
+            
+        profiles = qs.order_by('user__name')
+        
+        data = []
+        for p in profiles:
+            # Get subjects for this teacher
+            from subjects.models import TeacherAssignment
+            subjects_qs = TeacherAssignment.objects.filter(teacher=p).select_related('subject')
+            subjects_list = [{'id': s.subject.id, 'name': s.subject.name} for s in subjects_qs]
+            
+            data.append({
+                'id': p.id,
+                'user_name': p.user.name or p.user.username,
+
+                'subjects': subjects_list
+            })
+
+            
+        return Response(data)
+

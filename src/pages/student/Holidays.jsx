@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import api from '../../services/api';
+import { useStudent } from '../../context/StudentContext';
 
 const inputStyle = {
     width: '100%',
@@ -75,6 +76,7 @@ function toDateKey(date) {
 }
 
 const StudentHolidays = () => {
+    const { selectedStudentId } = useStudent();
     const [tab, setTab] = useState('calendar');
     const [loading, setLoading] = useState(false);
     const [holidays, setHolidays] = useState([]);
@@ -111,14 +113,14 @@ const StudentHolidays = () => {
             loadHolidays(params).catch(() => {});
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [tab, search, filterType, filterMonth, filterYear]);
+    }, [tab, search, filterType, filterMonth, filterYear, selectedStudentId]);
 
     useEffect(() => {
         if (tab === 'calendar') {
             loadHolidays({ month: calMonth, year: calYear }).catch(() => {});
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [tab, calMonth, calYear]);
+    }, [tab, calMonth, calYear, selectedStudentId]);
 
     const holidayByDay = useMemo(() => {
         const map = new Map();
@@ -165,46 +167,75 @@ const StudentHolidays = () => {
     };
 
     return (
-        <div style={{ padding: '20px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '16px', flexWrap: 'wrap' }}>
-                <div>
-                    <h1 style={{ margin: 0 }}>Holidays</h1>
-                    <p style={{ margin: '8px 0 0', color: '#6b7280', fontWeight: 800, fontSize: '13px' }}>
-                        Holidays for your class (calendar + list).
-                    </p>
-                </div>
+        <div style={{ padding: '24px', background: '#f8fafc', minHeight: 'calc(100vh - 60px)' }}>
+            <style>
+                {`
+                @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+                .animate-up { animation: fadeIn 0.4s ease forwards; }
+                `}
+            </style>
 
-                <div style={{ display: 'flex', gap: '10px' }}>
-                    <button
-                        type="button"
-                        onClick={() => setTab('list')}
-                        style={{
-                            padding: '10px 14px',
-                            borderRadius: '12px',
-                            border: '1px solid #e5e7eb',
-                            cursor: 'pointer',
-                            backgroundColor: tab === 'list' ? '#2563eb' : '#fff',
-                            color: tab === 'list' ? '#fff' : '#111827',
-                            fontWeight: 900,
-                        }}
-                    >
-                        Holiday List
-                    </button>
-                    <button
-                        type="button"
-                        onClick={() => setTab('calendar')}
-                        style={{
-                            padding: '10px 14px',
-                            borderRadius: '12px',
-                            border: '1px solid #e5e7eb',
-                            cursor: 'pointer',
-                            backgroundColor: tab === 'calendar' ? '#2563eb' : '#fff',
-                            color: tab === 'calendar' ? '#fff' : '#111827',
-                            fontWeight: 900,
-                        }}
-                    >
-                        Calendar View
-                    </button>
+            {/* Premium Header Card */}
+            <div className="animate-up" style={{ 
+                backgroundColor: '#fff', 
+                padding: '28px', 
+                borderRadius: '24px', 
+                marginBottom: '20px', 
+                boxShadow: '0 1px 12px rgba(16,24,40,0.08)',
+                border: '1px solid #e5e7eb',
+                background: 'linear-gradient(135deg, #fff 0%, #f8fafc 100%)',
+                position: 'relative',
+                overflow: 'hidden'
+            }}>
+                <div style={{ position: 'absolute', top: -30, right: -30, width: 200, height: 200, background: 'rgba(37, 99, 235, 0.03)', borderRadius: '50%', zIndex: 0 }}></div>
+                <div style={{ position: 'relative', zIndex: 1, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '20px', flexWrap: 'wrap' }}>
+                    <div>
+                        <h1 style={{ margin: 0, fontWeight: 1000, fontSize: '32px', letterSpacing: '-0.02em', background: 'linear-gradient(90deg, #1e293b 0%, #2563eb 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+                            Holidays
+                        </h1>
+                        <p style={{ margin: '8px 0 0', color: '#64748b', fontWeight: 900, fontSize: '15px' }}>
+                            View upcoming school holidays and public breaks for your class.
+                        </p>
+                    </div>
+
+                    <div style={{ display: 'flex', gap: '12px', background: '#f1f5f9', padding: '6px', borderRadius: '16px' }}>
+                        <button
+                            type="button"
+                            onClick={() => setTab('calendar')}
+                            style={{
+                                padding: '10px 20px',
+                                borderRadius: '12px',
+                                border: 'none',
+                                cursor: 'pointer',
+                                backgroundColor: tab === 'calendar' ? '#fff' : 'transparent',
+                                color: tab === 'calendar' ? '#2563eb' : '#64748b',
+                                fontWeight: 1000,
+                                fontSize: '14px',
+                                boxShadow: tab === 'calendar' ? '0 2px 8px rgba(0,0,0,0.05)' : 'none',
+                                transition: 'all 0.2s'
+                            }}
+                        >
+                            Calendar View
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setTab('list')}
+                            style={{
+                                padding: '10px 20px',
+                                borderRadius: '12px',
+                                border: 'none',
+                                cursor: 'pointer',
+                                backgroundColor: tab === 'list' ? '#fff' : 'transparent',
+                                color: tab === 'list' ? '#2563eb' : '#64748b',
+                                fontWeight: 1000,
+                                fontSize: '14px',
+                                boxShadow: tab === 'list' ? '0 2px 8px rgba(0,0,0,0.05)' : 'none',
+                                transition: 'all 0.2s'
+                            }}
+                        >
+                            Holiday List
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -260,7 +291,20 @@ const StudentHolidays = () => {
                                             <tr key={h.id} style={{ borderTop: '1px solid #eef2f7' }}>
                                                 <td style={{ padding: '12px 10px', fontWeight: 900 }}>{h.title}</td>
                                                 <td style={{ padding: '12px 10px', fontWeight: 800 }}>{formatDateRange(h)}</td>
-                                                <td style={{ padding: '12px 10px' }}>{h.type}</td>
+                                                <td style={{ padding: '12px 10px' }}>
+                                                    <span style={{ 
+                                                        padding: '4px 10px', 
+                                                        borderRadius: '8px', 
+                                                        fontSize: '11px', 
+                                                        fontWeight: 1000,
+                                                        backgroundColor: h.type === 'Public' ? '#ecfdf5' : h.type === 'School' ? '#eff6ff' : '#fefce8',
+                                                        color: h.type === 'Public' ? '#065f46' : h.type === 'School' ? '#1e40af' : '#854d0e',
+                                                        textTransform: 'uppercase',
+                                                        letterSpacing: '0.02em'
+                                                    }}>
+                                                        {h.type}
+                                                    </span>
+                                                </td>
                                             </tr>
                                         ))}
                                     </tbody>

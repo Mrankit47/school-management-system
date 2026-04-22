@@ -5,6 +5,20 @@ from datetime import time
 
 User = get_user_model()
 
+class Shift(models.Model):
+    school = models.ForeignKey('tenants.School', on_delete=models.CASCADE, null=True, blank=True, related_name='shifts')
+    name = models.CharField(max_length=50)
+    start_time = models.TimeField()
+    end_time = models.TimeField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ('school', 'name')
+
+    def __str__(self):
+        return f"{self.name} ({self.start_time.strftime('%I:%M %p')} - {self.end_time.strftime('%I:%M %p')})"
+
 class TimeTableEntry(models.Model):
     DAY_CHOICES = (
         (1, 'Monday'),
@@ -14,14 +28,12 @@ class TimeTableEntry(models.Model):
         (5, 'Friday'),
         (6, 'Saturday'),
     )
-    PERIOD_CHOICES = [
-        (1, '08:00 AM - 09:00 AM'),
-        (2, '09:00 AM - 10:00 AM'),
-        (3, '10:00 AM - 11:00 AM'),
-        (4, '12:00 PM - 01:00 PM'),
-        (5, '01:00 PM - 02:00 PM'),
-        (6, '02:00 PM - 03:00 PM'),
-    ]
+    SHIFT_MORNING = 'morning'
+    SHIFT_AFTERNOON = 'afternoon'
+    SHIFT_CHOICES = (
+        (SHIFT_MORNING, 'Morning Shift'),
+        (SHIFT_AFTERNOON, 'Afternoon Shift'),
+    )
 
     school = models.ForeignKey('tenants.School', on_delete=models.CASCADE, null=True, blank=True, related_name='timetable')
     class_name = models.CharField(max_length=50)
@@ -29,7 +41,11 @@ class TimeTableEntry(models.Model):
     subject = models.CharField(max_length=100)
     teacher = models.ForeignKey(User, on_delete=models.CASCADE, related_name='timetable_entries')
     day = models.IntegerField(choices=DAY_CHOICES)
-    period = models.IntegerField(choices=PERIOD_CHOICES, default=1)
+    # Kept for backward compatibility with existing API payloads.
+    period = models.IntegerField(default=1, null=True, blank=True)
+    shift = models.CharField(max_length=20, choices=SHIFT_CHOICES, default=SHIFT_MORNING)
+    shift_ref = models.ForeignKey(Shift, on_delete=models.CASCADE, related_name='entries', null=True, blank=True)
+    period_number = models.IntegerField(default=1)
     start_time = models.TimeField()
     end_time = models.TimeField()
     room = models.CharField(max_length=50)
@@ -37,10 +53,10 @@ class TimeTableEntry(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        ordering = ['day', 'period']
+        ordering = ['shift_ref', 'day', 'period_number']
         unique_together = [
-            ('school', 'class_name', 'section', 'day', 'period'),
-            ('school', 'teacher', 'day', 'period')
+            ('school', 'class_name', 'section', 'shift_ref', 'day', 'period_number'),
+            ('school', 'teacher', 'shift_ref', 'day', 'period_number'),
         ]
         indexes = [
             models.Index(fields=['teacher', 'day']),
@@ -48,21 +64,34 @@ class TimeTableEntry(models.Model):
         ]
 
     def clean(self):
-        if self.period > 6:
-            raise ValidationError("Period must be between 1 and 6.")
+        max_p = 6
+        if self.period_number < 1 or self.period_number > max_p:
+            raise ValidationError(f"Period number must be between 1 and {max_p}.")
 
     def save(self, *args, **kwargs):
-        # Auto-set times based on period
-        time_map = {
-            1: (time(8, 0), time(9, 0)),
-            2: (time(9, 0), time(10, 0)),
-            3: (time(10, 0), time(11, 0)),
-            4: (time(12, 0), time(13, 0)),
-            5: (time(13, 0), time(14, 0)),
-            6: (time(14, 0), time(15, 0)),
-        }
-        if getattr(self, 'period', None) in time_map:
-            self.start_time, self.end_time = time_map[self.period]
+        # Only auto-set if times are not provided or set to 00:00:00 (default)
+        # 6 lectures per shift: 3 before break + 3 after break.
+        if self.start_time == time(0, 0) and self.end_time == time(0, 0):
+            morning_map = {
+                1: (time(8, 0), time(8, 30)),
+                2: (time(8, 30), time(9, 0)),
+                3: (time(9, 0), time(9, 30)),
+                4: (time(10, 0), time(10, 30)),
+                5: (time(10, 30), time(11, 0)),
+                6: (time(11, 0), time(11, 30)),
+            }
+            afternoon_map = {
+                1: (time(13, 0), time(13, 30)),
+                2: (time(13, 30), time(14, 0)),
+                3: (time(14, 0), time(14, 30)),
+                4: (time(15, 0), time(15, 30)),
+                5: (time(15, 30), time(16, 0)),
+                6: (time(16, 0), time(16, 30)),
+            }
+            time_map = morning_map if self.shift == self.SHIFT_MORNING else afternoon_map
+            if getattr(self, 'period_number', None) in time_map:
+                self.start_time, self.end_time = time_map[self.period_number]
+                self.period = self.period_number
         
         self.full_clean()
         super().save(*args, **kwargs)

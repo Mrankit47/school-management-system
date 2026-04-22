@@ -4,16 +4,23 @@ import api from '../../services/api';
 const AssignTeacher = () => {
     const [classes, setClasses] = useState([]);
     const [subjects, setSubjects] = useState([]);
+    const [sections, setSections] = useState([]);
     const [teachers, setTeachers] = useState([]);
     const [assignments, setAssignments] = useState([]);
+    const [allSections, setAllSections] = useState([]); // Added for filtering
 
     const [classFilter, setClassFilter] = useState('all');
+    const [sectionFilter, setSectionFilter] = useState('all'); // Added for granular filtering
+    const [teacherFilter, setTeacherFilter] = useState('all');
     const [teacherSearch, setTeacherSearch] = useState('');
 
+    const [isModalOpen, setIsModalOpen] = useState(false);
     const [formData, setFormData] = useState({
         class_id: '',
+        section_id: '',
         subject_id: '',
         teacher_id: '',
+        role: 'Subject Teacher',
     });
     const [editingId, setEditingId] = useState(null);
     const [message, setMessage] = useState('');
@@ -41,12 +48,14 @@ const AssignTeacher = () => {
     };
 
     const fetchMeta = async () => {
-        const [classRes, teacherRes] = await Promise.all([
+        const [classRes, teacherRes, sectionsRes] = await Promise.all([
             api.get('classes/main-classes/'),
             api.get('teachers/'),
+            api.get('classes/admin-sections/'),
         ]);
         setClasses(classRes.data || []);
         setTeachers(teacherRes.data || []);
+        setAllSections(sectionsRes.data || []);
     };
 
     const fetchAssignments = async () => {
@@ -63,7 +72,31 @@ const AssignTeacher = () => {
         }
     };
 
-    const fetchSubjectsForClass = async (classId) => {
+    const filteredAssignments = useMemo(() => {
+        let list = [...assignments];
+        if (sectionFilter !== 'all') {
+            list = list.filter(a => String(a.section) === String(sectionFilter));
+        }
+        if (teacherFilter !== 'all') {
+            list = list.filter(a => String(a.teacher) === String(teacherFilter));
+        }
+        return list;
+    }, [assignments, sectionFilter, teacherFilter]);
+
+    const fetchSectionsForForm = async (classId) => {
+        if (!classId) {
+            setSections([]);
+            return;
+        }
+        try {
+            const res = await api.get('classes/admin-sections/', { params: { class_id: classId } });
+            setSections(res.data || []);
+        } catch (err) {
+            setSections([]);
+        }
+    };
+
+    const fetchSubjectsForForm = async (classId) => {
         if (!classId) {
             setSubjects([]);
             return;
@@ -86,24 +119,50 @@ const AssignTeacher = () => {
     }, [classFilter]);
 
     useEffect(() => {
-        fetchSubjectsForClass(formData.class_id);
-        setFormData((prev) => ({ ...prev, subject_id: '' }));
+        if (formData.class_id) {
+            fetchSubjectsForForm(formData.class_id);
+            fetchSectionsForForm(formData.class_id);
+        } else {
+            setSubjects([]);
+            setSections([]);
+        }
     }, [formData.class_id]);
 
     const filteredTeachers = useMemo(() => {
         const q = teacherSearch.trim().toLowerCase();
-        if (!q) return teachers;
-        return teachers.filter((t) => {
-            const name = (t.name || '').toLowerCase();
-            const emp = (t.employee_id || '').toLowerCase();
-            return name.includes(q) || emp.includes(q);
-        });
-    }, [teachers, teacherSearch]);
+        let list = [...teachers];
+        
+        if (q) {
+            list = list.filter((t) => {
+                const name = (t.name || '').toLowerCase();
+                const emp = (t.employee_id || '').toLowerCase();
+                const spec = (t.subject_specialization || '').toLowerCase();
+                return name.includes(q) || emp.includes(q) || spec.includes(q);
+            });
+        }
+
+        if (formData.subject_id) {
+            const selectedSubject = subjects.find(s => String(s.id) === String(formData.subject_id));
+            if (selectedSubject) {
+                const subName = selectedSubject.name.toLowerCase();
+                list.sort((a, b) => {
+                    const aMatch = (a.subject_specialization || '').toLowerCase().includes(subName);
+                    const bMatch = (b.subject_specialization || '').toLowerCase().includes(subName);
+                    if (aMatch && !bMatch) return -1;
+                    if (!aMatch && bMatch) return 1;
+                    return 0;
+                });
+            }
+        }
+
+        return list;
+    }, [teachers, teacherSearch, formData.subject_id, subjects]);
 
     const resetForm = () => {
-        setFormData({ class_id: '', subject_id: '', teacher_id: '' });
+        setFormData({ class_id: '', section_id: '', subject_id: '', teacher_id: '', role: 'Subject Teacher' });
         setEditingId(null);
         setTeacherSearch('');
+        setIsModalOpen(false);
     };
 
     const handleSubmit = async (e) => {
@@ -119,8 +178,10 @@ const AssignTeacher = () => {
         try {
             const payload = {
                 class_id: Number(formData.class_id),
+                section: formData.section_id ? Number(formData.section_id) : null,
                 subject_id: Number(formData.subject_id),
                 teacher_id: Number(formData.teacher_id),
+                role: formData.role,
             };
 
             if (editingId) {
@@ -143,11 +204,17 @@ const AssignTeacher = () => {
         setEditingId(row.id);
         setFormData({
             class_id: String(row.class_ref),
+            section_id: row.section ? String(row.section) : '',
             subject_id: String(row.subject),
             teacher_id: String(row.teacher),
+            role: row.role || 'Subject Teacher',
         });
-        setTeacherSearch(`${row.teacher_name || ''} ${row.employee_id || ''}`.trim());
-        await fetchSubjectsForClass(row.class_ref);
+        setTeacherSearch(`${row.teacher_name || ''}`.trim());
+        await Promise.all([
+            fetchSubjectsForForm(row.class_ref),
+            fetchSectionsForForm(row.class_ref)
+        ]);
+        setIsModalOpen(true);
     };
 
     const deleteAssignment = async (id) => {
@@ -164,203 +231,146 @@ const AssignTeacher = () => {
 
     return (
         <div style={{ padding: '20px' }}>
-            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px' }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px', flexWrap: 'wrap' }}>
                 <div>
-                    <h1 style={{ margin: 0, fontSize: '32px', fontWeight: 1000, color: '#0f172a' }}>Assign Teacher to Class</h1>
-                    <div style={{ color: '#6b7280', marginTop: '6px', fontSize: '13px' }}>
-                        Link teacher with class and subject in one place.
+                    <h1 style={{ margin: 0, fontSize: '32px', fontWeight: 1000, color: '#0f172a' }}>Teacher Assignments</h1>
+                    <div style={{ color: '#6b7280', marginTop: '6px', fontSize: '13px', fontWeight: 700 }}>
+                        Manage which teachers are responsible for which subjects and classes.
                     </div>
                 </div>
+                <button
+                    onClick={() => { resetForm(); setIsModalOpen(true); }}
+                    style={{
+                        padding: '12px 20px',
+                        borderRadius: '12px',
+                        border: 'none',
+                        backgroundColor: '#2563eb',
+                        color: '#fff',
+                        fontWeight: 900,
+                        cursor: 'pointer',
+                        boxShadow: '0 4px 12px rgba(37, 99, 235, 0.2)',
+                        transition: 'all 0.2s'
+                    }}
+                >
+                    + Add New Assignment
+                </button>
             </div>
 
-            <div
-                style={{
-                    marginTop: '18px',
-                    border: '1px solid #e5e7eb',
-                    borderRadius: '14px',
-                    backgroundColor: '#fff',
-                    padding: '16px',
-                    maxWidth: '760px',
-                }}
-            >
-                <form onSubmit={handleSubmit} style={{ display: 'grid', gap: '14px' }}>
-                    <div>
-                        <div style={labelStyle}>Class</div>
-                        <select
-                            value={formData.class_id}
-                            onChange={(e) => setFormData({ ...formData, class_id: e.target.value })}
-                            style={inputStyle}
-                            required
-                        >
-                            <option value="">-- Select Class --</option>
-                            {classes.map((c) => (
-                                <option key={c.id} value={c.id}>
-                                    {c.name}
-                                </option>
-                            ))}
-                        </select>
-                    </div>
-
-                    <div>
-                        <div style={labelStyle}>Subject</div>
-                        <select
-                            value={formData.subject_id}
-                            onChange={(e) => setFormData({ ...formData, subject_id: e.target.value })}
-                            style={inputStyle}
-                            required
-                            disabled={!formData.class_id}
-                        >
-                            <option value="">{formData.class_id ? '-- Select Subject --' : 'Select class first'}</option>
-                            {subjects.map((s) => (
-                                <option key={s.id} value={s.id}>
-                                    {s.name} {s.code ? `(${s.code})` : ''}
-                                </option>
-                            ))}
-                        </select>
-                    </div>
-
-                    <div>
-                        <div style={labelStyle}>Teacher (search by name or employee ID)</div>
-                        <input
-                            type="text"
-                            placeholder="Search teacher..."
-                            value={teacherSearch}
-                            onChange={(e) => setTeacherSearch(e.target.value)}
-                            style={{ ...inputStyle, marginBottom: '8px' }}
-                        />
-                        <select
-                            value={formData.teacher_id}
-                            onChange={(e) => setFormData({ ...formData, teacher_id: e.target.value })}
-                            style={inputStyle}
-                            required
-                        >
-                            <option value="">-- Select Teacher --</option>
-                            {filteredTeachers.map((t) => (
-                                <option key={t.id} value={t.id}>
-                                    {(t.name || 'Teacher')} ({t.employee_id})
-                                </option>
-                            ))}
-                        </select>
-                    </div>
-
-                    <div style={{ display: 'flex', gap: '10px' }}>
-                        <button
-                            type="submit"
-                            disabled={saving}
-                            style={{
-                                padding: '10px 16px',
-                                borderRadius: '10px',
-                                border: 'none',
-                                backgroundColor: '#1677e6',
-                                color: '#fff',
-                                fontWeight: 800,
-                                cursor: 'pointer',
-                                opacity: saving ? 0.7 : 1,
-                            }}
-                        >
-                            {saving ? 'Saving...' : editingId ? 'Update Assignment' : 'Assign'}
-                        </button>
-                        {editingId && (
-                            <button
-                                type="button"
-                                onClick={resetForm}
-                                style={{
-                                    padding: '10px 16px',
-                                    borderRadius: '10px',
-                                    border: '1px solid #d1d5db',
-                                    backgroundColor: '#fff',
-                                    color: '#111827',
-                                    fontWeight: 700,
-                                    cursor: 'pointer',
-                                }}
-                            >
-                                Cancel Edit
-                            </button>
-                        )}
-                    </div>
-                </form>
-                {message && (
-                    <p style={{ marginTop: '10px', color: message.startsWith('Error:') ? '#dc2626' : '#15803d', fontWeight: 600 }}>
-                        {message}
-                    </p>
-                )}
-            </div>
-
-            <div style={{ marginTop: '20px' }}>
-                <div style={{ display: 'grid', gridTemplateColumns: '260px 1fr', gap: '10px', marginBottom: '10px', maxWidth: '620px' }}>
-                    <div>
-                        <div style={labelStyle}>Filter by Class</div>
-                        <select value={classFilter} onChange={(e) => setClassFilter(e.target.value)} style={inputStyle}>
-                            <option value="all">All Classes</option>
-                            {classes.map((c) => (
-                                <option key={c.id} value={c.id}>
-                                    {c.name}
-                                </option>
-                            ))}
-                        </select>
-                    </div>
+            <div style={{ marginTop: '24px', display: 'flex', gap: '12px', alignItems: 'flex-end', flexWrap: 'wrap' }}>
+                <div style={{ minWidth: '220px' }}>
+                    <div style={labelStyle}>Filter by Class & Section</div>
+                    <select value={sectionFilter} onChange={(e) => setSectionFilter(e.target.value)} style={inputStyle}>
+                        <option value="all">All Classes & Sections</option>
+                        {allSections.map((s) => (
+                            <option key={s.id} value={s.id}>
+                                {s.class_name} - {s.section_name}
+                            </option>
+                        ))}
+                    </select>
                 </div>
+                <div style={{ minWidth: '220px' }}>
+                    <div style={labelStyle}>Filter by Teacher</div>
+                    <select value={teacherFilter} onChange={(e) => setTeacherFilter(e.target.value)} style={inputStyle}>
+                        <option value="all">All Teachers</option>
+                        {teachers.map((t) => (
+                            <option key={t.id} value={t.id}>
+                                {t.name} ({t.employee_id})
+                            </option>
+                        ))}
+                    </select>
+                </div>
+                <button
+                    onClick={() => { setClassFilter('all'); setSectionFilter('all'); setTeacherFilter('all'); }}
+                    style={{
+                        padding: '10px 16px',
+                        borderRadius: '10px',
+                        border: '1px solid #e5e7eb',
+                        backgroundColor: '#fff',
+                        color: '#374151',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        height: '42px'
+                    }}
+                >
+                    Reset Filters
+                </button>
+            </div>
 
+            {message && (
+                <div style={{ 
+                    marginTop: '20px', 
+                    padding: '12px 16px', 
+                    borderRadius: '10px', 
+                    backgroundColor: message.startsWith('Error:') ? '#fef2f2' : '#f0fdf4',
+                    color: message.startsWith('Error:') ? '#991b1b' : '#166534',
+                    border: `1px solid ${message.startsWith('Error:') ? '#fecaca' : '#bbf7d0'}`,
+                    fontWeight: 700,
+                    fontSize: '13px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    maxWidth: 'fit-content'
+                }}>
+                    <span>{message.startsWith('Error:') ? '⚠️' : '✅'}</span>
+                    {message}
+                </div>
+            )}
+
+            <div style={{ marginTop: '20px', backgroundColor: '#fff', borderRadius: '16px', border: '1px solid #e5e7eb', overflow: 'hidden' }}>
                 <div style={{ overflowX: 'auto' }}>
-                    <table style={{ width: '100%', borderCollapse: 'collapse', backgroundColor: '#fff', border: '1px solid #e5e7eb' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                         <thead>
-                            <tr style={{ backgroundColor: '#f8fafc' }}>
-                                <th style={{ padding: '12px 10px', textAlign: 'left' }}>Class</th>
-                                <th style={{ padding: '12px 10px', textAlign: 'left' }}>Subject</th>
-                                <th style={{ padding: '12px 10px', textAlign: 'left' }}>Teacher</th>
-                                <th style={{ padding: '12px 10px', textAlign: 'left' }}>Employee ID</th>
-                                <th style={{ padding: '12px 10px', textAlign: 'left' }}>Actions</th>
+                            <tr style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #e5e7eb' }}>
+                                <th style={{ padding: '16px 20px', textAlign: 'left', fontSize: '13px', color: '#64748b' }}>Class & Section</th>
+                                <th style={{ padding: '16px 20px', textAlign: 'left', fontSize: '13px', color: '#64748b' }}>Subject</th>
+                                <th style={{ padding: '16px 20px', textAlign: 'left', fontSize: '13px', color: '#64748b' }}>Teacher</th>
+                                <th style={{ padding: '16px 20px', textAlign: 'left', fontSize: '13px', color: '#64748b' }}>Role</th>
+                                <th style={{ padding: '16px 20px', textAlign: 'right', fontSize: '13px', color: '#64748b' }}>Actions</th>
                             </tr>
                         </thead>
                         <tbody>
                             {loading ? (
-                                <tr>
-                                    <td colSpan={5} style={{ padding: '14px 10px', color: '#6b7280' }}>
-                                        Loading assignments...
-                                    </td>
-                                </tr>
-                            ) : assignments.length === 0 ? (
-                                <tr>
-                                    <td colSpan={5} style={{ padding: '14px 10px', color: '#6b7280' }}>
-                                        No assignments found.
-                                    </td>
-                                </tr>
+                                <tr><td colSpan={5} style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>Loading assignments...</td></tr>
+                            ) : filteredAssignments.length === 0 ? (
+                                <tr><td colSpan={5} style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>No assignments found for the selected filters.</td></tr>
                             ) : (
-                                assignments.map((row) => (
-                                    <tr key={row.id} style={{ borderTop: '1px solid #eef2f7' }}>
-                                        <td style={{ padding: '12px 10px' }}>{row.class_name}</td>
-                                        <td style={{ padding: '12px 10px' }}>{row.subject_name}</td>
-                                        <td style={{ padding: '12px 10px' }}>{row.teacher_name}</td>
-                                        <td style={{ padding: '12px 10px' }}>{row.employee_id}</td>
-                                        <td style={{ padding: '12px 10px' }}>
-                                            <div style={{ display: 'flex', gap: '8px' }}>
+                                filteredAssignments.map((row) => (
+                                    <tr key={row.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                                        <td style={{ padding: '16px 20px' }}>
+                                            <div style={{ fontWeight: 800, color: '#1e293b' }}>{row.class_name}</div>
+                                            <div style={{ fontSize: '12px', color: '#64748b' }}>{row.section_name || 'All Sections'}</div>
+                                        </td>
+                                        <td style={{ padding: '16px 20px' }}>
+                                            <div style={{ fontWeight: 700, color: '#334155' }}>{row.subject_name}</div>
+                                        </td>
+                                        <td style={{ padding: '16px 20px' }}>
+                                            <div style={{ fontWeight: 700, color: '#334155' }}>{row.teacher_name}</div>
+                                            <div style={{ fontSize: '11px', color: '#94a3b8' }}>ID: {row.employee_id}</div>
+                                        </td>
+                                        <td style={{ padding: '16px 20px' }}>
+                                            <span style={{ 
+                                                padding: '4px 10px', 
+                                                borderRadius: '8px', 
+                                                fontSize: '11px',
+                                                fontWeight: 800,
+                                                backgroundColor: row.role === 'Class Teacher' ? '#dcfce7' : '#f1f5f9',
+                                                color: row.role === 'Class Teacher' ? '#166534' : '#475569',
+                                                textTransform: 'uppercase'
+                                            }}>
+                                                {row.role}
+                                            </span>
+                                        </td>
+                                        <td style={{ padding: '16px 20px', textAlign: 'right' }}>
+                                            <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
                                                 <button
-                                                    type="button"
                                                     onClick={() => startEdit(row)}
-                                                    style={{
-                                                        border: 'none',
-                                                        borderRadius: '999px',
-                                                        padding: '7px 12px',
-                                                        backgroundColor: '#16a34a',
-                                                        color: '#fff',
-                                                        fontWeight: 700,
-                                                        cursor: 'pointer',
-                                                    }}
+                                                    style={{ border: 'none', background: '#eff6ff', padding: '8px 16px', borderRadius: '8px', cursor: 'pointer', color: '#2563eb', fontWeight: 700 }}
                                                 >
                                                     Edit
                                                 </button>
                                                 <button
-                                                    type="button"
                                                     onClick={() => deleteAssignment(row.id)}
-                                                    style={{
-                                                        border: 'none',
-                                                        borderRadius: '999px',
-                                                        padding: '7px 12px',
-                                                        backgroundColor: '#ef4444',
-                                                        color: '#fff',
-                                                        fontWeight: 700,
-                                                        cursor: 'pointer',
-                                                    }}
+                                                    style={{ border: 'none', background: '#fef2f2', padding: '8px 16px', borderRadius: '8px', cursor: 'pointer', color: '#ef4444', fontWeight: 700 }}
                                                 >
                                                     Delete
                                                 </button>
@@ -373,6 +383,119 @@ const AssignTeacher = () => {
                     </table>
                 </div>
             </div>
+
+            {isModalOpen && (
+                <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(15, 23, 42, 0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }}>
+                    <div style={{ backgroundColor: '#fff', borderRadius: '20px', width: 'min(600px, 100%)', maxHeight: '90vh', overflowY: 'auto', padding: '24px', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                            <h2 style={{ margin: 0, fontSize: '20px', fontWeight: 800 }}>{editingId ? 'Edit Assignment' : 'New Teacher Assignment'}</h2>
+                            <button onClick={resetForm} style={{ background: 'none', border: 'none', fontSize: '24px', cursor: 'pointer', color: '#94a3b8' }}>×</button>
+                        </div>
+                        
+                        <form onSubmit={handleSubmit} style={{ display: 'grid', gap: '16px' }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                                <div>
+                                    <div style={labelStyle}>Class</div>
+                                    <select
+                                        value={formData.class_id}
+                                        onChange={(e) => setFormData({ ...formData, class_id: e.target.value })}
+                                        style={inputStyle}
+                                        required
+                                    >
+                                        <option value="">-- Select --</option>
+                                        {classes.map((c) => (<option key={c.id} value={c.id}>{c.name}</option>))}
+                                    </select>
+                                </div>
+                                <div>
+                                    <div style={labelStyle}>Section</div>
+                                    <select
+                                        value={formData.section_id}
+                                        onChange={(e) => setFormData({ ...formData, section_id: e.target.value })}
+                                        style={inputStyle}
+                                        disabled={!formData.class_id}
+                                    >
+                                        <option value="">-- All Sections --</option>
+                                        {sections.map((s) => (<option key={s.id} value={s.id}>{s.section_name}</option>))}
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div>
+                                <div style={labelStyle}>Subject</div>
+                                <select
+                                    value={formData.subject_id}
+                                    onChange={(e) => setFormData({ ...formData, subject_id: e.target.value })}
+                                    style={inputStyle}
+                                    required
+                                    disabled={!formData.class_id}
+                                >
+                                    <option value="">{formData.class_id ? '-- Select Subject --' : 'Select class first'}</option>
+                                    {subjects.map((s) => (<option key={s.id} value={s.id}>{s.name} {s.code ? `(${s.code})` : ''}</option>))}
+                                </select>
+                            </div>
+
+                            <div>
+                                <div style={labelStyle}>Teacher Search</div>
+                                <input
+                                    type="text"
+                                    placeholder="Search by name, ID or specialization..."
+                                    value={teacherSearch}
+                                    onChange={(e) => setTeacherSearch(e.target.value)}
+                                    style={{ ...inputStyle, marginBottom: '8px' }}
+                                />
+                                <div style={labelStyle}>Select Teacher</div>
+                                <select
+                                    value={formData.teacher_id}
+                                    onChange={(e) => setFormData({ ...formData, teacher_id: e.target.value })}
+                                    style={inputStyle}
+                                    required
+                                >
+                                    <option value="">-- Select Teacher --</option>
+                                    {filteredTeachers.map((t) => {
+                                        const selectedSubject = subjects.find(s => String(s.id) === String(formData.subject_id));
+                                        const isSpecialized = selectedSubject && (t.subject_specialization || '').toLowerCase().includes(selectedSubject.name.toLowerCase());
+                                        return (
+                                            <option key={t.id} value={t.id} style={{ fontWeight: isSpecialized ? 800 : 400 }}>
+                                                {t.name} ({t.employee_id}) {isSpecialized ? '★' : ''}
+                                            </option>
+                                        );
+                                    })}
+                                </select>
+                            </div>
+
+                            <div>
+                                <div style={labelStyle}>Assignment Role</div>
+                                <select
+                                    value={formData.role}
+                                    onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+                                    style={inputStyle}
+                                    required
+                                >
+                                    <option value="Subject Teacher">Subject Teacher</option>
+                                    <option value="Class Teacher">Class Teacher</option>
+                                </select>
+                            </div>
+
+                            <div style={{ display: 'flex', gap: '12px', marginTop: '10px' }}>
+                                <button
+                                    type="submit"
+                                    disabled={saving}
+                                    style={{ flex: 1, padding: '12px', borderRadius: '12px', border: 'none', backgroundColor: '#2563eb', color: '#fff', fontWeight: 900, cursor: 'pointer' }}
+                                >
+                                    {saving ? 'Saving...' : editingId ? 'Update Assignment' : 'Create Assignment'}
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={resetForm}
+                                    style={{ flex: 1, padding: '12px', borderRadius: '12px', border: '1px solid #e5e7eb', backgroundColor: '#fff', color: '#374151', fontWeight: 700, cursor: 'pointer' }}
+                                >
+                                    Cancel
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

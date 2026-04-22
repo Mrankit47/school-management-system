@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
+import { useStudent } from '../../context/StudentContext';
 
 const card = {
     border: '1px solid #e5e7eb',
@@ -11,6 +12,7 @@ const card = {
 
 const Profile = () => {
     const navigate = useNavigate();
+    const { selectedStudentId } = useStudent();
     const [profile, setProfile] = useState(null);
     const [assignments, setAssignments] = useState([]);
     const [submissions, setSubmissions] = useState([]);
@@ -23,6 +25,8 @@ const Profile = () => {
     const [idCardBusy, setIdCardBusy] = useState(false);
     const [fullPhotoOpen, setFullPhotoOpen] = useState(false);
     const fileInputRef = useRef(null);
+
+    const [schoolInfo, setSchoolInfo] = useState(null);
 
     useEffect(() => {
         if (!fullPhotoOpen) return;
@@ -42,7 +46,8 @@ const Profile = () => {
             api.get('assignments/my-submissions/'),
             api.get('attendance/my-attendance/'),
             api.get('fees/my/'),
-        ]).then(([profileRes, assignmentRes, submissionRes, attendanceRes, feesRes]) => {
+            api.get('tenants/common/school-info/'),
+        ]).then(([profileRes, assignmentRes, submissionRes, attendanceRes, feesRes, schoolRes]) => {
                 if (profileRes.status === 'fulfilled') {
                     setProfile(profileRes.value?.data || null);
                 } else {
@@ -73,18 +78,23 @@ const Profile = () => {
                     setFeeRecords([]);
                 }
 
+                if (schoolRes.status === 'fulfilled') {
+                    setSchoolInfo(schoolRes.value?.data || null);
+                }
+
                 if (
                     profileRes.status !== 'fulfilled' &&
                     assignmentRes.status !== 'fulfilled' &&
                     submissionRes.status !== 'fulfilled' &&
                     attendanceRes.status !== 'fulfilled' &&
-                    feesRes.status !== 'fulfilled'
+                    feesRes.status !== 'fulfilled' &&
+                    schoolRes.status !== 'fulfilled'
                 ) {
                     setError('Could not load student profile data.');
                 }
             })
             .finally(() => setLoading(false));
-    }, []);
+    }, [selectedStudentId]);
 
     const submissionMap = useMemo(() => {
         const m = new Map();
@@ -125,7 +135,7 @@ const Profile = () => {
     if (!profile) return <p style={{ padding: 20, color: '#b91c1c', fontWeight: 900 }}>Profile not found.</p>;
 
     const classDisplay = profile.class_name || profile.class_ref_name || 'N/A';
-    const fatherName = profile.parent_guardian_name || '—';
+    const fatherName = profile.father_name || '—';
     const motherName = profile.mother_name || '—';
     const photoInitial = (profile.name || 'S').slice(0, 1).toUpperCase();
 
@@ -224,169 +234,245 @@ const Profile = () => {
         }
     };
 
-    const downloadIdCardPdf = async () => {
-        setIdCardBusy(true);
-        setPhotoError('');
-        try {
-            const blob = await fetchStudentIdCardBlob('attachment');
-            const url = URL.createObjectURL(new Blob([blob], { type: 'application/pdf' }));
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `student-id-card-${profile.admission_number || profile.id || 'student'}.pdf`;
-            a.rel = 'noopener';
-            document.body.appendChild(a);
-            a.click();
-            a.remove();
-            URL.revokeObjectURL(url);
-        } catch (err) {
-            let msg = err?.response?.data?.error || 'Could not download ID card.';
-            if (err?.response?.data instanceof Blob) {
-                try {
-                    const t = await err.response.data.text();
-                    if (t) {
-                        try {
-                            const j = JSON.parse(t);
-                            msg = j.error || j.detail || msg;
-                        } catch {
-                            msg = t.length < 200 ? t : msg;
-                        }
-                    }
-                } catch {
-                    /* ignore */
-                }
-            }
-            setPhotoError(typeof msg === 'string' ? msg : 'Could not download ID card.');
-        } finally {
-            setIdCardBusy(false);
-        }
-    };
-
     return (
-        <div style={{ padding: 20, background: '#f8fafc', minHeight: 'calc(100vh - 60px)' }}>
-            <h1 style={{ marginTop: 0 }}>My Profile</h1>
+        <div style={{ padding: '24px', background: '#f8fafc', minHeight: 'calc(100vh - 60px)' }}>
+            <style>
+                {`
+                @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+                .animate-up { animation: fadeIn 0.4s ease forwards; }
+                `}
+            </style>
+
+            {/* Premium Header Card */}
+            <div className="animate-up" style={{ 
+                backgroundColor: '#fff', 
+                padding: '28px', 
+                borderRadius: '24px', 
+                marginBottom: '20px', 
+                boxShadow: '0 1px 12px rgba(16,24,40,0.08)',
+                border: '1px solid #e5e7eb',
+                background: 'linear-gradient(135deg, #fff 0%, #f8fafc 100%)',
+                position: 'relative',
+                overflow: 'hidden'
+            }}>
+                <div style={{ position: 'absolute', top: -30, right: -30, width: 200, height: 200, background: 'rgba(37, 99, 235, 0.03)', borderRadius: '50%', zIndex: 0 }}></div>
+                <div style={{ position: 'relative', zIndex: 1 }}>
+                    <h1 style={{ margin: 0, fontWeight: 1000, fontSize: '32px', letterSpacing: '-0.02em', background: 'linear-gradient(90deg, #1e293b 0%, #2563eb 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+                        My Profile
+                    </h1>
+                    <p style={{ margin: '8px 0 0', color: '#64748b', fontWeight: 900, fontSize: '15px' }}>
+                        Manage your student identity, view academic history, and track your progress.
+                    </p>
+                </div>
+            </div>
             {error ? <div style={{ color: '#b91c1c', fontWeight: 900, marginBottom: 12 }}>{error}</div> : null}
 
-            <div style={{ ...card, marginBottom: 14 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
-                    {profile.photo_url ? (
-                        <button
-                            type="button"
-                            onClick={() => setFullPhotoOpen(true)}
-                            title="Poora photo dekhen"
-                            aria-label="Poora profile photo dekhen"
-                            style={{
-                                padding: 0,
-                                border: '1px solid #e5e7eb',
-                                borderRadius: '50%',
-                                cursor: 'pointer',
-                                background: 'none',
-                                flexShrink: 0,
-                                overflow: 'hidden',
-                            }}
-                        >
-                            <img
-                                src={profile.photo_url}
-                                alt=""
-                                style={{
-                                    width: 72,
-                                    height: 72,
-                                    display: 'block',
-                                    objectFit: 'cover',
-                                }}
-                            />
-                        </button>
-                    ) : (
-                        <div
-                            style={{
-                                width: 72,
-                                height: 72,
-                                borderRadius: '50%',
-                                background: '#dbeafe',
-                                color: '#1d4ed8',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                fontWeight: 1000,
-                                fontSize: 28,
-                            }}
-                        >
-                            {photoInitial}
-                        </div>
-                    )}
-                    <div style={{ flex: '1 1 200px' }}>
-                        <div style={{ fontWeight: 1000, fontSize: 20 }}>{profile.name || 'Student'}</div>
-                        <div style={{ marginTop: 4, color: '#6b7280', fontWeight: 900, fontSize: 13 }}>
-                            Admission: {profile.admission_number || '—'} | {classDisplay}
-                        </div>
-                    </div>
-                </div>
-                <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/jpeg,image/png,image/webp,image/gif,.jpg,.jpeg,.png,.webp,.gif"
-                    style={{ display: 'none' }}
-                    onChange={onPhotoSelected}
-                />
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 12, alignItems: 'center' }}>
-                    <button
-                        type="button"
-                        onClick={pickPhoto}
-                        disabled={photoBusy}
-                        style={{
-                            padding: '8px 14px',
-                            borderRadius: 10,
-                            border: '1px solid #2563eb',
-                            background: '#eff6ff',
-                            color: '#1d4ed8',
-                            fontWeight: 900,
-                            cursor: photoBusy ? 'not-allowed' : 'pointer',
-                            fontSize: 13,
-                        }}
-                    >
-                        {photoBusy ? 'Please wait…' : 'Upload photo'}
-                    </button>
-                    {(profile.has_photo || profile.photo_url) && (
-                        <>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(12, minmax(0, 1fr))', gap: 12, marginBottom: 14 }}>
+                {/* Left: Profile Upload & Info */}
+                <div style={{ ...card, gridColumn: 'span 7' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
+                        {profile.photo_url ? (
                             <button
                                 type="button"
                                 onClick={() => setFullPhotoOpen(true)}
-                                disabled={photoBusy}
+                                title="Poora photo dekhen"
+                                aria-label="Poora profile photo dekhen"
                                 style={{
-                                    padding: '8px 14px',
-                                    borderRadius: 10,
-                                    border: '1px solid #0ea5e9',
-                                    background: '#f0f9ff',
-                                    color: '#0369a1',
-                                    fontWeight: 900,
-                                    cursor: photoBusy ? 'not-allowed' : 'pointer',
-                                    fontSize: 13,
-                                }}
-                            >
-                                View full photo
-                            </button>
-                            <button
-                                type="button"
-                                onClick={removePhoto}
-                                disabled={photoBusy}
-                                style={{
-                                    padding: '8px 14px',
-                                    borderRadius: 10,
+                                    padding: 0,
                                     border: '1px solid #e5e7eb',
-                                    background: '#fff',
-                                    color: '#64748b',
-                                    fontWeight: 900,
-                                    cursor: photoBusy ? 'not-allowed' : 'pointer',
-                                    fontSize: 13,
+                                    borderRadius: '50%',
+                                    cursor: 'pointer',
+                                    background: 'none',
+                                    flexShrink: 0,
+                                    overflow: 'hidden',
                                 }}
                             >
-                                Remove photo
+                                <img
+                                    src={profile.photo_url}
+                                    alt=""
+                                    style={{
+                                        width: 72,
+                                        height: 72,
+                                        display: 'block',
+                                        objectFit: 'cover',
+                                    }}
+                                />
                             </button>
-                        </>
-                    )}
+                        ) : (
+                            <div
+                                style={{
+                                    width: 72,
+                                    height: 72,
+                                    borderRadius: '50%',
+                                    background: '#dbeafe',
+                                    color: '#1d4ed8',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    fontWeight: 1000,
+                                    fontSize: 28,
+                                }}
+                            >
+                                {photoInitial}
+                            </div>
+                        )}
+                        <div style={{ flex: '1 1 200px' }}>
+                            <div style={{ fontWeight: 1000, fontSize: 20 }}>{profile.name || 'Student'}</div>
+                            <div style={{ marginTop: 4, color: '#6b7280', fontWeight: 900, fontSize: 13 }}>
+                                Admission: {profile.admission_number || '—'} | {classDisplay}
+                            </div>
+                        </div>
+                    </div>
+                    <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp,image/gif,.jpg,.jpeg,.png,.webp,.gif"
+                        style={{ display: 'none' }}
+                        onChange={onPhotoSelected}
+                    />
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 12, alignItems: 'center' }}>
+                        <button
+                            type="button"
+                            onClick={pickPhoto}
+                            disabled={photoBusy}
+                            style={{
+                                padding: '8px 14px',
+                                borderRadius: 10,
+                                border: '1px solid #2563eb',
+                                background: '#eff6ff',
+                                color: '#1d4ed8',
+                                fontWeight: 900,
+                                cursor: photoBusy ? 'not-allowed' : 'pointer',
+                                fontSize: 13,
+                            }}
+                        >
+                            {photoBusy ? 'Please wait…' : 'Upload photo'}
+                        </button>
+                        {(profile.has_photo || profile.photo_url) && (
+                            <>
+                                <button
+                                    type="button"
+                                    onClick={() => setFullPhotoOpen(true)}
+                                    disabled={photoBusy}
+                                    style={{
+                                        padding: '8px 14px',
+                                        borderRadius: 10,
+                                        border: '1px solid #0ea5e9',
+                                        background: '#f0f9ff',
+                                        color: '#0369a1',
+                                        fontWeight: 900,
+                                        cursor: photoBusy ? 'not-allowed' : 'pointer',
+                                        fontSize: 13,
+                                    }}
+                                >
+                                    View full photo
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={removePhoto}
+                                    disabled={photoBusy}
+                                    style={{
+                                        padding: '8px 14px',
+                                        borderRadius: 10,
+                                        border: '1px solid #e5e7eb',
+                                        background: '#fff',
+                                        color: '#64748b',
+                                        fontWeight: 900,
+                                        cursor: photoBusy ? 'not-allowed' : 'pointer',
+                                        fontSize: 13,
+                                    }}
+                                >
+                                    Remove photo
+                                </button>
+                            </>
+                        )}
+                    </div>
+                    {photoError ? (
+                        <div style={{ marginTop: 8, color: '#b91c1c', fontWeight: 800, fontSize: 13 }}>{photoError}</div>
+                    ) : null}
                 </div>
-                {photoError ? (
-                    <div style={{ marginTop: 8, color: '#b91c1c', fontWeight: 800, fontSize: 13 }}>{photoError}</div>
-                ) : null}
+
+                {/* Right: ID Card Display */}
+                <div style={{ gridColumn: 'span 5', display: 'flex', flexDirection: 'column' }}>
+                    <div style={{ 
+                        width: '100%', 
+                        flex: 1,
+                        backgroundColor: '#fff',
+                        borderRadius: 20,
+                        border: '1px solid #e5e7eb',
+                        overflow: 'hidden',
+                        boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)',
+                        fontFamily: 'system-ui, -apple-system, sans-serif',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        position: 'relative'
+                    }}>
+                        {/* Background Hero Image Watermark */}
+                        {schoolInfo?.hero_image && (
+                            <div style={{
+                                position: 'absolute',
+                                inset: 0,
+                                backgroundImage: `url(${schoolInfo.hero_image})`,
+                                backgroundSize: 'cover',
+                                backgroundPosition: 'center',
+                                opacity: 0.1,
+                                zIndex: 0
+                            }} />
+                        )}
+
+                        <div style={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', height: '100%' }}>
+                            {/* ID Card Header */}
+                            <div style={{ 
+                                backgroundColor: '#ffcc00', 
+                                padding: '12px 16px', 
+                                display: 'flex', 
+                                alignItems: 'center', 
+                                justifyContent: 'center',
+                                gap: 10,
+                                borderBottom: '4px solid #0f172a',
+                                position: 'relative'
+                            }}>
+                                {schoolInfo?.logo && (
+                                    <img src={schoolInfo.logo} alt="Logo" style={{ width: 28, height: 28, objectFit: 'contain' }} />
+                                )}
+                                <h2 style={{ margin: 0, fontSize: 18, fontWeight: 900, color: '#0f172a', letterSpacing: '-0.02em', textAlign: 'center' }}>
+                                    {schoolInfo?.name || 'Standard Public School'}
+                                </h2>
+                            </div>
+
+                            <div style={{ padding: 14, display: 'flex', gap: 14, flex: 1, alignItems: 'center' }}>
+                                <div style={{ flex: 1 }}>
+                                    <div style={{ display: 'grid', gap: 4, marginTop: 4 }}>
+                                        {[
+                                            { label: 'Name', value: profile.name },
+                                            { label: 'Adm No', value: profile.admission_number },
+                                            { label: 'Roll No', value: profile.roll_number || '—' },
+                                            { label: 'Class', value: profile.class_section_display || classDisplay },
+                                            { label: 'Father', value: fatherName },
+                                            { label: 'Blood Group', value: profile.blood_group || '—' },
+                                            { label: 'Phone', value: profile.phone || profile.father_contact || '—' },
+                                            { label: 'Address', value: profile.address || '—' },
+                                        ].map((item, idx) => (
+                                            <div key={idx} style={{ display: 'flex', gap: 6, fontSize: 10 }}>
+                                                <span style={{ fontWeight: 800, color: '#64748b', minWidth: 80 }}>{item.label}:</span>
+                                                <span style={{ fontWeight: 700, color: '#1e293b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.value}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                                <div style={{ width: 80, height: 100, border: '1px solid #e2e8f0', borderRadius: 10, backgroundColor: '#f8fafc', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
+                                    {profile.photo_url ? (
+                                        <img src={profile.photo_url} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                    ) : (
+                                        <div style={{ fontSize: 28, fontWeight: 900, color: '#e2e8f0' }}>{photoInitial}</div>
+                                    )}
+                                </div>
+                            </div>
+                            
+                            <div style={{ height: 6, background: 'linear-gradient(90deg, #2563eb, #ffcc00)' }}></div>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             {fullPhotoOpen && profile.photo_url ? (
@@ -429,7 +515,7 @@ const Profile = () => {
                                 fontWeight: 700,
                                 color: '#334155',
                             }}
-                            aria-label="Band karein"
+                            aria-label="Close"
                         >
                             ×
                         </button>
@@ -456,7 +542,7 @@ const Profile = () => {
                                 fontWeight: 600,
                             }}
                         >
-                            Background par click karke ya Esc dabakar band karein
+                            Click the background or press Esc to close.
                         </p>
                     </div>
                 </div>
@@ -473,7 +559,8 @@ const Profile = () => {
                         <div><strong>Date of Birth:</strong> {profile.dob || '—'}</div>
                         <div><strong>Date of Admission:</strong> {profile.date_of_admission || '—'}</div>
                         <div><strong>Email:</strong> {profile.email || '—'}</div>
-                        <div><strong>Phone Number:</strong> {profile.phone || profile.parent_contact_number || '—'}</div>
+                        <div><strong>Phone Number:</strong> {profile.phone || profile.father_contact || '—'}</div>
+                        <div><strong>Bus No.:</strong> {profile.bus_no || 'N/A'}</div>
                     </div>
                 </div>
 
@@ -500,32 +587,16 @@ const Profile = () => {
                         >
                             {idCardBusy ? 'Preparing…' : 'View ID Card (PDF)'}
                         </button>
-                        <button
-                            type="button"
-                            onClick={downloadIdCardPdf}
-                            disabled={idCardBusy}
-                            style={{
-                                padding: '10px 12px',
-                                borderRadius: 10,
-                                border: 'none',
-                                background: '#fee2e2',
-                                color: '#991b1b',
-                                fontWeight: 900,
-                                cursor: idCardBusy ? 'not-allowed' : 'pointer',
-                                opacity: idCardBusy ? 0.75 : 1,
-                            }}
-                        >
-                            {idCardBusy ? 'Preparing…' : 'Download ID Card'}
-                        </button>
                     </div>
                 </div>
 
                 <div style={{ ...card, gridColumn: 'span 6' }}>
                     <div style={{ fontWeight: 1000, marginBottom: 10 }}>Parent Details</div>
                     <div style={{ display: 'grid', gap: 8 }}>
-                        <div><strong>Father Name:</strong> {fatherName}</div>
-                        <div><strong>Mother Name:</strong> {motherName}</div>
-                        <div><strong>Parent Contact Number:</strong> {profile.parent_contact_number || '—'}</div>
+                        <div><strong>Father's Name:</strong> {fatherName}</div>
+                        <div><strong>Mother's Name:</strong> {motherName}</div>
+                        <div><strong>Father's Contact:</strong> {profile.father_contact || '—'}</div>
+                        <div><strong>Mother's Contact:</strong> {profile.mother_contact || '—'}</div>
                         <div><strong>Address:</strong> {profile.address || '—'}</div>
                     </div>
                 </div>

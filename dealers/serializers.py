@@ -60,15 +60,30 @@ class DealerSchoolSerializer(serializers.ModelSerializer):
     admin_username = serializers.CharField(write_only=True, required=False)
     admin_password = serializers.CharField(write_only=True, required=False)
     admin_phone = serializers.CharField(write_only=True, required=False)
+    student_count = serializers.SerializerMethodField()
+    teacher_count = serializers.SerializerMethodField()
 
     class Meta:
         model = School
         fields = [
             'id', 'name', 'school_id', 'location', 'logo', 'about', 
             'contact_email', 'is_active', 'created_at',
-            'admin_name', 'admin_email', 'admin_username', 'admin_password', 'admin_phone'
+            'admin_name', 'admin_email', 'admin_username', 'admin_password', 'admin_phone',
+            'student_count', 'teacher_count'
         ]
         read_only_fields = ['created_at']
+
+    def get_student_count(self, obj):
+        try:
+            return obj.students.count()
+        except:
+            return 0
+
+    def get_teacher_count(self, obj):
+        try:
+            return obj.user_set.filter(role='teacher').count()
+        except:
+            return 0
 
     def validate_location(self, value):
         dealer = self.context['request'].user.dealer_profile
@@ -89,6 +104,10 @@ class DealerSchoolSerializer(serializers.ModelSerializer):
         if 'location' not in validated_data or not validated_data['location']:
             validated_data['location'] = dealer.location
 
+        # Ensure school is active by default
+        if 'is_active' not in validated_data:
+            validated_data['is_active'] = True
+
         school = super().create(validated_data)
 
         if admin_email and admin_username and admin_password:
@@ -108,3 +127,25 @@ class DealerSchoolSerializer(serializers.ModelSerializer):
             )
         
         return school
+
+class DealerSelfProfileSerializer(serializers.ModelSerializer):
+    username = serializers.CharField(source='user.username', read_only=True)
+    email = serializers.EmailField(source='user.email')
+
+    class Meta:
+        model = Dealer
+        fields = ['id', 'name', 'contact', 'location', 'username', 'email']
+
+    def update(self, instance, validated_data):
+        user_data = validated_data.pop('user', {})
+        email = user_data.get('email')
+
+        if email:
+            user = instance.user
+            if User.objects.filter(email=email).exclude(id=user.id).exists():
+                raise serializers.ValidationError({"email": "This email is already in use by another account."})
+            user.email = email
+            user.save()
+
+        return super().update(instance, validated_data)
+

@@ -1,20 +1,21 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import api from '../../services/api';
 import authService from '../../services/authService';
+import { useStudent } from '../../context/StudentContext';
 import {
     Calendar,
-    Clock,
     MapPin,
     User as UserIcon,
-    ChevronLeft,
-    ChevronRight,
     Loader2,
     Plus,
     Edit2,
     Trash2,
     X,
     Save,
-    Filter
+    Filter,
+    Clock,
+    BookOpen,
+    DoorOpen
 } from 'lucide-react';
 
 const DAYS = [
@@ -26,33 +27,49 @@ const DAYS = [
     { id: 6, name: 'Saturday', short: 'Sat' },
 ];
 
-const PERIODS = [
-    { id: 1, time: '08:00 AM - 09:00 AM', start: '08:00', end: '09:00' },
-    { id: 2, time: '09:00 AM - 10:00 AM', start: '09:00', end: '10:00' },
-    { id: 3, time: '10:00 AM - 11:00 AM', start: '10:00', end: '11:00' },
-    { id: 'lunch', time: '11:00 AM - 12:00 PM', name: 'LUNCH BREAK' },
-    { id: 4, time: '12:00 PM - 01:00 PM', start: '12:00', end: '13:00' },
-    { id: 5, time: '01:00 PM - 02:00 PM', start: '13:00', end: '14:00' },
-    { id: 6, time: '02:00 PM - 03:00 PM', start: '14:00', end: '15:00' },
-];
+const colors = {
+    primary: '#2563eb',
+    primaryLight: '#eff6ff',
+    secondary: '#0f172a',
+    success: '#10b981',
+    successLight: '#ecfdf5',
+    warning: '#f59e0b',
+    warningLight: '#fffbeb',
+    danger: '#ef4444',
+    dangerLight: '#fef2f2',
+    border: '#e2e8f0',
+    text: '#1e293b',
+    textMuted: '#64748b',
+    white: '#ffffff',
+    bg: '#f8fafc',
+};
 
-const TimetableGrid = ({ entries, isAdmin, isEditMode, handleCellClick }) => {
+const TimetableGrid = ({ entries, isAdmin, isEditMode, handleCellClick, shift }) => {
     const currentDayNum = new Date().getDay();
     const adjustedCurrentDay = currentDayNum === 0 ? 7 : currentDayNum;
+    
+    const periods = [1, 2, 3, 4, 5, 6, 7, 8];
 
     const gridData = useMemo(() => {
         const data = {};
         DAYS.forEach(day => {
-            data[day.id] = entries.filter(e => e.day === day.id);
+            data[day.id] = entries.filter(e => e.day === day.id && (e.shift_ref === shift?.id || e.shift === shift?.name.toLowerCase()));
         });
         return data;
-    }, [entries]);
+    }, [entries, shift]);
+
+    if (!shift) {
+        return (
+            <div className="bg-white rounded-3xl border border-dashed border-slate-200 p-12 text-center">
+                <p className="text-slate-500 font-medium">Loading schedule requirements...</p>
+            </div>
+        );
+    }
 
     return (
         <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
             <div className="overflow-x-auto">
                 <div className="min-w-[1000px]">
-                    {/* Grid Header */}
                     <div className="grid grid-cols-7 border-b border-slate-100 bg-slate-50/50">
                         <div className="p-4 text-center border-r border-slate-100 bg-slate-100/30">
                             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none">Period</span>
@@ -71,64 +88,63 @@ const TimetableGrid = ({ entries, isAdmin, isEditMode, handleCellClick }) => {
                         ))}
                     </div>
 
-                    {/* Grid Body */}
                     <div className="relative">
-                        {PERIODS.map((period) => {
-                            if (period.id === 'lunch') {
-                                return (
-                                    <div key="lunch" className="grid grid-cols-7 border-b border-slate-100 bg-slate-50/80">
-                                        <div className="p-3 border-r border-slate-100 flex items-center justify-center bg-slate-100/50">
-                                            <span className="text-[10px] font-bold text-slate-400">11:00 AM</span>
-                                        </div>
-                                        <div className="col-span-6 p-3 flex items-center justify-center gap-3">
-                                            <div className="h-px bg-slate-200 flex-1"></div>
-                                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">{period.name} ({period.time})</span>
-                                            <div className="h-px bg-slate-200 flex-1"></div>
-                                        </div>
-                                    </div>
-                                );
-                            }
-
+                        {periods.map((pNum) => {
                             return (
-                                <div key={period.id} className="grid grid-cols-7 border-b border-slate-100 last:border-0">
+                                <div key={pNum} className="grid grid-cols-7 border-b border-slate-100 last:border-0">
                                     <div className="p-4 flex flex-col items-center justify-center border-r border-slate-100 bg-slate-50/30">
-                                        <span className="text-[10px] font-black text-slate-400">P{period.id}</span>
-                                        <span className="text-[9px] font-bold text-slate-500 mt-1 whitespace-nowrap">{period.time.split(' - ')[0]}</span>
+                                        <span className="text-[10px] font-black text-slate-400">P{pNum}</span>
                                     </div>
 
                                     {DAYS.map(day => {
-                                        const entry = gridData[day.id]?.find(e => e.period === period.id);
+                                        const entry = gridData[day.id]?.find(
+                                            e => (e.period_number || e.period) === pNum
+                                        );
                                         return (
                                             <div
-                                                key={`${day.id}-${period.id}`}
-                                                onClick={() => handleCellClick(day.id, period.id)}
-                                                className={`p-2 border-r border-slate-100 last:border-0 relative h-[100px] transition-all ${isEditMode ? 'cursor-pointer hover:bg-blue-50/50' : ''
-                                                    } ${day.id === adjustedCurrentDay ? 'bg-school-blue/[0.01]' : ''}`}
+                                                key={`${day.id}-${pNum}`}
+                                                onClick={() => handleCellClick(day.id, pNum)}
+                                                className={`p-2 border-r border-slate-100 last:border-0 relative h-[140px] transition-all cursor-pointer ${day.id === adjustedCurrentDay ? 'bg-school-blue/[0.01]' : ''} ${isEditMode ? 'hover:bg-blue-50/50' : 'hover:bg-slate-50/50'}`}
                                             >
                                                 {entry ? (
-                                                    <div className="h-full w-full p-2.5 rounded-xl bg-white border border-slate-100 shadow-sm hover:shadow-md transition-all group flex flex-col justify-between">
-                                                        <div className="flex flex-col gap-0.5">
-                                                            <span className="text-[9px] font-black text-school-blue uppercase tracking-tight truncate">
-                                                                {entry.subject}
-                                                            </span>
-                                                            <span className="text-[10px] font-bold text-slate-700 truncate">
+                                                    <div className="h-full w-full p-3 rounded-2xl bg-white border border-slate-100 shadow-sm hover:shadow-lg hover:border-school-blue/20 transition-all group flex flex-col justify-between relative overflow-hidden">
+                                                        <div>
+                                                            <div className="flex items-start justify-between mb-1.5 gap-2">
+                                                                <span className="px-1.5 py-0.5 rounded-lg bg-school-blue/5 text-[10px] font-black text-school-blue uppercase tracking-wider truncate max-w-[70%]">
+                                                                    {entry.subject}
+                                                                </span>
+                                                                <div className="flex flex-col items-end">
+                                                                    <span className="text-[10px] font-bold text-slate-700 leading-none">
+                                                                        {entry.start_time_display?.split(' ')[0]}
+                                                                    </span>
+                                                                    <span className="text-[7px] font-black text-slate-300 uppercase mt-0.5">START</span>
+                                                                </div>
+                                                            </div>
+                                                            <h4 className="text-xs font-black text-slate-800 tracking-tight">
                                                                 {entry.class_name}-{entry.section}
-                                                            </span>
+                                                            </h4>
                                                         </div>
-                                                        <div className="flex flex-col gap-1 mt-1 pt-1 border-t border-slate-50">
-                                                            <div className="flex items-center gap-1.5 text-[9px] text-slate-500 font-medium">
-                                                                <UserIcon className="w-2.5 h-2.5 text-slate-400" />
-                                                                <span className="truncate">{entry.teacher_name}</span>
+
+                                                        <div className="space-y-2 pt-2 border-t border-slate-50">
+                                                            <div className="flex items-center gap-2">
+                                                                <div className="w-5 h-5 rounded-full bg-slate-50 flex items-center justify-center">
+                                                                    <UserIcon className="w-2.5 h-2.5 text-slate-400" />
+                                                                </div>
+                                                                <span className="text-[10px] font-bold text-slate-600 truncate">{entry.teacher_name}</span>
                                                             </div>
-                                                            <div className="flex items-center gap-1.5 text-[9px] text-slate-500 font-medium">
-                                                                <MapPin className="w-2.5 h-2.5 text-slate-400" />
-                                                                <span>RM: {entry.room}</span>
+                                                            
+                                                            <div className="flex items-center justify-between gap-1">
+                                                                <div className="flex items-center gap-2 bg-slate-50/50 px-1.5 py-0.5 rounded-md border border-slate-100/50">
+                                                                    <MapPin className="w-2.5 h-2.5 text-slate-400" />
+                                                                    <span className="text-[9px] font-bold text-slate-500 uppercase tracking-tighter">RM {entry.room}</span>
+                                                                </div>
                                                             </div>
                                                         </div>
+
                                                         {isEditMode && isAdmin && (
-                                                            <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                                <div className="p-1 bg-school-blue text-white rounded-md shadow-sm">
-                                                                    <Edit2 className="w-2 h-2" />
+                                                            <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-all transform translate-y-1 group-hover:translate-y-0">
+                                                                <div className="p-1.5 bg-school-blue text-white rounded-lg shadow-xl shadow-school-blue/30 scale-90">
+                                                                    <Edit2 className="w-3 h-3" />
                                                                 </div>
                                                             </div>
                                                         )}
@@ -154,21 +170,25 @@ const TimetableGrid = ({ entries, isAdmin, isEditMode, handleCellClick }) => {
 };
 
 const TimeTable = () => {
+    const { selectedStudentId } = useStudent();
     const [entries, setEntries] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [isEditMode, setIsEditMode] = useState(false);
+    const [shifts, setShifts] = useState([]);
+    const [selectedShiftId, setSelectedShiftId] = useState('');
+    const [selectedTeacherId, setSelectedTeacherId] = useState('');
+    const [isShiftModalOpen, setIsShiftModalOpen] = useState(false);
 
-    // Admin Filters State
+    const selectedShift = useMemo(() => shifts.find(sh => sh.id === parseInt(selectedShiftId)), [shifts, selectedShiftId]);
+
     const [selectedSectionId, setSelectedSectionId] = useState('');
     const [filters, setFilters] = useState({ class_name: '', section: '' });
 
-    // Modal State
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingEntry, setEditingEntry] = useState(null);
-    const [formLoading, setFormLoading] = useState(false);
+    const [viewingEntry, setViewingEntry] = useState(null);
 
-    // Meta Data State
     const [teachers, setTeachers] = useState([]);
     const [sections, setSections] = useState([]);
     const [subjects, setSubjects] = useState([]);
@@ -176,52 +196,77 @@ const TimeTable = () => {
     const { role } = authService.getCurrentUser();
     const isAdmin = role === 'admin';
     const isTeacher = role === 'teacher';
+    const isStudent = role === 'student';
 
     useEffect(() => {
-        if (!isAdmin) {
-            fetchTimetable();
-        }
-        if (isAdmin) {
-            fetchMetaData();
-        }
-    }, [isAdmin]);
+        const init = async () => {
+            setLoading(true);
+            await fetchMetaData();
+            if (isStudent || isTeacher) {
+                await fetchTimetable();
+            }
+            setLoading(false);
+        };
+        init();
+    }, [selectedStudentId]);
 
     useEffect(() => {
-        if (isAdmin && filters.class_name && filters.section) {
+        if (isAdmin && (filters.class_name || selectedTeacherId)) {
             fetchTimetable();
-        } else if (isAdmin) {
-            setEntries([]);
         }
-    }, [filters, isAdmin]);
+    }, [filters, selectedShiftId, selectedTeacherId]);
 
     const fetchTimetable = async () => {
-        setLoading(true);
         try {
             let url = 'timetable/';
+            const query = new URLSearchParams();
+            if (selectedShiftId) query.set('shift_id', selectedShiftId);
+            if (selectedTeacherId) query.set('teacher_id', selectedTeacherId);
+            
             if (isAdmin && filters.class_name && filters.section) {
-                url += `?class_name=${filters.class_name}&section=${filters.section}`;
+                query.set('class_name', filters.class_name);
+                query.set('section', filters.section);
             }
+            url += `?${query.toString()}`;
             const response = await api.get(url);
-            setEntries(response.data);
+            setEntries(response.data || []);
             setError(null);
         } catch (err) {
             console.error('Error fetching timetable:', err);
             setError('Failed to load timetable.');
-        } finally {
-            setLoading(false);
         }
     };
 
     const fetchMetaData = async () => {
         try {
-            const [tRes, sRes, subRes] = await Promise.all([
-                api.get('teachers/'),
-                api.get('classes/admin-sections/'),
-                api.get('subjects/')
-            ]);
-            setTeachers(tRes.data || []);
-            setSections(sRes.data || []);
-            setSubjects(subRes.data || []);
+            const promises = [
+                api.get('timetable/shifts/'),
+                api.get('timetable/user-shift/')
+            ];
+
+            if (isAdmin) {
+                promises.push(api.get('teachers/'));
+                promises.push(api.get('classes/admin-sections/'));
+                promises.push(api.get('subjects/'));
+            }
+
+            const results = await Promise.all(promises);
+            const [shRes, usRes] = results;
+            
+            setShifts(shRes.data || []);
+
+            if (isAdmin) {
+                setTeachers(results[2]?.data || []);
+                setSections(results[3]?.data || []);
+                setSubjects(results[4]?.data || []);
+            }
+            
+            if (usRes.data?.shift_id) {
+                const sId = usRes.data.shift_id.toString();
+                setSelectedShiftId(sId);
+            } else if (shRes.data?.length > 0 && !selectedShiftId) {
+                setSelectedShiftId(shRes.data[0].id.toString());
+            }
         } catch (err) {
             console.error('Error fetching meta data:', err);
         }
@@ -238,19 +283,29 @@ const TimeTable = () => {
         }
     };
 
-    const handleCellClick = (dayId, periodId) => {
-        if (!isAdmin || !isEditMode || periodId === 'lunch') return;
+    const handleCellClick = (dayId, pNum) => {
+        const existing = entries.find(
+            e =>
+                e.day === dayId &&
+                (e.shift_ref === parseInt(selectedShiftId) || e.shift === selectedShift?.name?.toLowerCase()) &&
+                (e.period_number || e.period) === pNum
+        );
 
-        const existing = entries.find(e => e.day === dayId && e.period === periodId);
-        if (existing) {
-            openModal(existing);
-        } else {
-            openModal({
-                day: dayId,
-                period: periodId,
-                class_name: filters.class_name,
-                section: filters.section
-            });
+        if (isAdmin && isEditMode) {
+            if (existing) {
+                openModal(existing);
+            } else {
+                openModal({
+                    day: dayId,
+                    shift_ref: parseInt(selectedShiftId),
+                    period_number: pNum,
+                    class_name: filters.class_name,
+                    section: filters.section
+                });
+            }
+        } else if (existing) {
+            // View Mode for everyone
+            setViewingEntry(existing);
         }
     };
 
@@ -275,21 +330,8 @@ const TimeTable = () => {
         }
     };
 
-    // Grouping for teacher view
-    const teacherGroups = useMemo(() => {
-        if (!isTeacher || entries.length === 0) return null;
-        const groups = {};
-        entries.forEach(entry => {
-            const key = `${entry.class_name}-${entry.section}`;
-            if (!groups[key]) groups[key] = [];
-            groups[key].push(entry);
-        });
-        return groups;
-    }, [entries, isTeacher]);
-
     return (
         <div className="space-y-6 animate-in fade-in duration-500 pb-10">
-            {/* Header section */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div className="flex items-center gap-4">
                     <div className="w-12 h-12 rounded-2xl bg-school-blue/10 flex items-center justify-center">
@@ -302,8 +344,38 @@ const TimeTable = () => {
                 </div>
 
                 <div className="flex items-center gap-3">
+                    <div className="inline-flex items-center rounded-xl border border-slate-200 bg-white p-1">
+                        {shifts.map(opt => (
+                            <button
+                                key={opt.id}
+                                onClick={() => setSelectedShiftId(opt.id.toString())}
+                                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${selectedShiftId === opt.id.toString()
+                                    ? 'bg-school-blue text-white'
+                                    : 'text-slate-600 hover:text-school-blue'
+                                    }`}
+                            >
+                                {opt.name}
+                            </button>
+                        ))}
+                    </div>
+
                     {isAdmin && (
                         <div className="flex items-center gap-2">
+                            <div className="relative">
+                                <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
+                                    <UserIcon className="w-4 h-4 text-slate-400" />
+                                </div>
+                                <select
+                                    value={selectedTeacherId}
+                                    onChange={(e) => setSelectedTeacherId(e.target.value)}
+                                    className="pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-600 outline-none focus:border-school-blue focus:ring-4 focus:ring-school-blue/5 transition-all appearance-none min-w-[160px]"
+                                >
+                                    <option value="">-- All Teachers --</option>
+                                    {teachers.map(t => (
+                                        <option key={t.user_id} value={t.user_id}>{t.name}</option>
+                                    ))}
+                                </select>
+                            </div>
                             <div className="relative">
                                 <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
                                     <Filter className="w-4 h-4 text-slate-400" />
@@ -322,14 +394,14 @@ const TimeTable = () => {
 
                             <button
                                 onClick={() => setIsEditMode(!isEditMode)}
-                                disabled={!filters.class_name}
+                                disabled={!filters.class_name && !selectedTeacherId}
                                 className={`flex items-center gap-2 px-4 py-2 rounded-xl border transition-all font-bold text-sm ${isEditMode
                                     ? 'bg-school-blue text-white border-school-blue shadow-lg shadow-school-blue/20'
                                     : 'bg-white text-slate-600 border-slate-200 hover:border-school-blue hover:text-school-blue'
                                     } disabled:opacity-50 disabled:cursor-not-allowed`}
                             >
                                 <Edit2 className="w-4 h-4" />
-                                {isEditMode ? 'Finish Editing' : 'Edit Mode'}
+                                {isEditMode ? 'Finish' : 'Edit'}
                             </button>
                         </div>
                     )}
@@ -342,8 +414,7 @@ const TimeTable = () => {
                 </div>
             )}
 
-            {/* Display Logic */}
-            {isAdmin && !filters.class_name ? (
+            {isAdmin && !filters.class_name && !selectedTeacherId ? (
                 <div className="bg-white rounded-3xl border border-dashed border-slate-200 p-12 text-center">
                     <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4">
                         <Filter className="w-8 h-8 text-slate-300" />
@@ -356,51 +427,120 @@ const TimeTable = () => {
                     <Loader2 className="w-10 h-10 text-school-blue animate-spin" />
                     <p className="text-slate-500 font-medium">Loading schedule...</p>
                 </div>
-            ) : isTeacher ? (
-                <div className="space-y-12">
-                    {teacherGroups ? Object.keys(teacherGroups).map(key => (
-                        <div key={key} className="space-y-4">
-                            <div className="flex items-center gap-3 pl-2">
-                                <MapPin className="w-5 h-5 text-school-blue" />
-                                <h2 className="text-xl font-black text-slate-800 uppercase tracking-tight">Class {key}</h2>
-                            </div>
-                            <TimetableGrid
-                                entries={teacherGroups[key]}
-                                isAdmin={false}
-                                isEditMode={false}
-                                handleCellClick={() => { }}
-                            />
-                        </div>
-                    )) : (
-                        <div className="text-center py-20 bg-slate-50 rounded-3xl">
-                            <p className="text-slate-400 font-medium">No classes assigned to you.</p>
-                        </div>
-                    )}
-                </div>
             ) : (
                 <TimetableGrid
                     entries={entries}
                     isAdmin={isAdmin}
                     isEditMode={isEditMode}
                     handleCellClick={handleCellClick}
+                    shift={selectedShift}
                 />
             )}
 
-            {/* Admin Edit Modal */}
+            {isShiftModalOpen && (
+                <ShiftManager
+                    shifts={shifts}
+                    onClose={() => { setIsShiftModalOpen(false); fetchMetaData(); }}
+                />
+            )}
+
             {isModalOpen && (
                 <AdminModal
                     entry={editingEntry}
                     onClose={closeModal}
                     onSuccess={() => { fetchTimetable(); closeModal(); }}
                     onDelete={handleDelete}
-                    meta={{ teachers, sections, subjects }}
+                    meta={{ teachers, sections, subjects, shifts }}
+                    selectedShift={selectedShift}
                 />
+            )}
+
+            {viewingEntry && (
+                <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md animate-in fade-in zoom-in duration-300">
+                    <div className="bg-white w-full max-w-md rounded-[40px] shadow-2xl overflow-hidden relative border border-slate-100">
+                        <button onClick={() => setViewingEntry(null)} className="absolute top-6 right-6 p-2.5 bg-slate-50 hover:bg-slate-100 rounded-2xl text-slate-400 transition-all z-10">
+                            <X className="w-5 h-5" />
+                        </button>
+
+                        <div className="h-32 bg-school-blue/5 flex items-center justify-center relative">
+                            <div className="w-16 h-16 rounded-3xl bg-white shadow-xl shadow-school-blue/10 flex items-center justify-center border border-slate-50">
+                                <Clock className="w-7 h-7 text-school-blue" />
+                            </div>
+                        </div>
+
+            <div className="view-modal-content p-6 pt-2">
+                            <div className="text-center mb-5">
+                                <h3 className="text-xl font-black text-slate-800 tracking-tight">{viewingEntry.subject}</h3>
+                                <p className="text-slate-500 font-bold mt-0.5 uppercase tracking-widest text-[9px]">Period {viewingEntry.period_number || viewingEntry.period}</p>
+                            </div>
+
+                            <div className="grid grid-cols-1 gap-3">
+                                <div className="flex items-center gap-3 p-3 rounded-2xl bg-slate-50/50 border border-slate-100/50">
+                                    <div className="w-8 h-8 rounded-xl bg-white shadow-sm flex items-center justify-center">
+                                        <BookOpen className="w-4 h-4 text-school-blue" />
+                                    </div>
+                                    <div>
+                                        <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest leading-none mb-0.5">Classroom</p>
+                                        <p className="font-bold text-slate-700 text-sm">{viewingEntry.class_name} - {viewingEntry.section}</p>
+                                    </div>
+                                </div>
+
+                                <div className="flex items-center gap-3 p-3 rounded-2xl bg-slate-50/50 border border-slate-100/50">
+                                    <div className="w-8 h-8 rounded-xl bg-white shadow-sm flex items-center justify-center">
+                                        <UserIcon className="w-4 h-4 text-school-blue" />
+                                    </div>
+                                    <div>
+                                        <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest leading-none mb-0.5">Instructor</p>
+                                        <p className="font-bold text-slate-700 text-sm">{viewingEntry.teacher_name}</p>
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div className="flex items-center gap-3 p-3 rounded-2xl bg-slate-50/50 border border-slate-100/50">
+                                        <div className="w-8 h-8 rounded-xl bg-white shadow-sm flex items-center justify-center">
+                                            <DoorOpen className="w-4 h-4 text-school-blue" />
+                                        </div>
+                                        <div>
+                                            <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest leading-none mb-0.5">Room</p>
+                                            <p className="font-bold text-slate-700 text-sm">{viewingEntry.room}</p>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-3 p-3 rounded-2xl bg-slate-50/50 border border-slate-100/50">
+                                        <div className="w-8 h-8 rounded-xl bg-white shadow-sm flex items-center justify-center">
+                                            <Calendar className="w-4 h-4 text-school-blue" />
+                                        </div>
+                                        <div>
+                                            <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest leading-none mb-0.5">Day</p>
+                                            <p className="font-bold text-slate-700 text-sm">{DAYS.find(d => d.id === viewingEntry.day)?.name}</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="p-4 rounded-3xl bg-school-blue/5 border border-school-blue/10 flex items-center justify-between">
+                                    <div className="text-center flex-1">
+                                        <p className="text-[8px] font-black text-school-blue uppercase tracking-widest mb-0.5 opacity-60">Starts at</p>
+                                        <p className="text-lg font-black text-school-blue">{viewingEntry.start_time_display}</p>
+                                    </div>
+                                    <div className="w-px h-8 bg-school-blue/20"></div>
+                                    <div className="text-center flex-1">
+                                        <p className="text-[8px] font-black text-school-blue uppercase tracking-widest mb-0.5 opacity-60">Ends at</p>
+                                        <p className="text-lg font-black text-school-blue">{viewingEntry.end_time_display}</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <button onClick={() => setViewingEntry(null)} className="w-full mt-6 py-3 bg-slate-800 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-slate-900 transition-all shadow-xl shadow-slate-200">
+                                Close Details
+                            </button>
+                        </div>
+                    </div>
+                </div>
             )}
         </div>
     );
 };
 
-const AdminModal = ({ entry, onClose, onSuccess, onDelete, meta }) => {
+const AdminModal = ({ entry, onClose, onSuccess, onDelete, meta, selectedShift }) => {
     const [loading, setLoading] = useState(false);
     const [formData, setFormData] = useState({
         class_name: entry?.class_name || '',
@@ -408,9 +548,48 @@ const AdminModal = ({ entry, onClose, onSuccess, onDelete, meta }) => {
         subject: entry?.subject || '',
         teacher: entry?.teacher || '',
         day: entry?.day || 1,
-        period: entry?.period || 1,
+        shift_ref: entry?.shift_ref || selectedShift?.id || '',
+        period_number: entry?.period_number || entry?.period || 1,
+        start_time: entry?.start_time || '00:00:00',
+        end_time: entry?.end_time || '00:00:00',
         room: entry?.room || ''
     });
+
+    const periods = [1, 2, 3, 4, 5, 6, 7, 8];
+
+    useEffect(() => {
+        if (!entry?.id && formData.period_number && formData.start_time === '00:00:00') {
+            const pNum = formData.period_number;
+            const isMorning = selectedShift?.name.toLowerCase().includes('morning') || formData.shift_ref === 1;
+            
+            const morning_map = {
+                1: ["08:00", "08:30"],
+                2: ["08:30", "09:00"],
+                3: ["09:00", "09:30"],
+                4: ["10:00", "10:30"],
+                5: ["10:30", "11:00"],
+                6: ["11:00", "11:30"],
+            };
+            const afternoon_map = {
+                1: ["13:00", "13:30"],
+                2: ["13:30", "14:00"],
+                3: ["14:00", "14:30"],
+                4: ["15:00", "15:30"],
+                5: ["15:30", "16:00"],
+                6: ["16:00", "16:30"],
+            };
+
+            const map = isMorning ? morning_map : afternoon_map;
+            if (map[pNum]) {
+                setFormData(prev => ({ ...prev, start_time: map[pNum][0], end_time: map[pNum][1] }));
+            }
+        }
+    }, [formData.period_number, entry?.id]);
+
+    const filteredSubjects = useMemo(() => {
+        if (!formData.class_name) return [];
+        return (meta.subjects || []).filter(s => s.class_name === formData.class_name);
+    }, [meta.subjects, formData.class_name]);
 
     const handleSectionChange = (e) => {
         const sectionId = e.target.value;
@@ -420,7 +599,9 @@ const AdminModal = ({ entry, onClose, onSuccess, onDelete, meta }) => {
                 ...formData,
                 class_name: section.class_name,
                 section: section.section_name,
-                room: section.room_number || formData.room
+                room: section.room_number || formData.room,
+                shift_ref: section.assigned_shift || formData.shift_ref,
+                subject: '' // Clear subject when class changes
             });
         }
     };
@@ -437,27 +618,7 @@ const AdminModal = ({ entry, onClose, onSuccess, onDelete, meta }) => {
             onSuccess();
         } catch (err) {
             console.error('Save error:', err.response?.data);
-            const data = err.response?.data;
-            let errorMsg = 'Failed to save entry.';
-
-            if (data) {
-                if (typeof data === 'string') {
-                    errorMsg = data;
-                } else if (Array.isArray(data)) {
-                    errorMsg = data[0];
-                } else if (data.non_field_errors) {
-                    errorMsg = Array.isArray(data.non_field_errors) ? data.non_field_errors[0] : data.non_field_errors;
-                } else if (data.detail) {
-                    errorMsg = data.detail;
-                } else {
-                    const fields = Object.keys(data);
-                    if (fields.length > 0) {
-                        const firstError = data[fields[0]];
-                        errorMsg = Array.isArray(firstError) ? `${fields[0]}: ${firstError[0]}` : `${fields[0]}: ${firstError}`;
-                    }
-                }
-            }
-            alert(errorMsg);
+            alert('Failed to save entry. Check if entry already exists.');
         } finally {
             setLoading(false);
         }
@@ -467,48 +628,86 @@ const AdminModal = ({ entry, onClose, onSuccess, onDelete, meta }) => {
 
     return (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200">
-            <div className="bg-white w-full max-w-md rounded-3xl shadow-2xl overflow-hidden border border-slate-100">
-                <div className="p-6 border-b border-slate-50 flex items-center justify-between bg-slate-50/50">
-                    <h3 className="text-lg font-bold text-slate-800">
+            <div className="bg-white w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden border border-slate-100">
+                <div className="p-4 border-b border-slate-50 flex items-center justify-between bg-slate-50/50">
+                    <h3 className="text-base font-bold text-slate-800">
                         {isNew ? 'New Entry' : 'Edit Entry'}
                     </h3>
-                    <button onClick={onClose} className="p-2 hover:bg-white rounded-xl text-slate-400 transition-all">
-                        <X className="w-5 h-5" />
+                    <button onClick={onClose} className="p-1.5 hover:bg-white rounded-xl text-slate-400 transition-all">
+                        <X className="w-4 h-4" />
                     </button>
                 </div>
 
-                <form onSubmit={handleSubmit} className="p-6 space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-1.5">
-                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Day</label>
+                <form onSubmit={handleSubmit} className="p-5 space-y-3">
+                    <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-1">
+                            <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest pl-1">Day</label>
                             <select
                                 value={formData.day}
                                 onChange={e => setFormData({ ...formData, day: parseInt(e.target.value) })}
-                                className="w-full px-4 py-2.5 bg-slate-50 border border-slate-100 rounded-xl text-sm font-bold text-slate-700 outline-none focus:border-school-blue focus:ring-2 focus:ring-school-blue/10 transition-all"
+                                className="w-full px-3 py-2 bg-slate-50 border border-slate-100 rounded-xl text-xs font-bold text-slate-700 outline-none focus:border-school-blue focus:ring-2 focus:ring-school-blue/10 transition-all"
                             >
                                 {DAYS.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
                             </select>
                         </div>
-                        <div className="space-y-1.5">
-                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Period</label>
+                        <div className="space-y-1">
+                            <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest pl-1">Shift</label>
                             <select
-                                value={formData.period}
-                                onChange={e => setFormData({ ...formData, period: parseInt(e.target.value) })}
-                                className="w-full px-4 py-2.5 bg-slate-50 border border-slate-100 rounded-xl text-sm font-bold text-slate-700 outline-none focus:border-school-blue focus:ring-2 focus:ring-school-blue/10 transition-all"
+                                value={formData.shift_ref}
+                                onChange={e => setFormData({ ...formData, shift_ref: parseInt(e.target.value) })}
+                                className="w-full px-3 py-2 bg-slate-50 border border-slate-100 rounded-xl text-xs font-bold text-slate-700 outline-none focus:border-school-blue focus:ring-2 focus:ring-school-blue/10 transition-all"
+                                required
                             >
-                                {PERIODS.filter(p => typeof p.id === 'number').map(p => (
-                                    <option key={p.id} value={p.id}>Period {p.id} ({p.time.split(' - ')[0]})</option>
-                                ))}
+                                <option value="">-- Choose Shift --</option>
+                                {meta.shifts?.map(opt => <option key={opt.id} value={opt.id}>{opt.name}</option>)}
                             </select>
                         </div>
                     </div>
 
-                    <div className="space-y-1.5">
-                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Class & Section</label>
+                    <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-1">
+                            <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest pl-1">Period No.</label>
+                            <select
+                                value={formData.period_number}
+                                onChange={e => setFormData({ ...formData, period_number: parseInt(e.target.value, 10) })}
+                                className="w-full px-3 py-2 bg-slate-50 border border-slate-100 rounded-xl text-xs font-bold text-slate-700 outline-none focus:border-school-blue focus:ring-2 focus:ring-school-blue/10 transition-all"
+                            >
+                                {periods.map(p => (
+                                    <option key={p} value={p}>Period {p}</option>
+                                ))}
+                            </select>
+                        </div>
+                        <div className="space-y-1">
+                            <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest pl-1">Period Duration</label>
+                            <div className="grid grid-cols-2 gap-2">
+                                <div className="space-y-0.5">
+                                    <span className="text-[8px] font-bold text-slate-400 pl-1">FROM</span>
+                                    <input
+                                        type="time"
+                                        value={formData.start_time.substring(0, 5)}
+                                        onChange={e => setFormData(p => ({ ...p, start_time: e.target.value }))}
+                                        className="w-full px-2 py-1.5 bg-slate-50 border border-slate-100 rounded-xl text-[11px] font-bold text-slate-700 outline-none focus:border-school-blue focus:ring-2 focus:ring-school-blue/10 transition-all"
+                                    />
+                                </div>
+                                <div className="space-y-0.5">
+                                    <span className="text-[8px] font-bold text-slate-400 pl-1">TO</span>
+                                    <input
+                                        type="time"
+                                        value={formData.end_time.substring(0, 5)}
+                                        onChange={e => setFormData(p => ({ ...p, end_time: e.target.value }))}
+                                        className="w-full px-2 py-1.5 bg-slate-50 border border-slate-100 rounded-xl text-[11px] font-bold text-slate-700 outline-none focus:border-school-blue focus:ring-2 focus:ring-school-blue/10 transition-all"
+                                    />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="space-y-1">
+                        <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest pl-1">Class & Section</label>
                         <select
                             onChange={handleSectionChange}
                             value={meta.sections.find(s => s.class_name === formData.class_name && s.section_name === formData.section)?.id || ''}
-                            className="w-full px-4 py-2.5 bg-slate-50 border border-slate-100 rounded-xl text-sm font-bold text-slate-700 outline-none focus:border-school-blue focus:ring-2 focus:ring-school-blue/10 transition-all"
+                            className="w-full px-3 py-2 bg-slate-50 border border-slate-100 rounded-xl text-xs font-bold text-slate-700 outline-none focus:border-school-blue focus:ring-2 focus:ring-school-blue/10 transition-all"
                             required
                         >
                             <option value="">-- Choose Class-Section --</option>
@@ -516,48 +715,43 @@ const AdminModal = ({ entry, onClose, onSuccess, onDelete, meta }) => {
                                 <option key={s.id} value={s.id}>{s.class_name} - {s.section_name}</option>
                             ))}
                         </select>
-                        {formData.class_name && (
-                            <div className="flex gap-2 mt-2">
-                                <span className="px-2 py-1 bg-blue-50 text-school-blue text-[10px] font-black rounded-lg border border-blue-100 uppercase">Class: {formData.class_name}</span>
-                                <span className="px-2 py-1 bg-blue-50 text-school-blue text-[10px] font-black rounded-lg border border-blue-100 uppercase">Section: {formData.section}</span>
-                            </div>
-                        )}
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-1.5">
-                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Subject</label>
+                    <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-1">
+                            <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest pl-1">Subject</label>
                             <input
                                 list="subject-options"
                                 value={formData.subject}
                                 onChange={e => setFormData({ ...formData, subject: e.target.value })}
-                                className="w-full px-4 py-2.5 bg-slate-50 border border-slate-100 rounded-xl text-sm font-bold text-slate-700 outline-none focus:border-school-blue focus:ring-2 focus:ring-school-blue/10 transition-all"
-                                placeholder="Maths, Science..."
+                                className="w-full px-3 py-2 bg-slate-50 border border-slate-100 rounded-xl text-xs font-bold text-slate-700 outline-none focus:border-school-blue focus:ring-2 focus:ring-school-blue/10 transition-all"
+                                placeholder={filteredSubjects.length > 0 ? "Select Subject..." : "No subjects found for this class"}
                                 required
                             />
                             <datalist id="subject-options">
-                                {meta.subjects.map(s => <option key={s.id} value={s.name} />)}
+                                {filteredSubjects.map(s => <option key={s.id} value={s.name} />)}
                             </datalist>
                         </div>
-                        <div className="space-y-1.5">
-                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Room</label>
+
+                        <div className="space-y-1">
+                            <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest pl-1">Room</label>
                             <input
                                 type="text"
                                 value={formData.room}
                                 onChange={e => setFormData({ ...formData, room: e.target.value })}
-                                className="w-full px-4 py-2.5 bg-slate-50 border border-slate-100 rounded-xl text-sm font-bold text-slate-700 outline-none focus:border-school-blue focus:ring-2 focus:ring-school-blue/10 transition-all"
+                                className="w-full px-3 py-2 bg-slate-50 border border-slate-100 rounded-xl text-xs font-bold text-slate-700 outline-none focus:border-school-blue focus:ring-2 focus:ring-school-blue/10 transition-all"
                                 placeholder="101, Lab A"
                                 required
                             />
                         </div>
                     </div>
 
-                    <div className="space-y-1.5">
-                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Teacher</label>
+                    <div className="space-y-1">
+                        <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest pl-1">Teacher</label>
                         <select
                             value={formData.teacher}
                             onChange={e => setFormData({ ...formData, teacher: e.target.value })}
-                            className="w-full px-4 py-2.5 bg-slate-50 border border-slate-100 rounded-xl text-sm font-bold text-slate-700 outline-none focus:border-school-blue focus:ring-2 focus:ring-school-blue/10 transition-all"
+                            className="w-full px-3 py-2 bg-slate-50 border border-slate-100 rounded-xl text-xs font-bold text-slate-700 outline-none focus:border-school-blue focus:ring-2 focus:ring-school-blue/10 transition-all"
                             required
                         >
                             <option value="">-- Assign Teacher --</option>
@@ -566,11 +760,11 @@ const AdminModal = ({ entry, onClose, onSuccess, onDelete, meta }) => {
                         </select>
                     </div>
 
-                    <div className="pt-4 flex flex-col gap-3">
+                    <div className="pt-2 flex flex-col gap-2">
                         <button
                             type="submit"
                             disabled={loading}
-                            className="w-full py-3 bg-school-blue text-white rounded-2xl font-bold flex items-center justify-center gap-2 hover:bg-blue-700 shadow-lg shadow-school-blue/20 transition-all disabled:opacity-50"
+                            className="w-full py-2.5 bg-school-blue text-white rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-blue-700 shadow-lg shadow-school-blue/20 transition-all disabled:opacity-50 text-sm"
                         >
                             {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                             {isNew ? 'Create Entry' : 'Save Changes'}
@@ -580,14 +774,104 @@ const AdminModal = ({ entry, onClose, onSuccess, onDelete, meta }) => {
                             <button
                                 type="button"
                                 onClick={() => onDelete(entry.id)}
-                                className="w-full py-3 bg-red-50 text-red-600 rounded-2xl font-bold flex items-center justify-center gap-2 hover:bg-red-100 transition-all"
+                                className="w-full py-2 bg-red-50 text-red-600 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-red-100 transition-all text-xs"
                             >
-                                <Trash2 className="w-4 h-4" />
+                                <Trash2 className="w-3.5 h-3.5" />
                                 Delete Entry
                             </button>
                         )}
                     </div>
                 </form>
+            </div>
+        </div>
+    );
+};
+
+const ShiftManager = ({ shifts, onClose }) => {
+    const [loading, setLoading] = useState(false);
+    const [editingShift, setEditingShift] = useState(null);
+    const [form, setForm] = useState({ name: '', start_time: '08:00', end_time: '14:00' });
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        setLoading(true);
+        try {
+            if (editingShift) {
+                await api.put(`timetable/shifts/${editingShift.id}/`, form);
+            } else {
+                await api.post('timetable/shifts/', form);
+            }
+            setForm({ name: '', start_time: '08:00', end_time: '14:00' });
+            setEditingShift(null);
+            onClose();
+        } catch (err) {
+            alert('Failed to save shift');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    return (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+            <div className="bg-white w-full max-w-lg rounded-3xl shadow-2xl p-6">
+                <div className="flex items-center justify-between mb-6">
+                    <h3 className="text-xl font-black text-slate-800 uppercase tracking-tight">Manage Shifts</h3>
+                    <button onClick={onClose} className="p-2 hover:bg-slate-50 rounded-xl transition-all">
+                        <X className="w-5 h-5" />
+                    </button>
+                </div>
+
+                <form onSubmit={handleSubmit} className="space-y-4 mb-8 p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="col-span-2">
+                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 block">Shift Name</label>
+                            <input
+                                value={form.name}
+                                onChange={e => setForm({ ...form, name: e.target.value })}
+                                className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-bold"
+                                placeholder="Morning, Evening..."
+                                required
+                            />
+                        </div>
+                        <div>
+                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 block">Start Time</label>
+                            <input
+                                type="time"
+                                value={form.start_time}
+                                onChange={e => setForm({ ...form, start_time: e.target.value })}
+                                className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-bold"
+                                required
+                            />
+                        </div>
+                        <div>
+                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 block">End Time</label>
+                            <input
+                                type="time"
+                                value={form.end_time}
+                                onChange={e => setForm({ ...form, end_time: e.target.value })}
+                                className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-bold"
+                                required
+                            />
+                        </div>
+                    </div>
+                    <button type="submit" disabled={loading} className="w-full py-3 bg-school-blue text-white rounded-xl font-bold shadow-lg shadow-school-blue/20">
+                        {loading ? 'Saving...' : editingShift ? 'Update Shift' : 'Add New Shift'}
+                    </button>
+                </form>
+
+                <div className="space-y-3 max-h-[300px] overflow-y-auto pr-2">
+                    {shifts.map(s => (
+                        <div key={s.id} className="flex items-center justify-between p-4 bg-white border border-slate-100 rounded-2xl group hover:border-school-blue/30 transition-all">
+                            <div>
+                                <h4 className="font-black text-slate-800 uppercase tracking-tight text-sm">{s.name}</h4>
+                                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">{s.start_time} - {s.end_time}</p>
+                            </div>
+                            <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-all">
+                                <button onClick={() => { setEditingShift(s); setForm({ name: s.name, start_time: s.start_time, end_time: s.end_time }); }} className="p-2 text-slate-400 hover:text-school-blue hover:bg-school-blue/10 rounded-xl transition-all"><Edit2 className="w-4 h-4" /></button>
+                            </div>
+                        </div>
+                    ))}
+                </div>
             </div>
         </div>
     );

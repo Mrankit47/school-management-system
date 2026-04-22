@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import api from '../../services/api';
+import { useStudent } from '../../context/StudentContext';
 
 const colors = {
     present: '#16a34a',
@@ -161,6 +162,7 @@ function ProgressBar({ percentage }) {
 
 const StudentAttendance = () => {
     const now = new Date();
+    const { selectedStudentId } = useStudent();
     const [attendance, setAttendance] = useState([]);
     const [timetable, setTimetable] = useState([]);
     const [holidays, setHolidays] = useState([]);
@@ -202,7 +204,7 @@ const StudentAttendance = () => {
         return () => {
             mounted = false;
         };
-    }, []);
+    }, [selectedStudentId]);
 
     useEffect(() => {
         setHolidays([]);
@@ -402,42 +404,60 @@ const StudentAttendance = () => {
     };
 
     return (
-        <div style={{ padding: '20px', backgroundColor: '#f9fafb', minHeight: 'calc(100vh - 80px)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px', flexWrap: 'wrap' }}>
-                <div>
-                    <h1 style={{ margin: 0 }}>Student Attendance Dashboard</h1>
-                    <p style={{ margin: '8px 0 0', color: colors.muted, fontWeight: 900, fontSize: '13px' }}>
-                        View your attendance, calendar, subject-wise summary, and download reports.
-                    </p>
-                </div>
+        <div style={{ padding: '24px', backgroundColor: '#f9fafb', minHeight: 'calc(100vh - 80px)' }}>
+            <style>
+                {`
+                @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+                .animate-up { animation: fadeIn 0.4s ease forwards; }
+                `}
+            </style>
 
-                <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
+            {/* Premium Header Card */}
+            <div className="animate-up" style={{
+                backgroundColor: '#fff',
+                padding: '28px',
+                borderRadius: '24px',
+                marginBottom: '20px',
+                boxShadow: '0 1px 12px rgba(16,24,40,0.08)',
+                border: '1px solid #e5e7eb',
+                background: 'linear-gradient(135deg, #fff 0%, #f8fafc 100%)',
+                position: 'relative',
+                overflow: 'hidden'
+            }}>
+                <div style={{ position: 'absolute', top: -30, right: -30, width: 200, height: 200, background: 'rgba(37, 99, 235, 0.03)', borderRadius: '50%', zIndex: 0 }}></div>
+                <div style={{ position: 'relative', zIndex: 1, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '20px', flexWrap: 'wrap' }}>
                     <div>
-                        <div style={labelStyle}>Month</div>
-                        <select
-                            value={calMonth}
-                            onChange={(e) => setCalMonth(parseInt(e.target.value, 10))}
-                            style={{ padding: '10px 12px', borderRadius: '12px', border: `1px solid ${colors.border}`, background: '#fff', fontWeight: 900 }}
-                        >
-                            {Array.from({ length: 12 }).map((_, idx) => {
-                                const m = idx + 1;
-                                return (
-                                    <option key={m} value={m}>
-                                        {m}
-                                    </option>
-                                );
-                            })}
-                        </select>
+                        <h1 style={{ margin: 0, fontWeight: 1000, fontSize: '32px', letterSpacing: '-0.02em', background: 'linear-gradient(90deg, #1e293b 0%, #2563eb 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+                            Attendance Dashboard
+                        </h1>
+                        <p style={{ margin: '8px 0 0', color: colors.muted, fontWeight: 900, fontSize: '15px' }}>
+                            Monitor your presence, view subject-wise analysis, and download academic reports.
+                        </p>
                     </div>
 
-                    <div>
-                        <div style={labelStyle}>Year</div>
-                        <input
-                            type="number"
-                            value={calYear}
-                            onChange={(e) => setCalYear(parseInt(e.target.value, 10))}
-                            style={{ padding: '10px 12px', borderRadius: '12px', border: `1px solid ${colors.border}`, background: '#fff', fontWeight: 900, width: 120 }}
-                        />
+                    <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: '#fff', padding: '6px 12px', borderRadius: '16px', border: '1px solid #e5e7eb' }}>
+                            <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 900, textTransform: 'uppercase' }}>Month</span>
+                            <select
+                                value={calMonth}
+                                onChange={(e) => setCalMonth(parseInt(e.target.value, 10))}
+                                style={{ padding: '6px 4px', border: 'none', background: 'transparent', fontWeight: 1000, cursor: 'pointer', outline: 'none' }}
+                            >
+                                {Array.from({ length: 12 }).map((_, idx) => (
+                                    <option key={idx + 1} value={idx + 1}>{new Date(2000, idx).toLocaleString('default', { month: 'long' })}</option>
+                                ))}
+                            </select>
+                        </div>
+
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: '#fff', padding: '6px 12px', borderRadius: '16px', border: '1px solid #e5e7eb' }}>
+                            <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 900, textTransform: 'uppercase' }}>Year</span>
+                            <input
+                                type="number"
+                                value={calYear}
+                                onChange={(e) => setCalYear(parseInt(e.target.value, 10))}
+                                style={{ width: '80px', padding: '6px 4px', border: 'none', background: 'transparent', fontWeight: 1000, outline: 'none' }}
+                            />
+                        </div>
                     </div>
                 </div>
             </div>
@@ -564,13 +584,13 @@ const StudentAttendance = () => {
 
                     <div style={{ marginTop: 12, overflowX: 'auto' }}>
                         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                <thead>
+                            <thead>
                                 <tr style={{ backgroundColor: '#f2f4f7' }}>
                                     <th style={{ padding: '12px 10px', textAlign: 'left', color: colors.muted, fontWeight: 1000, fontSize: 12 }}>Date</th>
                                     <th style={{ padding: '12px 10px', textAlign: 'left', color: colors.muted, fontWeight: 1000, fontSize: 12 }}>Status</th>
                                 </tr>
-                </thead>
-                <tbody>
+                            </thead>
+                            <tbody>
                                 {loading ? (
                                     <tr>
                                         <td colSpan={2} style={{ padding: 14, color: colors.muted, fontWeight: 900 }}>
@@ -604,7 +624,7 @@ const StudentAttendance = () => {
                                         <td colSpan={2} style={{ padding: 14, color: colors.muted, fontWeight: 900 }}>
                                             No attendance records for this month.
                                         </td>
-                        </tr>
+                                    </tr>
                                 )}
                             </tbody>
                         </table>
@@ -644,36 +664,36 @@ const StudentAttendance = () => {
                                 const borderColor = isHoliday
                                     ? colors.holiday
                                     : v === 'pending'
-                                      ? colors.late
-                                      : v === 'rejected'
-                                        ? colors.absent
-                                        : st === 'present'
-                                          ? colors.present
-                                          : st === 'late'
-                                            ? colors.late
-                                            : st === 'absent'
-                                              ? colors.absent
-                                              : colors.border;
+                                        ? colors.late
+                                        : v === 'rejected'
+                                            ? colors.absent
+                                            : st === 'present'
+                                                ? colors.present
+                                                : st === 'late'
+                                                    ? colors.late
+                                                    : st === 'absent'
+                                                        ? colors.absent
+                                                        : colors.border;
 
                                 const bg = isHoliday
                                     ? '#f3f4f6'
                                     : v === 'pending'
-                                      ? '#fffbeb'
-                                      : v === 'rejected'
-                                        ? '#fef2f2'
-                                        : st === 'present'
-                                          ? '#ecfdf5'
-                                          : st === 'late'
-                                            ? '#fffbeb'
-                                            : st === 'absent'
-                                              ? '#fef2f2'
-                                              : '#fff';
+                                        ? '#fffbeb'
+                                        : v === 'rejected'
+                                            ? '#fef2f2'
+                                            : st === 'present'
+                                                ? '#ecfdf5'
+                                                : st === 'late'
+                                                    ? '#fffbeb'
+                                                    : st === 'absent'
+                                                        ? '#fef2f2'
+                                                        : '#fff';
 
                                 const text = isHoliday
                                     ? 'H'
                                     : rec
-                                      ? (v === 'pending' ? 'Pending' : formatAttendanceStatus(rec)).split(' ')[0]
-                                      : '';
+                                        ? (v === 'pending' ? 'Pending' : formatAttendanceStatus(rec)).split(' ')[0]
+                                        : '';
                                 const dayNum = parseInt(key.slice(-2), 10);
 
                                 return (
@@ -747,8 +767,8 @@ const StudentAttendance = () => {
                                         </td>
                                     </tr>
                                 )}
-                </tbody>
-            </table>
+                            </tbody>
+                        </table>
                     </div>
                 </div>
 

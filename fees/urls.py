@@ -1,6 +1,14 @@
 from django.urls import path
 
 from .views import (
+    AdminClassFeeCardBootstrapView,
+    AdminClassFeeCardBulkUpsertView,
+    AdminClassFeeCardFileUploadView,
+    AdminClassFeeCardDetailView,
+    AdminClassFeeCardListCreateView,
+    AdminClassFeeCardDeleteAllView,
+    AdminClassFeeCardRollbackView,
+    StudentClassFeeCardListView,
     MyFeesView,
     StudentPaymentCreateView,
     StudentReceiptPDFView,
@@ -13,15 +21,25 @@ from .views import (
     AdminPaymentCreateView,
     AdminReceiptPDFView,
     AdminFeesDashboardView,
+    AdminFeesCollectionView,
     AdminFeesExportCSVView,
     AdminPaymentReminderView,
 )
 
 urlpatterns = [
     path('my/', MyFeesView.as_view(), name='my-fees'),
+    path('my/class-fee-cards/', StudentClassFeeCardListView.as_view(), name='student-class-fee-cards'),
     path('my/pay/', StudentPaymentCreateView.as_view(), name='student-pay-create'),
     path('my/receipt/<int:payment_id>/', StudentReceiptPDFView.as_view(), name='student-receipt-pdf'),
     path('admin/dashboard/', AdminFeesDashboardView.as_view(), name='fees-admin-dashboard'),
+    path('admin/class-fee-cards/', AdminClassFeeCardListCreateView.as_view(), name='admin-class-fee-cards'),
+    path('admin/class-fee-cards/delete-all/', AdminClassFeeCardDeleteAllView.as_view(), name='admin-class-fee-cards-delete-all'),
+    path('admin/class-fee-cards/<int:pk>/', AdminClassFeeCardDetailView.as_view(), name='admin-class-fee-card-detail'),
+    path('admin/class-fee-cards/upload/', AdminClassFeeCardBulkUpsertView.as_view(), name='admin-class-fee-cards-upload'),
+    path('admin/class-fee-cards/upload-file/', AdminClassFeeCardFileUploadView.as_view(), name='admin-class-fee-cards-upload-file'),
+    path('admin/class-fee-cards/bootstrap/', AdminClassFeeCardBootstrapView.as_view(), name='admin-class-fee-cards-bootstrap'),
+    path('admin/class-fee-cards/rollback/', AdminClassFeeCardRollbackView.as_view(), name='admin-class-fee-cards-rollback'),
+    path('collection/', AdminFeesCollectionView.as_view(), name='fees-collection'),
     path('admin/structures/', FeeStructureListCreateView.as_view(), name='fee-structures'),
     path('admin/structures/<int:pk>/', FeeStructureDetailView.as_view(), name='fee-structure-detail'),
     path('admin/student-fees/', AdminStudentFeeListView.as_view(), name='admin-student-fees'),

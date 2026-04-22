@@ -108,13 +108,20 @@ const TeacherProfile = () => {
     const [docFile, setDocFile] = useState(null);
     const [docError, setDocError] = useState('');
 
+    const [schoolInfo, setSchoolInfo] = useState(null);
+
     useEffect(() => {
         setLoading(true);
-        Promise.all([api.get('teachers/profile/'), api.get('teachers/profile/documents/')])
-            .then(([pRes, dRes]) => {
+        Promise.all([
+            api.get('teachers/profile/'),
+            api.get('teachers/profile/documents/'),
+            api.get('tenants/common/school-info/').catch(() => ({ data: null }))
+        ])
+            .then(([pRes, dRes, sRes]) => {
                 const p = pRes.data || null;
                 setProfile(p);
                 setDocuments(dRes.data || []);
+                setSchoolInfo(sRes.data || null);
 
                 if (p) {
                     setForm({
@@ -323,43 +330,6 @@ const TeacherProfile = () => {
         }
     };
 
-    const downloadIdCard = async () => {
-        setIdCardBusy(true);
-        setPhotoError('');
-        try {
-            const blob = await fetchIdCardPdf('attachment');
-            const url = URL.createObjectURL(new Blob([blob], { type: 'application/pdf' }));
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `teacher-id-card-${form.employee_id || 'teacher'}.pdf`;
-            a.rel = 'noopener';
-            document.body.appendChild(a);
-            a.click();
-            a.remove();
-            URL.revokeObjectURL(url);
-        } catch (err) {
-            let msg = err?.response?.data?.error || 'Could not download ID card.';
-            if (err?.response?.data instanceof Blob) {
-                try {
-                    const t = await err.response.data.text();
-                    if (t) {
-                        try {
-                            const j = JSON.parse(t);
-                            msg = j.error || j.detail || msg;
-                        } catch {
-                            msg = t.length < 200 ? t : msg;
-                        }
-                    }
-                } catch {
-                    /* ignore */
-                }
-            }
-            setPhotoError(typeof msg === 'string' ? msg : 'Could not download ID card.');
-        } finally {
-            setIdCardBusy(false);
-        }
-    };
-
     const handleUploadDoc = async () => {
         setDocError('');
         if (!docFile) {
@@ -389,33 +359,68 @@ const TeacherProfile = () => {
     }
 
     return (
-        <div style={{ padding: 20, backgroundColor: colors.bg, minHeight: 'calc(100vh - 60px)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'flex-start', flexWrap: 'wrap', marginBottom: 12 }}>
-                <div>
-                    <div style={{ fontWeight: 1000, fontSize: 22, color: colors.text }}>Teacher Profile</div>
-                    <div style={{ marginTop: 4, color: colors.muted, fontWeight: 900, fontSize: 13 }}>
-                        Manage your personal and professional details.
+        <div style={{ padding: '24px', backgroundColor: colors.bg, minHeight: 'calc(100vh - 60px)' }}>
+            <style>
+                {`
+                @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+                .animate-up { animation: fadeIn 0.4s ease forwards; }
+                `}
+            </style>
+
+            {/* Premium Header Card */}
+            <div className="animate-up" style={{ 
+                backgroundColor: colors.card, 
+                padding: '28px', 
+                borderRadius: '24px', 
+                marginBottom: '20px', 
+                boxShadow: '0 1px 12px rgba(16,24,40,0.08)',
+                border: `1px solid ${colors.border}`,
+                background: 'linear-gradient(135deg, #fff 0%, #f8fafc 100%)',
+                position: 'relative',
+                overflow: 'hidden'
+            }}>
+                <div style={{ position: 'absolute', top: -30, right: -30, width: 200, height: 200, background: 'rgba(37, 99, 235, 0.03)', borderRadius: '50%', zIndex: 0 }}></div>
+                <div style={{ position: 'relative', zIndex: 1, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '20px', flexWrap: 'wrap' }}>
+                    <div>
+                        <h1 style={{ margin: 0, fontWeight: 1000, fontSize: '32px', letterSpacing: '-0.02em', background: 'linear-gradient(90deg, #1e293b 0%, #2563eb 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+                            Teacher Profile
+                        </h1>
+                        <p style={{ margin: '8px 0 0', color: colors.muted, fontWeight: 900, fontSize: '15px' }}>
+                            Manage your personal identity, academic records, and account security.
+                        </p>
                     </div>
-                </div>
-                <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-                    <button
-                        type="button"
-                        onClick={handleSave}
-                        disabled={saving}
-                        style={{
-                            padding: '10px 14px',
-                            borderRadius: 12,
-                            border: 'none',
-                            backgroundColor: colors.primary,
-                            color: '#fff',
-                            cursor: saving ? 'not-allowed' : 'pointer',
-                            fontWeight: 1000,
-                            minWidth: 160,
-                            opacity: saving ? 0.75 : 1,
-                        }}
-                    >
-                        {saving ? 'Saving...' : 'Save Changes'}
-                    </button>
+                    <div style={{ display: 'flex', gap: 12 }}>
+                        <button
+                            type="button"
+                            onClick={handleSave}
+                            disabled={saving}
+                            style={{
+                                padding: '12px 24px',
+                                borderRadius: '14px',
+                                border: 'none',
+                                backgroundColor: colors.primary,
+                                color: '#fff',
+                                cursor: saving ? 'not-allowed' : 'pointer',
+                                fontWeight: 1000,
+                                fontSize: '15px',
+                                minWidth: 160,
+                                opacity: saving ? 0.75 : 1,
+                                boxShadow: '0 4px 12px rgba(37, 99, 235, 0.2)',
+                                transition: 'all 0.2s',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                gap: '8px'
+                            }}
+                        >
+                            {saving ? 'Saving...' : (
+                                <>
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+                                    Save Changes
+                                </>
+                            )}
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -489,96 +494,80 @@ const TeacherProfile = () => {
                                 fontWeight: 600,
                             }}
                         >
-                            Click background or press Esc to close
+                            Click the background or press Esc to close.
                         </p>
                     </div>
                 </div>
             ) : null}
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(12, minmax(0, 1fr))', gap: 12 }}>
-                {/* Header photo */}
-                <div style={{ gridColumn: 'span 12', backgroundColor: colors.card, border: `1px solid ${colors.border}`, borderRadius: 16, padding: 16, boxShadow: colors.shadow }}>
-                    <div style={{ display: 'flex', gap: 14, alignItems: 'center', flexWrap: 'wrap' }}>
-                        <div style={{ width: 90, height: 90, borderRadius: 22, border: `1px solid ${colors.border}`, backgroundColor: '#f3f4f6', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
-                            {previewImageSrc ? (
-                                <button
-                                    type="button"
-                                    onClick={() => setFullPhotoOpen(true)}
-                                    title="View full photo"
-                                    aria-label="View full profile photo"
-                                    style={{
-                                        border: 'none',
-                                        padding: 0,
-                                        margin: 0,
-                                        width: '100%',
-                                        height: '100%',
-                                        cursor: 'pointer',
-                                        background: 'transparent',
-                                    }}
-                                >
-                                    <img
-                                        src={previewImageSrc}
-                                        alt="Teacher profile"
-                                        style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-                                    />
-                                </button>
-                            ) : (
-                                <span style={{ fontWeight: 1000, color: colors.primary, fontSize: 24 }}>
-                                    {(form.name || 'T').slice(0, 1).toUpperCase()}
-                                </span>
-                            )}
-                        </div>
-                        <div style={{ flex: 1, minWidth: 260 }}>
-                            <div style={{ fontWeight: 1000, fontSize: 18, color: colors.text }}>{form.name || '—'}</div>
-                            <div style={{ marginTop: 4, color: colors.muted, fontWeight: 900, fontSize: 13 }}>
-                                {profile.role_label || 'Teacher'} • {form.employee_id || '—'}
-                            </div>
-                            <input
-                                ref={fileInputRef}
-                                type="file"
-                                accept="image/jpeg,image/png,image/webp,image/gif,.jpg,.jpeg,.png,.webp,.gif"
-                                style={{ display: 'none' }}
-                                onChange={onPhotoSelected}
-                            />
-                            <div style={{ marginTop: 10, maxWidth: 420 }}>
-                                <div style={labelStyle}>Profile Photo</div>
-                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
+                {/* Header photo & ID Card Row */}
+                <div style={{ gridColumn: 'span 12', display: 'grid', gridTemplateColumns: 'repeat(12, minmax(0, 1fr))', gap: 12 }}>
+                    {/* Left: Profile Upload & Info */}
+                    <div style={{ gridColumn: 'span 7', backgroundColor: colors.card, border: `1px solid ${colors.border}`, borderRadius: 16, padding: 16, boxShadow: colors.shadow }}>
+                        <div style={{ display: 'flex', gap: 14, alignItems: 'center', flexWrap: 'wrap' }}>
+                            <div style={{ width: 90, height: 90, borderRadius: 22, border: `1px solid ${colors.border}`, backgroundColor: '#f3f4f6', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+                                {previewImageSrc ? (
                                     <button
                                         type="button"
-                                        onClick={pickPhoto}
-                                        disabled={photoBusy || idCardBusy}
+                                        onClick={() => setFullPhotoOpen(true)}
+                                        title="View full photo"
+                                        aria-label="View full profile photo"
                                         style={{
-                                            padding: '8px 14px',
-                                            borderRadius: 10,
-                                            border: `1px solid ${colors.primary}`,
-                                            background: '#eff6ff',
-                                            color: colors.primary,
-                                            fontWeight: 900,
-                                            cursor: photoBusy ? 'not-allowed' : 'pointer',
-                                            fontSize: 13,
+                                            border: 'none',
+                                            padding: 0,
+                                            margin: 0,
+                                            width: '100%',
+                                            height: '100%',
+                                            cursor: 'pointer',
+                                            background: 'transparent',
                                         }}
                                     >
-                                        {photoBusy ? 'Please wait…' : 'Upload photo'}
+                                        <img
+                                            src={previewImageSrc}
+                                            alt="Teacher profile"
+                                            style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                                        />
                                     </button>
-                                    {(profile?.has_photo || profile?.photo_url) && (
-                                        <>
-                                            <button
-                                                type="button"
-                                                onClick={() => setFullPhotoOpen(true)}
-                                                disabled={photoBusy || idCardBusy}
-                                                style={{
-                                                    padding: '8px 14px',
-                                                    borderRadius: 10,
-                                                    border: '1px solid #0ea5e9',
-                                                    background: '#f0f9ff',
-                                                    color: '#0369a1',
-                                                    fontWeight: 900,
-                                                    cursor: photoBusy ? 'not-allowed' : 'pointer',
-                                                    fontSize: 13,
-                                                }}
-                                            >
-                                                View full photo
-                                            </button>
+                                ) : (
+                                    <span style={{ fontWeight: 1000, color: colors.primary, fontSize: 24 }}>
+                                        {(form.name || 'T').slice(0, 1).toUpperCase()}
+                                    </span>
+                                )}
+                            </div>
+                            <div style={{ flex: 1, minWidth: 200 }}>
+                                <div style={{ fontWeight: 1000, fontSize: 18, color: colors.text }}>{form.name || '—'}</div>
+                                <div style={{ marginTop: 4, color: colors.muted, fontWeight: 900, fontSize: 13 }}>
+                                    {profile.role_label || 'Teacher'} • {form.employee_id || '—'}
+                                </div>
+                                <input
+                                    ref={fileInputRef}
+                                    type="file"
+                                    accept="image/jpeg,image/png,image/webp,image/gif,.jpg,.jpeg,.png,.webp,.gif"
+                                    style={{ display: 'none' }}
+                                    onChange={onPhotoSelected}
+                                />
+                                <div style={{ marginTop: 10 }}>
+                                    <div style={labelStyle}>Profile Photo</div>
+                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
+                                        <button
+                                            type="button"
+                                            onClick={pickPhoto}
+                                            disabled={photoBusy || idCardBusy}
+                                            style={{
+                                                padding: '8px 14px',
+                                                borderRadius: 10,
+                                                border: `1px solid ${colors.primary}`,
+                                                background: '#eff6ff',
+                                                color: colors.primary,
+                                                fontWeight: 900,
+                                                cursor: photoBusy ? 'not-allowed' : 'pointer',
+                                                fontSize: 13,
+                                            }}
+                                        >
+                                            {photoBusy ? '…' : 'Upload'}
+                                        </button>
+                                        {(profile?.has_photo || profile?.photo_url) && (
                                             <button
                                                 type="button"
                                                 onClick={removeProfilePhoto}
@@ -594,53 +583,110 @@ const TeacherProfile = () => {
                                                     fontSize: 13,
                                                 }}
                                             >
-                                                Remove photo
+                                                Remove
                                             </button>
-                                        </>
-                                    )}
-                                    <button
-                                        type="button"
-                                        onClick={viewIdCard}
-                                        disabled={idCardBusy}
-                                        style={{
-                                            padding: '8px 14px',
-                                            borderRadius: 10,
-                                            border: 'none',
-                                            background: '#ecfdf5',
-                                            color: '#166534',
-                                            fontWeight: 900,
-                                            cursor: idCardBusy ? 'not-allowed' : 'pointer',
-                                            fontSize: 13,
-                                        }}
-                                    >
-                                        {idCardBusy ? '…' : 'View ID card'}
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onClick={downloadIdCard}
-                                        disabled={idCardBusy}
-                                        style={{
-                                            padding: '8px 14px',
-                                            borderRadius: 10,
-                                            border: 'none',
-                                            background: '#fef3c7',
-                                            color: '#a16207',
-                                            fontWeight: 900,
-                                            cursor: idCardBusy ? 'not-allowed' : 'pointer',
-                                            fontSize: 13,
-                                        }}
-                                    >
-                                        {idCardBusy ? '…' : 'Download ID card'}
-                                    </button>
-                                </div>
-                                {photoError ? (
-                                    <div style={{ marginTop: 8, color: colors.danger, fontWeight: 800, fontSize: 12 }}>
-                                        {photoError}
+                                        )}
+                                        <button
+                                            type="button"
+                                            onClick={viewIdCard}
+                                            disabled={idCardBusy}
+                                            style={{
+                                                padding: '8px 14px',
+                                                borderRadius: 10,
+                                                border: 'none',
+                                                background: '#ecfdf5',
+                                                color: '#166534',
+                                                fontWeight: 900,
+                                                cursor: idCardBusy ? 'not-allowed' : 'pointer',
+                                                fontSize: 13,
+                                            }}
+                                        >
+                                            {idCardBusy ? '…' : 'View PDF'}
+                                        </button>
                                     </div>
-                                ) : null}
-                                <div style={{ marginTop: 6, fontSize: 12, color: colors.muted, fontWeight: 700 }}>
-                                    JPG, PNG, WebP or GIF, up to 4MB. ID card shows your photo only if you upload one.
+                                    <div style={{ marginTop: 6, fontSize: 11, color: colors.muted, fontWeight: 700, lineHeight: 1.4 }}>
+                                        ID card shows your photo only if you upload one.
+                                    </div>
                                 </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Right: ID Card Display */}
+                    <div style={{ gridColumn: 'span 5', display: 'flex', flexDirection: 'column' }}>
+                        <div style={{ 
+                            width: '100%', 
+                            flex: 1,
+                            backgroundColor: '#fff',
+                            borderRadius: 20,
+                            border: `1px solid ${colors.border}`,
+                            overflow: 'hidden',
+                            boxShadow: colors.shadow,
+                            fontFamily: 'system-ui, -apple-system, sans-serif',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            position: 'relative'
+                        }}>
+                            {/* Background Hero Image Watermark */}
+                            {schoolInfo?.hero_image && (
+                                <div style={{
+                                    position: 'absolute',
+                                    inset: 0,
+                                    backgroundImage: `url(${schoolInfo.hero_image})`,
+                                    backgroundSize: 'cover',
+                                    backgroundPosition: 'center',
+                                    opacity: 0.1,
+                                    zIndex: 0
+                                }} />
+                            )}
+
+                            <div style={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', height: '100%' }}>
+                                {/* ID Card Header */}
+                                <div style={{ 
+                                    backgroundColor: '#ffcc00', 
+                                    padding: '14px 20px', 
+                                    display: 'flex', 
+                                    alignItems: 'center', 
+                                    justifyContent: 'center',
+                                    gap: 10,
+                                    borderBottom: '4px solid #0f172a',
+                                    position: 'relative'
+                                }}>
+                                    {schoolInfo?.logo && (
+                                        <img src={schoolInfo.logo} alt="Logo" style={{ width: 32, height: 32, objectFit: 'contain' }} />
+                                    )}
+                                    <h2 style={{ margin: 0, fontSize: 20, fontWeight: 900, color: '#0f172a', letterSpacing: '-0.02em', textAlign: 'center' }}>
+                                        {schoolInfo?.name || 'Standard Public School'}
+                                    </h2>
+                                </div>
+
+                                <div style={{ padding: 16, display: 'flex', gap: 16, flex: 1, alignItems: 'center' }}>
+                                    <div style={{ flex: 1 }}>
+                                    <div style={{ display: 'grid', gap: 5, marginTop: 4 }}>
+                                            {[
+                                                { label: 'Name', value: form.name },
+                                                { label: 'Emp ID', value: form.employee_id },
+                                                { label: 'Role', value: profile.role_label || 'Teacher' },
+                                                { label: 'Phone', value: form.phone || '—' },
+                                                { label: 'Subject', value: form.subject_specialization || '—' }
+                                            ].map((item, idx) => (
+                                                <div key={idx} style={{ display: 'flex', gap: 6, fontSize: 12 }}>
+                                                    <span style={{ fontWeight: 800, color: '#64748b', minWidth: 80 }}>{item.label}:</span>
+                                                    <span style={{ fontWeight: 700, color: '#1e293b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.value}</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                    <div style={{ width: 90, height: 110, border: '1px solid #e2e8f0', borderRadius: 12, backgroundColor: '#f8fafc', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
+                                        {previewImageSrc ? (
+                                            <img src={previewImageSrc} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                        ) : (
+                                            <div style={{ fontSize: 32, fontWeight: 900, color: '#e2e8f0' }}>{(form.name || 'T')[0].toUpperCase()}</div>
+                                        )}
+                                    </div>
+                                </div>
+                                
+                                <div style={{ height: 6, background: 'linear-gradient(90deg, #2563eb, #ffcc00)' }}></div>
                             </div>
                         </div>
                     </div>

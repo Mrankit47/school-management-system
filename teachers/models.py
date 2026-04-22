@@ -1,9 +1,12 @@
+import uuid
 from django.db import models
 from django.conf import settings
 
 class TeacherProfile(models.Model):
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='teacher_profile')
-    employee_id = models.CharField(max_length=50, unique=True)
+    school = models.ForeignKey('tenants.School', on_delete=models.CASCADE, null=True, blank=True)
+    uuid = models.UUIDField(default=uuid.uuid4, editable=False, null=True)
+    employee_id = models.CharField(max_length=50) # removed unique=True
     subject_specialization = models.CharField(max_length=255, blank=True, null=True)
     phone_number = models.CharField(max_length=15, blank=True, null=True)
     gender = models.CharField(max_length=10, blank=True, null=True)
@@ -11,9 +14,22 @@ class TeacherProfile(models.Model):
     qualification = models.CharField(max_length=255, blank=True, null=True)
     experience_years = models.PositiveIntegerField(blank=True, null=True)
     joining_date = models.DateField(blank=True, null=True)
+    role = models.CharField(
+        max_length=20, 
+        choices=[('Class Teacher', 'Class Teacher'), ('Subject Teacher', 'Subject Teacher')],
+        default='Subject Teacher'
+    )
     status = models.CharField(max_length=10, default='Active')
     profile_image_base64 = models.TextField(blank=True, null=True)
     photo = models.ImageField(upload_to='teacher_photos/', blank=True, null=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=['school', 'employee_id'],
+                name='unique_employee_per_school',
+            )
+        ]
 
     def __str__(self):
         return f"{self.user.name} ({self.employee_id})"

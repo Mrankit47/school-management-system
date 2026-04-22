@@ -1,8 +1,10 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import api from '../../services/api';
+import { useStudent } from '../../context/StudentContext';
 
 const Notifications = () => {
+    const { selectedStudentId } = useStudent();
     const navigate = useNavigate();
     const location = useLocation();
     const base = location.pathname.startsWith('/teacher') ? '/teacher' : '/student';
@@ -38,7 +40,7 @@ const Notifications = () => {
         loadNotifications();
         const timer = setInterval(loadNotifications, 15000);
         return () => clearInterval(timer);
-    }, []);
+    }, [selectedStudentId]);
 
     useEffect(() => {
         if (loading) return;

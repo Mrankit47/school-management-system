@@ -1,21 +1,16 @@
 import os
 from pathlib import Path
 from datetime import timedelta
-# from dotenv import load_dotenv
+from dotenv import load_dotenv
 
-# load_dotenv()
+load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# Display name on fee receipts / reports (ID cards: env set karo ya default placeholder PDF mein)
+# Display name on fee receipts and reports
 SCHOOL_NAME = os.getenv('SCHOOL_NAME', 'School Management System')
-SCHOOL_ADDRESS = os.getenv('SCHOOL_ADDRESS', '').strip()
-SCHOOL_PHONE = os.getenv('SCHOOL_PHONE', '').strip()
-SCHOOL_EMAIL = os.getenv('SCHOOL_EMAIL', '').strip()
-SCHOOL_WEBSITE = os.getenv('SCHOOL_WEBSITE', '').strip()
 
-# Default must be >= 32 chars for PyJWT HMAC-SHA256 recommendation; set SECRET_KEY in env for production.
-SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-dev-only-please-set-env-secret-key-32b')
+SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-default-key')
 DEBUG = os.getenv('DEBUG', 'True') == 'True'
 ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
 
@@ -34,6 +29,7 @@ INSTALLED_APPS = [
     'corsheaders',
 
     # Local Apps (modular)
+    'dealers',
     'accounts',
     'students',
     'teachers',
@@ -41,7 +37,6 @@ INSTALLED_APPS = [
     'attendance',
     'academics',
     'assignments',
-    'announcements',
     'communication',
     'fees',
     'timetable',
@@ -50,8 +45,14 @@ INSTALLED_APPS = [
     'tenants',
     'syllabus',
     'bulk_upload',
-    'dealers',
+    'announcements',
+    'leaves',
+    'gallery',
+    'reports',
+    'shops',
+    'enquiries',
 ]
+
 
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
@@ -159,3 +160,31 @@ DATABASES = {
         },
     }
 }
+
+# ============================================================
+# EMAIL CONFIGURATION
+# ============================================================
+# STEP 1: Replace 'your-email@gmail.com' with your official Gmail address
+#         (e.g., 'schoolconduct.official@gmail.com')
+#
+# STEP 2: Replace 'your-app-password' with a Gmail App Password.
+#         ⚠️  This is NOT your Gmail login password!
+#         To generate an App Password:
+#           1. Go to https://myaccount.google.com/apppasswords
+#           2. Sign in → Select app "Mail" → Select device "Other"
+#           3. Click "Generate" → Copy the 16-character password
+#           4. Paste it below in EMAIL_HOST_PASSWORD
+#
+# STEP 3: Replace 'admin-email@gmail.com' in CONTACT_EMAIL with the
+#         official email where you want to RECEIVE all enquiry notifications.
+# ============================================================
+
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER', 'your-email@gmail.com')          # ← SENDER email (your Gmail)
+EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD', 'your-app-password')      # ← Gmail App Password (16 chars)
+
+DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
+CONTACT_EMAIL = os.getenv('CONTACT_EMAIL', 'admin-email@gmail.com')              # ← RECEIVER email (enquiries go here)

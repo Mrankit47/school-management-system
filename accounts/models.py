@@ -3,9 +3,10 @@ from django.contrib.auth.models import AbstractUser, BaseUserManager
 
 class UserManager(BaseUserManager):
     def create_user(self, username, email, password=None, **extra_fields):
-        if not email:
-            raise ValueError('The Email field must be set')
-        email = self.normalize_email(email)
+        if email:
+            email = self.normalize_email(email)
+        else:
+            email = None
         user = self.model(username=username, email=email, **extra_fields)
         user.set_password(password)
         user.save(using=self._db)
@@ -28,13 +29,15 @@ class User(AbstractUser):
         ('student', 'Student'),
     )
     
-    email = models.EmailField(unique=True)
+    email = models.EmailField(unique=True, null=True, blank=True)
     name = models.CharField(max_length=255, blank=True, null=True)
     role = models.CharField(max_length=10, choices=ROLE_CHOICES, default='student')
     phone = models.CharField(max_length=15, blank=True, null=True)
     school = models.ForeignKey('tenants.School', on_delete=models.CASCADE, null=True, blank=True)
+    profile_photo = models.ImageField(upload_to='profile_photos/', null=True, blank=True)
 
-    REQUIRED_FIELDS = ['email']
+
+    REQUIRED_FIELDS = []
 
     def __str__(self):
         return f"{self.username} ({self.role})"

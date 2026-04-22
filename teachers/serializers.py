@@ -4,6 +4,11 @@ from accounts.serializers import UserSerializer
 
 class TeacherProfileSerializer(serializers.ModelSerializer):
     user = UserSerializer(read_only=True)
+    employee_id = serializers.SerializerMethodField()
+    
+    def get_employee_id(self, obj):
+        prefix = obj.school.school_id if obj.school else 'NS'
+        return f"{prefix}-{obj.employee_id}"
 
     class Meta:
         model = TeacherProfile
@@ -18,6 +23,7 @@ class TeacherProfileSerializer(serializers.ModelSerializer):
             'qualification',
             'experience_years',
             'joining_date',
+            'role',
             'status',
             'profile_image_base64',
         ]

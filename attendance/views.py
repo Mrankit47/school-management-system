@@ -16,8 +16,9 @@ from timetable.models import TimeTableEntry
 from .pdf_report import build_student_attendance_report_pdf
 from django.http import HttpResponse
 from classes.models import ClassSection
-from classes.teacher_access import teacher_teaches_class_section
+from classes.teacher_access import teacher_teaches_class_section, teacher_can_mark_attendance
 from students.models import StudentProfile
+from students.utils import get_requested_student
 from django.utils import timezone
 
 class AttendanceMarkView(views.APIView):
@@ -49,8 +50,8 @@ class AttendanceMarkView(views.APIView):
         if not student or not student.class_section:
             return Response({'error': 'Student not found'}, status=status.HTTP_404_NOT_FOUND)
 
-        if not teacher_teaches_class_section(request.user.teacher_profile, student.class_section):
-            return Response({'error': 'Not allowed for this class'}, status=status.HTTP_403_FORBIDDEN)
+        if not teacher_can_mark_attendance(request.user.teacher_profile, student.class_section):
+            return Response({'error': 'Only Class Teachers can mark attendance for this class section.'}, status=status.HTTP_403_FORBIDDEN)
 
         verification_status = 'approved' if status_value == 'present' else 'rejected'
         attendance, _ = Attendance.objects.update_or_create(
@@ -137,6 +138,7 @@ class TeacherAttendanceSheetView(views.APIView):
             )
 
         is_editable = target_date == timezone.localdate()
+        can_mark = teacher_can_mark_attendance(request.user.teacher_profile, class_section)
 
         return Response(
             {
@@ -144,6 +146,7 @@ class TeacherAttendanceSheetView(views.APIView):
                 'class_display': f'{class_section.class_ref.name} - {class_section.section_ref.name}',
                 'date': target_date.isoformat(),
                 'is_editable': is_editable,
+                'can_mark': can_mark,
                 'summary': {
                     'present': present,
                     'absent': absent,
@@ -190,8 +193,8 @@ class TeacherAttendanceBulkSaveView(views.APIView):
         )
         if not class_section:
             return Response({'error': 'Class section not found'}, status=status.HTTP_404_NOT_FOUND)
-        if not teacher_teaches_class_section(request.user.teacher_profile, class_section):
-            return Response({'error': 'Not allowed for this class section'}, status=status.HTTP_403_FORBIDDEN)
+        if not teacher_can_mark_attendance(request.user.teacher_profile, class_section):
+            return Response({'error': 'Only Class Teachers can save attendance in bulk for this class section.'}, status=status.HTTP_403_FORBIDDEN)
 
         student_ids = set(
             StudentProfile.objects.filter(class_section_id=class_section_id).values_list('id', flat=True)
@@ -246,7 +249,7 @@ class StudentPunchAttendanceView(views.APIView):
     permission_classes = [IsStudent]
 
     def post(self, request):
-        student_profile = getattr(request.user, 'student_profile', None)
+        student_profile = get_requested_student(request)
         if not student_profile:
             return Response({'error': 'Student profile not found'}, status=status.HTTP_404_NOT_FOUND)
 
@@ -422,8 +425,8 @@ class TeacherAttendanceVerificationDecisionView(views.APIView):
         if not class_section:
             return Response({'error': 'Student class not found'}, status=status.HTTP_404_NOT_FOUND)
 
-        if not teacher_teaches_class_section(request.user.teacher_profile, class_section):
-            return Response({'error': 'Not allowed to verify this attendance'}, status=status.HTTP_403_FORBIDDEN)
+        if not teacher_can_mark_attendance(request.user.teacher_profile, class_section):
+            return Response({'error': 'Only Class Teachers can verify attendance for this class section.'}, status=status.HTTP_403_FORBIDDEN)
 
         if attendance.verification_status != 'pending':
             return Response({'error': 'Attendance is already verified'}, status=status.HTTP_409_CONFLICT)
@@ -596,7 +599,11 @@ class MyAttendanceView(views.APIView):
     permission_classes = [IsStudent]
 
     def get(self, request):
-        records = Attendance.objects.filter(student__user=request.user).order_by('-date')
+        student = get_requested_student(request)
+        if not student:
+            return Response({'error': 'Student profile not found'}, status=status.HTTP_404_NOT_FOUND)
+            
+        records = Attendance.objects.filter(student=student).order_by('-date')
         serializer = AttendanceSerializer(records, many=True)
         return Response(serializer.data)
 
@@ -639,13 +646,13 @@ class MyAttendanceReportPDFView(views.APIView):
             end_date = date_type(year, 12, 31)
             period_label = f'{year}'
 
-        student_profile = getattr(request.user, 'student_profile', None)
+        student_profile = get_requested_student(request)
         if not student_profile:
             return Response({'error': 'Student profile not found'}, status=status.HTTP_404_NOT_FOUND)
 
-        # Attendance records in range (student-only).
+        # Attendance records in range.
         records_qs = (
-            Attendance.objects.filter(student__user=request.user)
+            Attendance.objects.filter(student=student_profile)
             .filter(date__gte=start_date, date__lte=end_date)
             .select_related('marked_by')
             .order_by('date')
@@ -753,7 +760,7 @@ class MyAttendanceReportPDFView(views.APIView):
                     }
                 )
 
-        student_name = request.user.name or request.user.username
+        student_name = student_profile.user.name or student_profile.user.username
         class_label = 'N/A'
         if student_profile.class_section_id:
             cs = student_profile.class_section

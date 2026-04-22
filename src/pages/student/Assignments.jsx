@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import api from '../../services/api';
+import { useStudent } from '../../context/StudentContext';
 
 const colors = {
     bg: '#f9fafb',
@@ -98,6 +99,7 @@ function Modal({ open, onClose, title, children }) {
 }
 
 export default function StudentAssignments() {
+    const { selectedStudentId } = useStudent();
     const [assignments, setAssignments] = useState([]);
     const [submissions, setSubmissions] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -141,7 +143,7 @@ export default function StudentAssignments() {
             })
             .catch((e) => setError(e?.response?.data?.error || 'Could not load assignments.'))
             .finally(() => setLoading(false));
-    }, []);
+    }, [selectedStudentId]);
 
     const openDetails = (a) => {
         setSelected(a);
@@ -185,16 +187,47 @@ export default function StudentAssignments() {
     };
 
     return (
-        <div style={{ padding: 20, backgroundColor: colors.bg, minHeight: 'calc(100vh - 80px)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap', marginBottom: 12 }}>
-                <div>
-                    <h1 style={{ margin: 0, fontWeight: 1000, color: colors.text }}>Student Assignments</h1>
-                    <div style={{ marginTop: 4, color: colors.muted, fontWeight: 900, fontSize: 13 }}>
-                        Assignments are shown only for your class. Grouped by subject.
+        <div style={{ padding: '24px', backgroundColor: colors.bg, minHeight: 'calc(100vh - 80px)' }}>
+            <style>
+                {`
+                @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+                .animate-up { animation: fadeIn 0.4s ease forwards; }
+                .assignment-card:hover { transform: translateY(-3px); box-shadow: 0 8px 20px -10px rgba(0,0,0,0.1); }
+                `}
+            </style>
+
+            {/* Premium Header Card */}
+            <div className="animate-up" style={{
+                backgroundColor: '#fff',
+                padding: '28px',
+                borderRadius: '24px',
+                marginBottom: '20px',
+                boxShadow: '0 1px 12px rgba(16,24,40,0.08)',
+                border: '1px solid #e5e7eb',
+                background: 'linear-gradient(135deg, #fff 0%, #f8fafc 100%)',
+                position: 'relative',
+                overflow: 'hidden'
+            }}>
+                <div style={{ position: 'absolute', top: -30, right: -30, width: 200, height: 200, background: 'rgba(37, 99, 235, 0.03)', borderRadius: '50%', zIndex: 0 }}></div>
+                <div style={{ position: 'relative', zIndex: 1, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '20px', flexWrap: 'wrap' }}>
+                    <div>
+                        <h1 style={{ margin: 0, fontWeight: 1000, fontSize: '32px', letterSpacing: '-0.02em', background: 'linear-gradient(90deg, #1e293b 0%, #2563eb 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+                            My Assignments
+                        </h1>
+                        <p style={{ margin: '8px 0 0', color: colors.muted, fontWeight: 900, fontSize: '15px' }}>
+                            View tasks, submit your work, and track deadlines for all your subjects.
+                        </p>
                     </div>
-                </div>
-                <div style={{ color: colors.muted, fontWeight: 900, fontSize: 13 }}>
-                    {loading ? 'Loading...' : `Total: ${assignments.length}`}
+                    <div style={{ display: 'flex', gap: '12px' }}>
+                        <div style={{ background: '#f1f5f9', padding: '12px 20px', borderRadius: '16px', border: '1px solid #e2e8f0' }}>
+                            <div style={{ color: '#475569', fontWeight: 1000, fontSize: '18px' }}>{assignments.length}</div>
+                            <div style={{ color: '#64748b', fontWeight: 900, fontSize: '11px', textTransform: 'uppercase' }}>Total</div>
+                        </div>
+                        <div style={{ background: '#ecfdf5', padding: '12px 20px', borderRadius: '16px', border: '1px solid #d1fae5' }}>
+                            <div style={{ color: '#059669', fontWeight: 1000, fontSize: '18px' }}>{submissions.length}</div>
+                            <div style={{ color: '#10b981', fontWeight: 900, fontSize: '11px', textTransform: 'uppercase' }}>Submitted</div>
+                        </div>
+                    </div>
                 </div>
             </div>
 

@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 import useAuthStore from '../../store/authStore';
+import { useStudent } from '../../context/StudentContext';
 
 const colors = {
     bg: '#f9fafb',
@@ -109,7 +110,7 @@ function CircularProgress({ percentage }) {
 
 function Sparkline({ points, color = colors.primary }) {
     const width = 260;
-    const height = 86;
+    const height = 110;
     const padding = 10;
     if (!points || points.length < 2) return <div style={{ color: colors.muted, fontWeight: 900, fontSize: 12 }}>No data</div>;
     const ys = points.map((p) => p.y);
@@ -124,10 +125,27 @@ function Sparkline({ points, color = colors.primary }) {
             return `${i === 0 ? 'M' : 'L'} ${x} ${y}`;
         })
         .join(' ');
+    const areaPath = `${linePath} L ${xScale(points.length - 1)} ${height - padding} L ${xScale(0)} ${height - padding} Z`;
 
     return (
         <div style={{ width: '100%', overflowX: 'auto' }}>
             <svg width="100%" viewBox={`0 0 ${width} ${height}`}>
+                {[0.25, 0.5, 0.75].map((ratio) => {
+                    const y = padding + (height - padding * 2) * ratio;
+                    return (
+                        <line
+                            key={ratio}
+                            x1={padding}
+                            y1={y}
+                            x2={width - padding}
+                            y2={y}
+                            stroke="#e5e7eb"
+                            strokeWidth="1"
+                            strokeDasharray="3 3"
+                        />
+                    );
+                })}
+                <path d={areaPath} fill={color} opacity="0.12" />
                 <path d={linePath} fill="none" stroke={color} strokeWidth="3" strokeLinecap="round" />
                 {points.map((p, i) => {
                     const x = xScale(i);
@@ -191,32 +209,39 @@ export default function StudentDashboard() {
     const [results, setResults] = useState([]);
     const [feeRecords, setFeeRecords] = useState([]);
 
-    useEffect(() => {
+    const { selectedStudentId, setSelectedStudentId } = useStudent();
+
+    const fetchDashboardData = async (studentId) => {
         setLoading(true);
-        Promise.all([
-            api.get('students/profile/').catch(e => ({ data: null })),
-            api.get('attendance/my-attendance/').catch(e => ({ data: [] })),
-            api.get('timetable/').catch(e => ({ data: [] })),
-            api.get('communication/my/').catch(e => ({ data: [] })),
-            api.get('assignments/').catch(e => ({ data: [] })),
-            api.get('assignments/my-submissions/').catch(e => ({ data: [] })),
-            api.get('academics/exams/').catch(e => ({ data: [] })),
-            api.get('academics/results/my/').catch(e => ({ data: [] })),
-            api.get('fees/my/').catch(e => ({ data: [] })),
-        ])
-            .then(([pRes, aRes, tRes, nRes, asRes, subRes, eRes, rRes, fRes]) => {
-                setProfile(pRes.data || null);
-                setAttendance(aRes.data || []);
-                setTimetable(tRes.data || []);
-                setNotifications(nRes.data || []);
-                setAssignments(asRes.data || []);
-                setAssignmentSubmissions(subRes.data || []);
-                setExams(eRes.data || []);
-                setResults(rRes.data || []);
-                setFeeRecords(fRes.data || []);
-            })
-            .finally(() => setLoading(false));
-    }, []);
+        try {
+            const url = studentId ? `students/dashboard/?student_id=${studentId}` : 'students/dashboard/';
+            const res = await api.get(url);
+            const data = res.data;
+
+            setProfile(data.profile || null);
+            setAttendance(data.attendance || []);
+            setTimetable(data.timetable || []);
+            setNotifications(data.notifications || []);
+            setAssignments(data.assignments || []);
+            setAssignmentSubmissions(data.assignment_submissions || []);
+            setExams(data.exams || []);
+            setResults(data.results || []);
+            setFeeRecords(data.fees || []);
+
+            if (!selectedStudentId && data.profile) {
+                setSelectedStudentId(data.profile.id);
+            }
+        } catch (e) {
+            console.error('Failed to fetch dashboard data', e);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+
+    useEffect(() => {
+        fetchDashboardData(selectedStudentId);
+    }, [selectedStudentId]);
 
     useEffect(() => {
         localStorage.setItem('theme', theme);
@@ -309,9 +334,13 @@ export default function StudentDashboard() {
     }, [timetable]);
 
     const todayDayName = useMemo(() => dayNames[new Date().getDay()], []);
+    const todayDayNumber = useMemo(() => {
+        const d = new Date().getDay();
+        return d === 0 ? 7 : d; // Sunday->7 (no timetable), Mon->1 ... Sat->6
+    }, []);
     const todayTimetable = useMemo(() => {
-        return (timetable || []).filter((t) => t.day === todayDayName);
-    }, [timetable, todayDayName]);
+        return (timetable || []).filter((t) => Number(t.day) === todayDayNumber);
+    }, [timetable, todayDayNumber]);
 
     const currentClass = useMemo(() => {
         const toMinutes = (timeStr) => {
@@ -537,26 +566,35 @@ export default function StudentDashboard() {
         boxShadow: themeStyles.shadow,
         color: themeStyles.text,
     };
+    const topCardStyle = { ...cardStyle, minHeight: 180 };
+    const midCardStyle = { ...cardStyle, minHeight: 370 };
+    const largeCardStyle = { ...cardStyle, minHeight: 420 };
 
     return (
         <div style={wrapperStyle}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap', marginBottom: 14 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                    <div style={{ width: 56, height: 56, borderRadius: 18, backgroundColor: '#e0e7ff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 1000, color: colors.primary }}>
-                        {profile?.name ? profile.name.slice(0, 1).toUpperCase() : 'S'}
-                    </div>
-                    <div>
-                        <div style={{ fontWeight: 1000, fontSize: 18 }}>Student Dashboard</div>
-                        <div style={{ marginTop: 4, color: themeStyles.muted, fontWeight: 900, fontSize: 13 }}>
-                            {profile ? `${profile.name || 'Student'} | ${profile.class_name} - ${profile.section_name}` : ''}
+            <div style={{ ...cardStyle, padding: 24, borderRadius: 20, marginBottom: 20, background: 'linear-gradient(135deg, #fff 0%, #f8fafc 100%)', border: 'none', position: 'relative', overflow: 'visible' }}>
+                <div style={{ position: 'absolute', top: -30, right: -30, width: 200, height: 200, background: 'rgba(37, 99, 235, 0.03)', borderRadius: '50%', zIndex: 0 }}></div>
+                <div style={{ position: 'relative', zIndex: 1, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
+                        <div style={{ width: 64, height: 64, borderRadius: 20, backgroundColor: colors.primary, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 1000, color: '#fff', fontSize: 24, boxShadow: '0 4px 12px rgba(37, 99, 235, 0.2)' }}>
+                            {profile?.name ? profile.name.slice(0, 1).toUpperCase() : 'S'}
                         </div>
-                        {profile?.admission_number ? (
-                            <div style={{ marginTop: 2, color: themeStyles.muted, fontWeight: 900, fontSize: 12 }}>
-                                Roll No: {profile.admission_number}
-                            </div>
-                        ) : null}
+                        <div>
+                            <h1 style={{ margin: 0, fontWeight: 1000, fontSize: 30, letterSpacing: '-0.02em', background: 'linear-gradient(90deg, #1e293b 0%, #2563eb 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+                                Welcome Student Dashboard
+                            </h1>
+                            <p style={{ margin: '4px 0 0', color: themeStyles.muted, fontWeight: 900, fontSize: 16 }}>
+                                Hello, <span style={{ color: colors.primary }}>{profile?.name || 'Student'}</span>! {profile ? `(${profile.class_section_display || profile.class_name})` : ''}
+                            </p>
+
+                            {profile?.admission_number ? (
+                                <div style={{ marginTop: 2, color: themeStyles.muted, fontWeight: 900, fontSize: 12, opacity: 0.8 }}>
+                                    Roll No: {profile.admission_number}
+                                </div>
+                            ) : null}
+                        </div>
                     </div>
-                </div>
+
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
                     <button
@@ -578,6 +616,7 @@ export default function StudentDashboard() {
                         type="button"
                         onClick={() => {
                             logout();
+                            localStorage.removeItem('selectedStudentId');
                             navigate('/login');
                         }}
                         style={{
@@ -592,12 +631,16 @@ export default function StudentDashboard() {
                     >
                         Logout
                     </button>
+                    
                 </div>
             </div>
+        </div>
+
+
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(12, minmax(0, 1fr))', gap: 12 }}>
-                <div style={{ gridColumn: 'span 4' }}>
-                    <Card style={{ ...cardStyle }}>
+                <div style={{ gridColumn: 'span 6' }}>
+                    <Card style={{ ...topCardStyle }}>
                         <SectionHeader
                             icon={
                                 <Icon>
@@ -636,8 +679,8 @@ export default function StudentDashboard() {
                     </Card>
                 </div>
 
-                <div style={{ gridColumn: 'span 4' }}>
-                    <Card style={{ ...cardStyle }}>
+                <div style={{ gridColumn: 'span 6' }}>
+                    <Card style={{ ...topCardStyle }}>
                         <SectionHeader
                             icon={
                                 <Icon>
@@ -664,59 +707,12 @@ export default function StudentDashboard() {
                     </Card>
                 </div>
 
-                <div style={{ gridColumn: 'span 4' }}>
-                    <Card style={{ ...cardStyle }}>
-                        <SectionHeader
-                            icon={
-                                <Icon>
-                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                        <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
-                                        <path d="M9 17v-2" />
-                                        <path d="M14 17v-4" />
-                                        <path d="M19 17v-7" />
-                                        <path d="M3 17V6a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v11" />
-                                    </svg>
-                                </Icon>
-                            }
-                            title="Academic Quick Stats"
-                            subtitle="Overview"
-                        />
-                        <div style={{ marginTop: 12, display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0,1fr))', gap: 10 }}>
-                            <div style={{ border: `1px solid ${themeStyles.cardBorder}`, borderRadius: 14, padding: 12, backgroundColor: themeStyles.cardBg }}>
-                                <div style={{ color: themeStyles.muted, fontWeight: 900, fontSize: 12, textTransform: 'uppercase' }}>Total Subjects</div>
-                                <div style={{ marginTop: 6, fontWeight: 1000, fontSize: 22 }}>{subjectsCount}</div>
-                            </div>
-                            <div style={{ border: `1px solid ${themeStyles.cardBorder}`, borderRadius: 14, padding: 12, backgroundColor: themeStyles.cardBg }}>
-                                <div style={{ color: themeStyles.muted, fontWeight: 900, fontSize: 12, textTransform: 'uppercase' }}>Upcoming Exams</div>
-                                <div style={{ marginTop: 6, fontWeight: 1000, fontSize: 22 }}>{examsCount}</div>
-                            </div>
-                        </div>
-                        <div style={{ marginTop: 12 }}>
-                            <button
-                                type="button"
-                                onClick={() => navigate('/student/attendance')}
-                                style={{
-                                    width: '100%',
-                                    padding: '10px 12px',
-                                    borderRadius: 12,
-                                    border: `1px solid ${colors.border}`,
-                                    backgroundColor: colors.primary,
-                                    color: '#fff',
-                                    cursor: 'pointer',
-                                    fontWeight: 1000,
-                                }}
-                            >
-                                View Full Attendance
-                            </button>
-                        </div>
-                    </Card>
-                </div>
             </div>
 
             {/* Main grid */}
             <div style={{ marginTop: 12, display: 'grid', gridTemplateColumns: 'repeat(12, minmax(0, 1fr))', gap: 12 }}>
                 <div style={{ gridColumn: 'span 7' }}>
-                    <Card style={{ ...cardStyle, height: '100%' }}>
+                    <Card style={{ ...largeCardStyle, height: '100%' }}>
                         <SectionHeader
                             icon={
                                 <Icon>
@@ -731,51 +727,129 @@ export default function StudentDashboard() {
                             title="Today's Timetable"
                             subtitle={todayDayName}
                         />
-                        <div style={{ marginTop: 12, display: 'grid', gap: 10 }}>
+                        <div style={{ marginTop: 12, display: 'grid', gap: 12 }}>
                             {todayTimetable.length ? (
-                                todayTimetable
-                                    .slice()
-                                    .sort((a, b) => String(a.start_time).localeCompare(String(b.start_time)))
-                                    .map((t) => {
-                                        const isCurrent = currentClass && currentClass.id === t.id;
-                                        return (
-                                            <div
-                                                key={t.id}
-                                                style={{
-                                                    padding: '12px 12px',
-                                                    borderRadius: 14,
-                                                    border: `1px solid ${isCurrent ? '#7c3aed' : themeStyles.cardBorder}`,
-                                                    backgroundColor: isCurrent ? '#f5f3ff' : themeStyles.cardBg,
-                                                    display: 'flex',
-                                                    justifyContent: 'space-between',
-                                                    alignItems: 'flex-start',
-                                                    gap: 12,
-                                                    flexWrap: 'wrap',
-                                                }}
-                                            >
-                                                <div>
-                                                    <div style={{ fontWeight: 1000, color: themeStyles.text }}>
-                                                        {t.subject || '—'} {isCurrent ? <span style={{ marginLeft: 8, fontSize: 11, color: '#4c1d95', fontWeight: 1000 }}>Ongoing</span> : null}
+                                <>
+                                    {todayTimetable
+                                        .slice()
+                                        .sort((a, b) => String(a.start_time).localeCompare(String(b.start_time)))
+                                        .map((t) => {
+                                            const isCurrent = currentClass && currentClass.id === t.id;
+                                            return (
+                                                <div
+                                                    key={t.id}
+                                                    style={{
+                                                        padding: '16px',
+                                                        borderRadius: 16,
+                                                        border: `1px solid ${isCurrent ? colors.primary : themeStyles.cardBorder}`,
+                                                        backgroundColor: isCurrent ? (theme === 'dark' ? '#1e293b' : '#eff6ff') : themeStyles.cardBg,
+                                                        display: 'flex',
+                                                        justifyContent: 'space-between',
+                                                        alignItems: 'center',
+                                                        gap: 12,
+                                                        position: 'relative',
+                                                        transition: 'transform 0.2s',
+                                                        boxShadow: isCurrent ? '0 4px 12px rgba(37, 99, 235, 0.1)' : 'none',
+                                                    }}
+                                                >
+                                                    {isCurrent && (
+                                                        <div style={{ position: 'absolute', left: 0, top: '20%', bottom: '20%', width: 4, backgroundColor: colors.primary, borderRadius: '0 4px 4px 0' }}></div>
+                                                    )}
+                                                    <div style={{ flex: 1 }}>
+                                                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                                            <div style={{ fontWeight: 1000, color: isCurrent ? colors.primary : themeStyles.text, fontSize: 15 }}>
+                                                                {t.subject || '—'}
+                                                            </div>
+                                                            {isCurrent && (
+                                                                <span style={{ 
+                                                                    padding: '2px 8px', 
+                                                                    borderRadius: 99, 
+                                                                    backgroundColor: colors.primary, 
+                                                                    color: '#fff', 
+                                                                    fontSize: 10, 
+                                                                    fontWeight: 1000, 
+                                                                    textTransform: 'uppercase',
+                                                                    animation: 'pulse 2s infinite'
+                                                                }}>
+                                                                    Live Now
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                        <div style={{ marginTop: 4, color: themeStyles.muted, fontWeight: 900, fontSize: 13, display: 'flex', alignItems: 'center', gap: 6 }}>
+                                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                                                            {t.teacher_name || t.teacher || '—'}
+                                                        </div>
                                                     </div>
-                                                    <div style={{ marginTop: 4, color: themeStyles.muted, fontWeight: 900, fontSize: 12 }}>
-                                                        Teacher: {t.teacher ?? '—'}
+                                                    <div style={{ textAlign: 'right' }}>
+                                                        <div style={{ fontWeight: 1000, color: isCurrent ? colors.primary : themeStyles.text, fontSize: 14 }}>
+                                                            {t.start_time_display || t.start_time}
+                                                        </div>
+                                                        <div style={{ color: themeStyles.muted, fontWeight: 900, fontSize: 12 }}>
+                                                            to {t.end_time_display || t.end_time}
+                                                        </div>
                                                     </div>
                                                 </div>
-                                                <div style={{ color: themeStyles.muted, fontWeight: 900, fontSize: 12 }}>
-                                                    {t.start_time} - {t.end_time}
-                                                </div>
-                                            </div>
-                                        );
-                                    })
+                                            );
+                                        })}
+                                    <button
+                                        type="button"
+                                        onClick={() => navigate('/student/timetable')}
+                                        style={{
+                                            marginTop: 8,
+                                            width: '100%',
+                                            padding: '12px',
+                                            borderRadius: 14,
+                                            border: `1px solid ${themeStyles.cardBorder}`,
+                                            backgroundColor: 'transparent',
+                                            color: colors.primary,
+                                            cursor: 'pointer',
+                                            fontWeight: 1000,
+                                            fontSize: 13,
+                                            transition: 'all 0.2s',
+                                        }}
+                                        onMouseOver={(e) => e.target.style.backgroundColor = '#eff6ff'}
+                                        onMouseOut={(e) => e.target.style.backgroundColor = 'transparent'}
+                                    >
+                                        View Full Weekly Schedule
+                                    </button>
+                                </>
                             ) : (
-                                <div style={{ color: themeStyles.muted, fontWeight: 900, padding: 12 }}>Timetable not scheduled for today.</div>
+                                <div style={{ 
+                                    padding: '40px 20px', 
+                                    textAlign: 'center', 
+                                    color: themeStyles.muted, 
+                                    backgroundColor: theme === 'dark' ? '#0f172a' : '#f8fafc',
+                                    borderRadius: 20,
+                                    border: `2px dashed ${themeStyles.cardBorder}`
+                                }}>
+                                    <div style={{ fontSize: 40, marginBottom: 12 }}>🗓️</div>
+                                    <div style={{ fontWeight: 1000, color: themeStyles.text }}>No classes today</div>
+                                    <div style={{ fontSize: 13, fontWeight: 900, marginTop: 4 }}>Enjoy your time or check other days</div>
+                                    <button
+                                        type="button"
+                                        onClick={() => navigate('/student/timetable')}
+                                        style={{
+                                            marginTop: 16,
+                                            padding: '8px 20px',
+                                            borderRadius: 12,
+                                            backgroundColor: colors.primary,
+                                            color: '#fff',
+                                            border: 'none',
+                                            fontWeight: 1000,
+                                            cursor: 'pointer'
+                                        }}
+                                    >
+                                        Check Weekly Timetable
+                                    </button>
+                                </div>
                             )}
                         </div>
+
                     </Card>
                 </div>
 
                 <div style={{ gridColumn: 'span 5' }}>
-                    <Card style={{ ...cardStyle }}>
+                    <Card style={{ ...largeCardStyle }}>
                         <SectionHeader
                             icon={
                                 <Icon>
@@ -827,7 +901,7 @@ export default function StudentDashboard() {
                 </div>
 
                 <div style={{ gridColumn: 'span 7' }}>
-                    <Card style={{ ...cardStyle }}>
+                    <Card style={{ ...midCardStyle }}>
                         <SectionHeader
                             icon={
                                 <Icon>
@@ -912,7 +986,7 @@ export default function StudentDashboard() {
                 </div>
 
                 <div style={{ gridColumn: 'span 5' }}>
-                    <Card style={{ ...cardStyle }}>
+                    <Card style={{ ...midCardStyle }}>
                         <SectionHeader
                             icon={
                                 <Icon>
@@ -972,7 +1046,7 @@ export default function StudentDashboard() {
                 </div>
 
                 <div style={{ gridColumn: 'span 7' }}>
-                    <Card style={{ ...cardStyle }}>
+                    <Card style={{ ...midCardStyle }}>
                         <SectionHeader
                             icon={
                                 <Icon>
@@ -1070,7 +1144,7 @@ export default function StudentDashboard() {
                 </div>
 
                 <div style={{ gridColumn: 'span 5' }}>
-                    <Card style={{ ...cardStyle }}>
+                    <Card style={{ ...midCardStyle }}>
                         <SectionHeader
                             icon={
                                 <Icon>
@@ -1141,47 +1215,7 @@ export default function StudentDashboard() {
                     </Card>
                 </div>
 
-                <div style={{ gridColumn: 'span 12' }}>
-                    <Card style={{ ...cardStyle }}>
-                        <SectionHeader
-                            icon={
-                                <Icon>
-                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                        <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 7h18s-3 0-3-7" />
-                                        <path d="M13.73 21a2 2 0 0 1-3.46 0" />
-                                    </svg>
-                                </Icon>
-                            }
-                            title="Notifications Panel"
-                            subtitle="Alerts"
-                        />
-                        <div style={{ marginTop: 12, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 12 }}>
-                            {studentAlerts.length ? (
-                                studentAlerts.map((a, idx) => {
-                                    const isWarn = a.kind === 'warning';
-                                    return (
-                                        <div
-                                            key={`${a.title}-${idx}`}
-                                            style={{
-                                                border: `1px solid ${isWarn ? '#fecaca' : themeStyles.cardBorder}`,
-                                                backgroundColor: isWarn ? '#fff7ed' : themeStyles.cardBg,
-                                                borderRadius: 14,
-                                                padding: 12,
-                                            }}
-                                        >
-                                            <div style={{ fontWeight: 1000, color: isWarn ? colors.warnText : themeStyles.text }}>{a.title}</div>
-                                            <div style={{ marginTop: 6, color: themeStyles.muted, fontWeight: 800, fontSize: 13 }}>
-                                                {a.message}
-                                            </div>
-                                        </div>
-                                    );
-                                })
-                            ) : (
-                                <div style={{ color: themeStyles.muted, fontWeight: 900, padding: 12 }}>No alerts available.</div>
-                            )}
-                        </div>
-                    </Card>
-                </div>
+
             </div>
         </div>
     );

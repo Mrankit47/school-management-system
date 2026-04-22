@@ -1,6 +1,7 @@
 """Student ID card PDF — layout with header band, details left, ID + photo right."""
 from __future__ import annotations
 
+import os
 from io import BytesIO
 
 from reportlab.lib.units import mm
@@ -51,6 +52,8 @@ def build_student_id_card_pdf(
     school_phone: str = '',
     school_email: str = '',
     school_website: str = '',
+    logo_path: str = None,
+    hero_image_path: str = None,
 ) -> bytes:
     W, H = 128 * mm, 74 * mm
     m = 3.0 * mm
@@ -67,6 +70,18 @@ def build_student_id_card_pdf(
     c.setLineWidth(1.3)
     c.roundRect(m, m, W - 2 * m, H - 2 * m, 3.5, stroke=1, fill=0)
 
+    # background hero watermark
+    if hero_image_path and os.path.exists(hero_image_path):
+        try:
+            c.saveState()
+            p = c.beginPath()
+            p.roundRect(m, m, W - 2 * m, H - 2 * m, 3.5)
+            c.clipPath(p, stroke=0, fill=0)
+            c.setFillAlpha(0.08)
+            _draw_photo_cover_box(c, hero_image_path, m, m, W - 2 * m, H - 2 * m)
+            c.restoreState()
+        except: pass
+
     # Header fill
     c.setFillColorRGB(*gold)
     c.rect(m, H - m - header_h, W - 2 * m, header_h, stroke=0, fill=1)
@@ -76,12 +91,23 @@ def build_student_id_card_pdf(
     c.setFillColorRGB(*body_bg)
     c.rect(m, m, W - 2 * m, body_top_y - m, stroke=0, fill=1)
 
+    # Logo (Header Left)
+    logo_w = 0
+    if logo_path and os.path.exists(logo_path):
+        try:
+            lw, lh = 9 * mm, 9 * mm
+            lx = m + 4 * mm
+            ly = H - m - (header_h + lh)/2
+            c.drawImage(ImageReader(logo_path), lx, ly, width=lw, height=lh, mask='auto')
+            logo_w = lw + 2 * mm
+        except: pass
+
     # Title
     title = _header_title(school_name)
     c.setFillColorRGB(0, 0, 0)
     c.setFont('Helvetica-Bold', 14)
     tw = c.stringWidth(title, 'Helvetica-Bold', 14)
-    c.drawString((W - tw) / 2, H - m - header_h + 4.2 * mm, title)
+    c.drawString((W - tw) / 2 + (logo_w/4 if logo_w else 0), H - m - header_h + 4.2 * mm, title)
 
     # Optional tiny contact (right side of header)
     contact_bits = []
@@ -106,16 +132,17 @@ def build_student_id_card_pdf(
     label_x = lx + 22 * mm
 
     name = _clip(student.user.name or student.user.username, 38)
-    father = _clip(student.parent_guardian_name, 36)
-    class_n = '—'
-    section_n = '—'
+    father = _clip(student.father_name, 36)
+    class_full = '—'
     if student.class_section_id:
-        class_n = _clip(student.class_section.class_ref.name, 14)
-        section_n = _clip(student.class_section.section_ref.name, 8)
-    phone = _clip(student.user.phone or student.parent_contact_number or '', 24)
+        c_name = student.class_section.class_ref.name
+        s_name = student.class_section.section_ref.name
+        class_full = f"{c_name} {s_name}"
+    phone = _clip(student.user.phone or student.father_contact or '', 24)
+    blood_group = _clip(student.blood_group or '', 8)
     addr = _clip(student.address or '', 46)
-    adm = _clip(student.admission_number, 18)
-
+    roll = _clip(student.roll_number or '', 18)
+    
     def row(lbl, val, bold_val=True):
         nonlocal y
         c.setFont('Helvetica-Bold', 8.5)
@@ -128,8 +155,9 @@ def build_student_id_card_pdf(
     row('Name:', name)
     row('Father Name:', father)
     row('Admission No:', adm)
-    row('Class:', class_n)
-    row('Section:', section_n)
+    row('Roll No:', roll)
+    row('Class:', class_full)
+    row('Blood Group:', blood_group)
     row('Phone:', phone)
     row('Address:', addr, bold_val=False)
 

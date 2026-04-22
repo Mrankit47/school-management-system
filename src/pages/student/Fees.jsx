@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import api from '../../services/api';
+import { useStudent } from '../../context/StudentContext';
 
 const card = {
     backgroundColor: '#fff',
@@ -10,18 +11,20 @@ const card = {
 };
 
 const Fees = () => {
+    const { selectedStudentId } = useStudent();
     const [feeRecords, setFeeRecords] = useState([]);
     const [loading, setLoading] = useState(true);
     const [paymentForms, setPaymentForms] = useState({});
     const [payingId, setPayingId] = useState(null);
 
     useEffect(() => {
+        setLoading(true);
         api
             .get('fees/my/')
             .then((res) => setFeeRecords(res.data || []))
             .catch(() => setFeeRecords([]))
             .finally(() => setLoading(false));
-    }, []);
+    }, [selectedStudentId]);
 
     useEffect(() => {
         const init = {};
@@ -155,22 +158,57 @@ const Fees = () => {
     );
 
     return (
-        <div style={{ padding: '20px' }}>
-            <h1 style={{ margin: '0 0 8px' }}>Fee Status</h1>
-            <p style={{ margin: '0 0 20px', color: '#6b7280', fontSize: '14px' }}>Your fees, balance, and payment history.</p>
+        <div style={{ padding: '24px', background: '#f8fafc', minHeight: 'calc(100vh - 60px)' }}>
+            <style>
+                {`
+                @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+                .animate-up { animation: fadeIn 0.4s ease forwards; }
+                .fee-card { transition: all 0.2s ease; }
+                .fee-card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+                `}
+            </style>
+
+            {/* Premium Header Card */}
+            <div className="animate-up" style={{ 
+                backgroundColor: '#fff', 
+                padding: '28px', 
+                borderRadius: '24px', 
+                marginBottom: '20px', 
+                boxShadow: '0 1px 12px rgba(16,24,40,0.08)',
+                border: '1px solid #e5e7eb',
+                background: 'linear-gradient(135deg, #fff 0%, #f8fafc 100%)',
+                position: 'relative',
+                overflow: 'hidden'
+            }}>
+                <div style={{ position: 'absolute', top: -30, right: -30, width: 200, height: 200, background: 'rgba(37, 99, 235, 0.03)', borderRadius: '50%', zIndex: 0 }}></div>
+                <div style={{ position: 'relative', zIndex: 1 }}>
+                    <h1 style={{ margin: 0, fontWeight: 1000, fontSize: '32px', letterSpacing: '-0.02em', background: 'linear-gradient(90deg, #1e293b 0%, #2563eb 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+                        Fee Status
+                    </h1>
+                    <p style={{ margin: '8px 0 0', color: '#64748b', fontWeight: 900, fontSize: '15px' }}>
+                        Track your academic investments, view payment receipts, and manage your balance.
+                    </p>
+                </div>
+            </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: '12px', marginBottom: '16px' }}>
                 <div style={card}>
                     <div style={{ fontSize: 11, color: '#6b7280', fontWeight: 800, textTransform: 'uppercase' }}>Total Fees</div>
-                    <div style={{ marginTop: 6, fontSize: 22, fontWeight: 900 }}>₹{totals.total.toFixed(2)}</div>
+                    <div style={{ marginTop: 6, fontSize: totals.total > 0 ? 22 : 16, fontWeight: 900, color: totals.total > 0 ? '#111827' : '#94a3b8' }}>
+                        {totals.total > 0 ? `₹${totals.total.toFixed(2)}` : 'Fees Not Assigned'}
+                    </div>
                 </div>
                 <div style={card}>
                     <div style={{ fontSize: 11, color: '#6b7280', fontWeight: 800, textTransform: 'uppercase' }}>Total Paid</div>
-                    <div style={{ marginTop: 6, fontSize: 22, fontWeight: 900, color: '#166534' }}>₹{totals.paid.toFixed(2)}</div>
+                    <div style={{ marginTop: 6, fontSize: 22, fontWeight: 900, color: totals.paid > 0 ? '#166534' : '#94a3b8' }}>
+                        ₹{totals.paid.toFixed(2)}
+                    </div>
                 </div>
                 <div style={card}>
                     <div style={{ fontSize: 11, color: '#6b7280', fontWeight: 800, textTransform: 'uppercase' }}>Total Due</div>
-                    <div style={{ marginTop: 6, fontSize: 22, fontWeight: 900, color: '#b45309' }}>₹{totals.due.toFixed(2)}</div>
+                    <div style={{ marginTop: 6, fontSize: totals.due > 0 ? 22 : 18, fontWeight: 900, color: totals.due > 0 ? '#b45309' : '#166534' }}>
+                        {totals.due > 0 ? `₹${totals.due.toFixed(2)}` : 'No Balance'}
+                    </div>
                 </div>
                 <div style={{ ...card, borderColor: totals.overdueCount > 0 ? '#fecaca' : '#e5e7eb', backgroundColor: totals.overdueCount > 0 ? '#fff7ed' : '#fff' }}>
                     <div style={{ fontSize: 11, color: '#6b7280', fontWeight: 800, textTransform: 'uppercase' }}>Overdue Records</div>
@@ -422,7 +460,15 @@ const Fees = () => {
                     );
                 })}
             </div>
-            {feeRecords.length === 0 && <p style={{ color: '#6b7280' }}>No fee records found. Contact the office if this is unexpected.</p>}
+            {feeRecords.length === 0 && (
+                <div style={{ ...card, textAlign: 'center', padding: '60px 20px', backgroundColor: '#f8fafc' }}>
+                    <div style={{ fontSize: '48px', marginBottom: '20px', opacity: 0.5 }}>💳</div>
+                    <h3 style={{ margin: '0 0 8px', color: '#111827' }}>No Fees Assigned</h3>
+                    <p style={{ margin: 0, color: '#64748b', fontSize: '14px', maxWidth: '300px', mx: 'auto' }}>
+                        Your class fee structure hasn't been set by the administration yet. Please check back later.
+                    </p>
+                </div>
+            )}
         </div>
     );
 };

@@ -7,6 +7,75 @@ from django.db.models.signals import post_delete, post_save
 from django.dispatch import receiver
 
 
+class ClassFeeCard(models.Model):
+    class_name = models.CharField(max_length=50)
+    registration_fee = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'))
+    admission_fee = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'))
+    tuition_fee = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'))
+    computer_fee = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'))
+    annual_charges = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'))
+    science_fee = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'))
+    sports_fee = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'))
+    total_fee = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'))
+    created_by = models.ForeignKey(
+        'accounts.User',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='created_fee_cards',
+    )
+    school = models.ForeignKey(
+        'tenants.School',
+        on_delete=models.CASCADE,
+        related_name='fee_cards',
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['class_name']
+        unique_together = ('school', 'class_name')
+
+    def __str__(self):
+        return f"{self.class_name} — ₹{self.total_fee}"
+
+    def save(self, *args, **kwargs):
+        self.total_fee = (
+            (self.registration_fee or Decimal('0'))
+            + (self.admission_fee or Decimal('0'))
+            + (self.tuition_fee or Decimal('0'))
+            + (self.computer_fee or Decimal('0'))
+            + (self.annual_charges or Decimal('0'))
+            + (self.science_fee or Decimal('0'))
+            + (self.sports_fee or Decimal('0'))
+        )
+        super().save(*args, **kwargs)
+
+
+class ClassFeeCardRollback(models.Model):
+    school = models.ForeignKey(
+        'tenants.School',
+        on_delete=models.CASCADE,
+        related_name='fee_card_rollbacks',
+    )
+    created_by = models.ForeignKey(
+        'accounts.User',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='fee_card_rollbacks',
+    )
+    source = models.CharField(max_length=50, default='manual')
+    snapshot = models.JSONField(default=list)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.school_id} rollback @ {self.created_at}"
+
+
 class FeeStructure(models.Model):
     """Class-wise fee definition (one active structure per class)."""
 
@@ -20,6 +89,15 @@ class FeeStructure(models.Model):
     other_charges = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'))
     total_fees = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'))
     due_date = models.DateField(default=date.today)
+    # Legacy columns present in production DB schema; keep defaults
+    # so insert operations do not fail with NOT NULL constraint errors.
+    registration_fee = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'))
+    admission_fee = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'))
+    tuition_fee = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'))
+    computer_fee = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'))
+    annual_fee = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'))
+    science_fee = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'))
+    sports_fee = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'))
     description = models.CharField(max_length=255, blank=True, default='')
 
     class Meta:

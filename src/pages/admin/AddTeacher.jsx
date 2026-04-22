@@ -43,6 +43,7 @@ const AddTeacher = () => {
 
         password: '',
         confirm_password: '',
+        role: 'Subject Teacher',
         status: 'Active',
 
         profile_image: null,
@@ -105,8 +106,9 @@ const AddTeacher = () => {
 
         if (!form.first_name.trim()) nextErrors.first_name = 'First name is required';
         if (!form.last_name.trim()) nextErrors.last_name = 'Last name is required';
-        if (!form.email.trim()) nextErrors.email = 'Email is required';
-        else if (!emailRegex.test(form.email.trim())) nextErrors.email = 'Enter a valid email address';
+        if (form.email.trim() && !emailRegex.test(form.email.trim())) {
+            nextErrors.email = 'Enter a valid email address';
+        }
 
         if (!form.phone_number.trim()) nextErrors.phone_number = 'Phone number is required';
         else if (phoneDigits.length !== 10) nextErrors.phone_number = 'Phone number must be exactly 10 digits';
@@ -188,6 +190,7 @@ const AddTeacher = () => {
                 qualification: qualificationValue,
                 experience_years: form.experience_years,
                 joining_date: form.joining_date,
+                role: form.role,
                 status: form.status,
                 profile_image_base64: form.profile_image_base64,
             };
@@ -208,6 +211,7 @@ const AddTeacher = () => {
                 joining_date: '',
                 password: '',
                 confirm_password: '',
+                role: 'Subject Teacher',
                 status: 'Active',
                 profile_image: null,
                 profile_image_base64: '',
@@ -274,7 +278,7 @@ const AddTeacher = () => {
                             <div style={{ display: 'grid', gap: '12px' }}>
                                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                                     <div>
-                                        <div style={labelStyle}>First Name</div>
+                                        <div style={labelStyle}>First Name <span style={{ color: '#dc2626' }}>*</span></div>
                                         <input
                                             type="text"
                                             value={form.first_name}
@@ -286,7 +290,7 @@ const AddTeacher = () => {
                                         {errors.first_name && <div style={errorStyle}>{errors.first_name}</div>}
                                     </div>
                                     <div>
-                                        <div style={labelStyle}>Last Name</div>
+                                        <div style={labelStyle}>Last Name <span style={{ color: '#dc2626' }}>*</span></div>
                                         <input
                                             type="text"
                                             value={form.last_name}
@@ -307,13 +311,12 @@ const AddTeacher = () => {
                                         onChange={(e) => setForm({ ...form, email: e.target.value })}
                                         placeholder="Enter email"
                                         style={inputStyle}
-                                        required
                                     />
                                     {errors.email && <div style={errorStyle}>{errors.email}</div>}
                                 </div>
 
                                 <div>
-                                    <div style={labelStyle}>Phone Number</div>
+                                    <div style={labelStyle}>Phone Number <span style={{ color: '#dc2626' }}>*</span></div>
                                     <div style={{ display: 'grid', gridTemplateColumns: '70px 1fr', gap: '8px' }}>
                                         <input
                                             type="text"
@@ -340,7 +343,7 @@ const AddTeacher = () => {
 
                                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                                     <div>
-                                        <div style={labelStyle}>Gender</div>
+                                        <div style={labelStyle}>Gender <span style={{ color: '#dc2626' }}>*</span></div>
                                         <select
                                             value={form.gender}
                                             onChange={(e) => setForm({ ...form, gender: e.target.value })}
@@ -356,7 +359,7 @@ const AddTeacher = () => {
                                     </div>
 
                                     <div>
-                                        <div style={labelStyle}>Date of Birth</div>
+                                        <div style={labelStyle}>Date of Birth <span style={{ color: '#dc2626' }}>*</span></div>
                                         <input
                                             type="date"
                                             value={form.dob}
@@ -385,7 +388,7 @@ const AddTeacher = () => {
                                 </div>
 
                                 <div>
-                                    <div style={labelStyle}>Subject Specialization</div>
+                                    <div style={labelStyle}>Subject Specialization <span style={{ color: '#dc2626' }}>*</span></div>
                                     <select
                                         value={form.subject_specialization}
                                         onChange={(e) => setForm({ ...form, subject_specialization: e.target.value })}
@@ -485,7 +488,7 @@ const AddTeacher = () => {
                             <h3 style={{ margin: 0, marginBottom: '12px', color: '#111827' }}>Section: Account Setup</h3>
                             <div style={{ display: 'grid', gap: '12px' }}>
                                 <div>
-                                    <div style={labelStyle}>Password</div>
+                                    <div style={labelStyle}>Password <span style={{ color: '#dc2626' }}>*</span></div>
                                     <input
                                         type="password"
                                         value={form.password}
@@ -498,7 +501,7 @@ const AddTeacher = () => {
                                 </div>
 
                                 <div>
-                                    <div style={labelStyle}>Confirm Password</div>
+                                    <div style={labelStyle}>Confirm Password <span style={{ color: '#dc2626' }}>*</span></div>
                                     <input
                                         type="password"
                                         value={form.confirm_password}
@@ -519,6 +522,18 @@ const AddTeacher = () => {
                                     >
                                         <option value="Active">Active</option>
                                         <option value="Inactive">Inactive</option>
+                                    </select>
+                                </div>
+
+                                <div>
+                                    <div style={labelStyle}>Role</div>
+                                    <select
+                                        value={form.role}
+                                        onChange={(e) => setForm({ ...form, role: e.target.value })}
+                                        style={inputStyle}
+                                    >
+                                        <option value="Subject Teacher">Subject Teacher</option>
+                                        <option value="Class Teacher">Class Teacher</option>
                                     </select>
                                 </div>
                             </div>
@@ -555,14 +570,15 @@ const AddTeacher = () => {
                                 disabled={busy}
                                 style={{
                                     width: '100%',
-                                    backgroundColor: '#0d5bd7',
+                                    backgroundColor: '#2563eb',
                                     color: '#fff',
                                     padding: '14px 18px',
                                     border: 'none',
                                     cursor: 'pointer',
                                     borderRadius: '12px',
-                                    fontWeight: 800,
+                                    fontWeight: 1000,
                                     fontSize: '15px',
+                                    boxShadow: '0 4px 12px rgba(37, 99, 235, 0.2)',
                                     opacity: busy ? 0.7 : 1,
                                 }}
                             >

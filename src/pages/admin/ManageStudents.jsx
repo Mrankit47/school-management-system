@@ -152,7 +152,7 @@ const ManageStudents = () => {
 
             if (q) {
                 const haystack = [
-                    s.name, s.username, s.email, s.admission_number, s.parent_guardian_name, s.parent_contact_number,
+                    s.name, s.username, s.email, s.admission_number, s.father_name, s.mother_name, s.father_contact, s.mother_contact,
                 ].join(' ').toLowerCase();
                 if (!haystack.includes(q)) return false;
             }
@@ -195,9 +195,10 @@ const ManageStudents = () => {
             'DOB',
             'Class',
             'Section',
-            'Guardian Name',
-            'Guardian Email',
-            'Guardian Mobile',
+            'Father Name',
+            'Mother Name',
+            'Father Contact',
+            'Mother Contact',
             'Status',
             'Admission Number',
             'Category',
@@ -213,9 +214,10 @@ const ManageStudents = () => {
                     formatDate(s.dob),
                     s.classLabel || '',
                     s.sectionLabel || '',
-                    s.parent_guardian_name || '',
-                    s.email || '',
-                    s.parent_contact_number || '',
+                    s.father_name || '',
+                    s.mother_name || '',
+                    s.father_contact || '',
+                    s.mother_contact || '',
                     s.activity || '',
                     s.admission_number || '',
                     s.category || '',
@@ -261,10 +263,12 @@ const ManageStudents = () => {
                 name: `${editRow.first_name || ''} ${editRow.last_name || ''}`.trim() || editRow.name,
                 email: editRow.email || '',
                 admission_number: editRow.admission_number || '',
-                dob: editRow.dob || null,
+                bus_no: editRow.bus_no || '',
                 gender: editRow.gender || '',
-                parent_guardian_name: editRow.parent_guardian_name || '',
-                parent_contact_number: editRow.parent_contact_number || '',
+                father_name: editRow.father_name || '',
+                mother_name: editRow.mother_name || '',
+                father_contact: editRow.father_contact || '',
+                mother_contact: editRow.mother_contact || '',
                 category: editRow.category || '',
             });
             setEditRow(null);
@@ -389,34 +393,37 @@ const ManageStudents = () => {
                         <thead>
                                 <tr>
                                     <th style={th}>S.No</th>
+                                    <th style={th}>Student ID</th>
                                     <th style={th}>Student Name</th>
+
                                     <th style={th}>Session Name</th>
                                     <th style={th}>Gender</th>
                                     <th style={th}>DOB</th>
                                     <th style={th}>Class</th>
                                     <th style={th}>Section</th>
-                                    <th style={th}>Guardian Name</th>
-                                    <th style={th}>Guardian Email</th>
-                                    <th style={th}>Guardian Mobile</th>
+                                    <th style={th}>Father Name</th>
+                                    <th style={th}>Father Contact</th>
                                     <th style={th}>Status</th>
                                     <th style={th}>Action</th>
                             </tr>
                         </thead>
                         <tbody>
                                 {pagedRows.length === 0 ? (
-                                    <tr><td colSpan={12} style={{ ...td, textAlign: 'center', padding: 20 }}>No students found.</td></tr>
+                                    <tr><td colSpan={13} style={{ ...td, textAlign: 'center', padding: 20 }}>No students found.</td></tr>
+
                                 ) : pagedRows.map((s, idx) => (
                                     <tr key={s.id} style={{ background: idx % 2 === 0 ? '#ffffff' : '#f8fafc' }}>
                                         <td style={td}>{start + idx + 1}</td>
+                                        <td style={td}>{s.admission_number || '—'}</td>
                                         <td style={{ ...td, fontWeight: 700 }}>{s.name || '—'}</td>
+
                                         <td style={td}>{s.sessionName}</td>
                                         <td style={td}>{s.gender || 'Unknown'}</td>
                                         <td style={td}>{formatDate(s.dob)}</td>
                                         <td style={td}>{s.classLabel}</td>
                                         <td style={td}>{s.sectionLabel}</td>
-                                        <td style={td}>{s.parent_guardian_name || '—'}</td>
-                                        <td style={td}>{s.email || '—'}</td>
-                                        <td style={td}>{s.parent_contact_number || '—'}</td>
+                                        <td style={td}>{s.father_name || '—'}</td>
+                                        <td style={td}>{s.father_contact || '—'}</td>
                                         <td style={td}>
                                             <span
                                                 style={{
@@ -484,8 +491,11 @@ const ManageStudents = () => {
                             <div><b>Gender:</b> {viewRow.gender || 'Unknown'}</div>
                             <div><b>Class:</b> {viewRow.classLabel}</div>
                             <div><b>Section:</b> {viewRow.sectionLabel}</div>
-                            <div><b>Guardian:</b> {viewRow.parent_guardian_name || '—'}</div>
-                            <div><b>Mobile:</b> {viewRow.parent_contact_number || '—'}</div>
+                            <div><b>Bus No:</b> {viewRow.bus_no || 'N/A'}</div>
+                            <div><b>Father's Name:</b> {viewRow.father_name || '—'}</div>
+                            <div><b>Mother's Name:</b> {viewRow.mother_name || '—'}</div>
+                            <div><b>Father's Contact:</b> {viewRow.father_contact || '—'}</div>
+                            <div><b>Mother's Contact:</b> {viewRow.mother_contact || '—'}</div>
                         </div>
                         <div style={{ marginTop: 16, textAlign: 'right' }}>
                             <button type="button" onClick={() => setViewRow(null)} style={{ ...selectStyle, minWidth: 90, cursor: 'pointer' }}>Close</button>
@@ -503,15 +513,17 @@ const ManageStudents = () => {
                             <input value={editRow.last_name || ''} onChange={(e) => setEditRow((p) => ({ ...p, last_name: e.target.value }))} placeholder="Last name" style={selectStyle} />
                             <input value={editRow.email || ''} onChange={(e) => setEditRow((p) => ({ ...p, email: e.target.value }))} placeholder="Email" style={selectStyle} />
                             <input value={editRow.admission_number || ''} onChange={(e) => setEditRow((p) => ({ ...p, admission_number: e.target.value }))} placeholder="Admission number" style={selectStyle} />
-                            <input type="date" value={editRow.dob || ''} onChange={(e) => setEditRow((p) => ({ ...p, dob: e.target.value }))} style={selectStyle} />
+                            <input value={editRow.bus_no || ''} onChange={(e) => setEditRow((p) => ({ ...p, bus_no: e.target.value }))} placeholder="Bus No." style={selectStyle} />
                             <select value={editRow.gender || ''} onChange={(e) => setEditRow((p) => ({ ...p, gender: e.target.value }))} style={selectStyle}>
                                 <option value="">Gender</option>
                                 <option value="Male">Male</option>
                                 <option value="Female">Female</option>
                                 <option value="Other">Other</option>
                             </select>
-                            <input value={editRow.parent_guardian_name || ''} onChange={(e) => setEditRow((p) => ({ ...p, parent_guardian_name: e.target.value }))} placeholder="Guardian name" style={selectStyle} />
-                            <input value={editRow.parent_contact_number || ''} onChange={(e) => setEditRow((p) => ({ ...p, parent_contact_number: e.target.value }))} placeholder="Guardian mobile" style={selectStyle} />
+                            <input value={editRow.father_name || ''} onChange={(e) => setEditRow((p) => ({ ...p, father_name: e.target.value }))} placeholder="Father's name" style={selectStyle} />
+                            <input value={editRow.mother_name || ''} onChange={(e) => setEditRow((p) => ({ ...p, mother_name: e.target.value }))} placeholder="Mother's name" style={selectStyle} />
+                            <input value={editRow.father_contact || ''} onChange={(e) => setEditRow((p) => ({ ...p, father_contact: e.target.value }))} placeholder="Father's contact" style={selectStyle} />
+                            <input value={editRow.mother_contact || ''} onChange={(e) => setEditRow((p) => ({ ...p, mother_contact: e.target.value }))} placeholder="Mother's contact" style={selectStyle} />
                         </div>
                         <div style={{ marginTop: 14, display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
                             <button type="button" onClick={() => setEditRow(null)} style={{ ...selectStyle, minWidth: 90, cursor: 'pointer' }}>Cancel</button>

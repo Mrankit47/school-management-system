@@ -28,6 +28,7 @@ const Classes = () => {
     const [teachers, setTeachers] = useState([]);
     const [students, setStudents] = useState([]);
     const [loading, setLoading] = useState(false);
+    const [shifts, setShifts] = useState([]);
 
     const [message, setMessage] = useState('');
     const [error, setError] = useState('');
@@ -49,6 +50,7 @@ const Classes = () => {
         class_id: '',
         section_name: '',
         class_teacher: '',
+        assigned_shift: '',
         room_number: '',
     });
 
@@ -71,18 +73,20 @@ const Classes = () => {
             if (sectionClassFilter) sectionParams.class_id = sectionClassFilter;
             if (sectionSearch.trim()) sectionParams.search = sectionSearch.trim();
 
-            const [cRes, sRes, hRes, tRes, stRes] = await Promise.all([
+            const [cRes, sRes, hRes, tRes, stRes, shiftRes] = await Promise.all([
                 api.get('classes/main-classes/'),
                 api.get('classes/admin-sections/', { params: sectionParams }),
                 api.get('classes/admin-structure/'),
                 api.get('teachers/'),
                 api.get('students/'),
+                api.get('timetable/shifts/'),
             ]);
             setClasses(cRes.data || []);
             setSections(sRes.data || []);
             setHierarchy(hRes.data || []);
             setTeachers(tRes.data || []);
             setStudents(stRes.data || []);
+            setShifts(shiftRes.data || []);
         } catch (e) {
             setError('Error loading classes & sections');
             clearMessage();
@@ -151,6 +155,7 @@ const Classes = () => {
             class_id: classes[0]?.id || '',
             section_name: '',
             class_teacher: '',
+            assigned_shift: '',
             room_number: '',
         });
         setSectionModalOpen(true);
@@ -162,6 +167,7 @@ const Classes = () => {
             class_id: s.class_id || '',
             section_name: s.section_name || '',
             class_teacher: s.class_teacher || '',
+            assigned_shift: s.assigned_shift || '',
             room_number: s.room_number || '',
         });
         setSectionModalOpen(true);
@@ -173,6 +179,7 @@ const Classes = () => {
             class_id: sectionForm.class_id,
             section_name: sectionForm.section_name,
             class_teacher: sectionForm.class_teacher || null,
+            assigned_shift: sectionForm.assigned_shift || null,
             room_number: sectionForm.room_number || null,
         };
         try {
@@ -274,14 +281,14 @@ const Classes = () => {
                                         <button
                                             type="button"
                                             onClick={() => openEditClass(c)}
-                                            style={{ padding: '6px 10px', borderRadius: '999px', border: 'none', backgroundColor: '#16a34a', color: '#fff', fontWeight: 800, cursor: 'pointer' }}
+                                            style={{ padding: '6px 14px', borderRadius: '8px', border: 'none', backgroundColor: '#eff6ff', color: '#2563eb', fontWeight: 800, cursor: 'pointer', transition: 'all 0.2s' }}
                                         >
                                             Edit
                                         </button>
                                         <button
                                             type="button"
                                             onClick={() => deleteClass(c.id)}
-                                            style={{ padding: '6px 10px', borderRadius: '999px', border: 'none', backgroundColor: '#ef4444', color: '#fff', fontWeight: 800, cursor: 'pointer' }}
+                                            style={{ padding: '6px 14px', borderRadius: '8px', border: 'none', backgroundColor: '#fef2f2', color: '#dc2626', fontWeight: 800, cursor: 'pointer', transition: 'all 0.2s' }}
                                         >
                                             Delete
                                         </button>
@@ -294,6 +301,7 @@ const Classes = () => {
                                         c.sections.map((s) => (
                                             <li key={s.id} style={{ color: '#374151', fontWeight: 700, marginBottom: '4px' }}>
                                                 Section {s.section_name}
+                                                {s.shift_name ? ` • Shift: ${s.shift_name}` : ''}
                                                 {s.room_number ? ` • Room ${s.room_number}` : ''}
                                                 {s.class_teacher_name ? ` • Teacher: ${s.class_teacher_name}` : ''}
                                                 {typeof s.student_count === 'number' ? ` • Students: ${s.student_count}` : ''}
@@ -333,6 +341,7 @@ const Classes = () => {
                                 <tr style={{ backgroundColor: '#f2f4f7' }}>
                                     <th style={{ padding: '10px', textAlign: 'left' }}>Class</th>
                                     <th style={{ padding: '10px', textAlign: 'left' }}>Section</th>
+                                    <th style={{ padding: '10px', textAlign: 'left' }}>Shift</th>
                                     <th style={{ padding: '10px', textAlign: 'left' }}>Teacher</th>
                                     <th style={{ padding: '10px', textAlign: 'left' }}>Room</th>
                                     <th style={{ padding: '10px', textAlign: 'left' }}>Actions</th>
@@ -343,6 +352,11 @@ const Classes = () => {
                                     <tr key={s.id} style={{ borderTop: '1px solid #eef2f7' }}>
                                         <td style={{ padding: '10px', fontWeight: 800 }}>{s.class_name}</td>
                                         <td style={{ padding: '10px' }}>{s.section_name}</td>
+                                        <td style={{ padding: '10px' }}>
+                                            <span style={{ fontSize: '11px', fontWeight: 800, color: '#2563eb', backgroundColor: '#eff6ff', padding: '3px 8px', borderRadius: '6px' }}>
+                                                {s.shift_name || 'N/A'}
+                                            </span>
+                                        </td>
                                         <td style={{ padding: '10px' }}>{s.class_teacher_name || 'N/A'}</td>
                                         <td style={{ padding: '10px' }}>{s.room_number || 'N/A'}</td>
                                         <td style={{ padding: '10px' }}>
@@ -350,14 +364,14 @@ const Classes = () => {
                                                 <button
                                                     type="button"
                                                     onClick={() => openEditSection(s)}
-                                                    style={{ padding: '6px 10px', borderRadius: '999px', border: 'none', backgroundColor: '#16a34a', color: '#fff', fontWeight: 800, cursor: 'pointer' }}
+                                                    style={{ padding: '6px 14px', borderRadius: '8px', border: 'none', backgroundColor: '#eff6ff', color: '#2563eb', fontWeight: 800, cursor: 'pointer' }}
                                                 >
                                                     Edit
                                                 </button>
                                                 <button
                                                     type="button"
                                                     onClick={() => deleteSection(s.id)}
-                                                    style={{ padding: '6px 10px', borderRadius: '999px', border: 'none', backgroundColor: '#ef4444', color: '#fff', fontWeight: 800, cursor: 'pointer' }}
+                                                    style={{ padding: '6px 14px', borderRadius: '8px', border: 'none', backgroundColor: '#fef2f2', color: '#dc2626', fontWeight: 800, cursor: 'pointer' }}
                                                 >
                                                     Delete
                                                 </button>
@@ -507,6 +521,17 @@ const Classes = () => {
                                     {teachers.map((t) => (
                                         <option key={t.id} value={t.id}>
                                             {t.name}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div>
+                                <div style={labelStyle}>Assigned Shift</div>
+                                <select value={sectionForm.assigned_shift} onChange={(e) => setSectionForm({ ...sectionForm, assigned_shift: e.target.value })} style={inputStyle}>
+                                    <option value="">-- No Shift --</option>
+                                    {shifts.map((sh) => (
+                                        <option key={sh.id} value={sh.id}>
+                                            {sh.name} ({sh.start_time} - {sh.end_time})
                                         </option>
                                     ))}
                                 </select>

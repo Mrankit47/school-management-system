@@ -14,8 +14,11 @@ const AdminDashboard = () => {
         dob: '',
         gender: '',
         blood_group: '',
-        parent_guardian_name: '',
-        parent_contact_number: '',
+        father_name: '',
+        mother_name: '',
+        father_contact: '',
+        mother_contact: '',
+        bus_no: '',
         address: '',
         date_of_admission: '',
         category: '',
@@ -29,6 +32,10 @@ const AdminDashboard = () => {
     const [teachersCount, setTeachersCount] = useState(0);
     const [studentsCount, setStudentsCount] = useState(0);
     const [studentsLoading, setStudentsLoading] = useState(false);
+    const [galleryImages, setGalleryImages] = useState([]);
+    const [galleryLoading, setGalleryLoading] = useState(false);
+    const [currentSlide, setCurrentSlide] = useState(0);
+    const token = localStorage.getItem('access_token');
     const parentPhoneDigits = (formData.parent_contact_number || '').replace(/\D/g, '').slice(0, 10);
 
     const fetchCounts = async () => {
@@ -55,11 +62,35 @@ const AdminDashboard = () => {
         }
     };
 
+    const fetchDashboardGallery = async () => {
+        setGalleryLoading(true);
+        try {
+            const res = await api.get('gallery/');
+            setGalleryImages(Array.isArray(res?.data) ? res.data : []);
+        } catch (e) {
+            console.error("Error fetching gallery:", e);
+            setGalleryImages([]);
+        } finally {
+            setGalleryLoading(false);
+        }
+    };
+
     useEffect(() => {
         setStudentsLoading(true);
-        Promise.all([fetchCounts(), fetchClassesAndSections()])
+        Promise.all([fetchCounts(), fetchClassesAndSections(), fetchDashboardGallery()])
             .finally(() => setStudentsLoading(false));
     }, []);
+
+    useEffect(() => {
+        if (!galleryImages.length) {
+            setCurrentSlide(0);
+            return undefined;
+        }
+        const timer = setInterval(() => {
+            setCurrentSlide((prev) => (prev + 1) % galleryImages.length);
+        }, 4000);
+        return () => clearInterval(timer);
+    }, [galleryImages]);
 
     // Auto refresh dashboard stats (so delete/update actions reflect immediately).
     useEffect(() => {
@@ -87,18 +118,20 @@ const AdminDashboard = () => {
             setMessage('Error: Password and confirm password do not match.');
             return;
         }
-        if (parentPhoneDigits.length !== 10) {
-            setMessage('Error: Parent contact number must be exactly 10 digits.');
-            return;
-        }
         try {
             const payload = { ...formData };
             const first = (formData.first_name || '').trim();
             const last = (formData.last_name || '').trim();
             const emailLocal = (formData.email || '').split('@')[0].trim().toLowerCase();
-            
+
             payload.username = emailLocal || 'student';
             payload.name = `${first} ${last}`.trim();
+
+            const f_digits = (formData.father_contact || '').replace(/\D/g, '').slice(0, 10);
+            const m_digits = (formData.mother_contact || '').replace(/\D/g, '').slice(0, 10);
+
+            payload.father_contact = f_digits ? `+91${f_digits}` : '';
+            payload.mother_contact = m_digits ? `+91${m_digits}` : '';
 
             await api.post('students/admin-create/', payload);
             setMessage('Student created successfully!');
@@ -107,8 +140,8 @@ const AdminDashboard = () => {
             setFormData({
                 email: '', password: '', first_name: '', last_name: '', name: '',
                 admission_number: '', class_id: '', section_id: '', dob: '',
-                gender: '', blood_group: '', parent_guardian_name: '',
-                parent_contact_number: '', address: '', date_of_admission: '', category: '',
+                gender: '', blood_group: '', father_name: '', mother_name: '',
+                father_contact: '', mother_contact: '', bus_no: '', address: '', date_of_admission: '', category: '',
             });
             setTimeout(() => setMessage(''), 3000);
         } catch (err) {
@@ -121,15 +154,25 @@ const AdminDashboard = () => {
     return (
         <div className="space-y-8 animate-in fade-in duration-500">
             {/* Header Section */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 pb-4">
-                <div>
-                    <h1 className="text-4xl font-poppins font-black text-school-text tracking-tight">
-                        Admin <span className="text-transparent bg-clip-text bg-gradient-to-r from-school-navy to-school-blue">Dashboard</span>
-                    </h1>
-                    <p className="text-sm text-school-body font-medium mt-1">Management Overview & Academic Control Center</p>
+            <div className="relative overflow-hidden bg-white/80 backdrop-blur-xl p-10 rounded-[2.5rem] border border-slate-100 shadow-xl shadow-slate-200/40 mb-10 group transition-all duration-500 hover:shadow-2xl hover:shadow-school-blue/5">
+                <div className="absolute top-0 right-0 w-64 h-64 bg-school-blue/5 blur-3xl rounded-full -mr-32 -mt-32 transition-colors group-hover:bg-school-blue/10"></div>
+                <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+                    <div className="flex items-center gap-6">
+                        <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-school-navy to-school-blue flex items-center justify-center text-3xl shadow-xl shadow-school-navy/20">
+                            🛡️
+                        </div>
+                        <div>
+                            <h1 className="text-4xl font-poppins font-black text-school-text tracking-tight">
+                                Welcome <span className="text-transparent bg-clip-text bg-gradient-to-r from-school-navy to-school-blue">Admin Dashboard</span>
+                            </h1>
+                            <p className="text-sm text-school-body font-bold mt-1 opacity-70">
+                                Management Overview & Academic Control Center • {new Date().toLocaleDateString('default', { weekday: 'long', month: 'long', day: 'numeric' })}
+                            </p>
+                        </div>
+                    </div>
                 </div>
-                {/* Registration button removed from dashboard as requested */}
             </div>
+
 
             {/* Dashboard Stats & Overview */}
             {!isFormOpen && (
@@ -159,61 +202,97 @@ const AdminDashboard = () => {
 
                     {/* Chart & Activity Grid */}
                     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-                        {/* Attendance Chart Mockup */}
+                        {/* Dashboard Gallery Slider */}
                         <div className="lg:col-span-8 bg-white/50 backdrop-blur-md p-8 rounded-[2.5rem] border border-slate-100 shadow-xl shadow-slate-200/30">
-                            <div className="flex items-center justify-between mb-10">
+                            <div className="flex items-start justify-between mb-8 gap-4 flex-wrap">
                                 <div>
-                                    <h3 className="font-poppins font-bold text-school-text text-lg">Attendance Overview</h3>
-                                    <p className="text-xs text-slate-400">Weekly student presence analytics</p>
-                                </div>
-                                <div className="flex items-center gap-3 px-4 py-2 bg-slate-50 rounded-xl border border-slate-100">
-                                    <span className="w-2.5 h-2.5 rounded-full bg-school-navy animate-pulse"></span>
-                                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Live Updates</span>
+                                    <h3 className="font-poppins font-bold text-school-text text-lg">School Gallery Highlights</h3>
+                                    <p className="text-xs text-slate-400">Auto-rotating highlights from your secure gallery</p>
                                 </div>
                             </div>
-                            <div className="h-64 flex items-end justify-between gap-4 px-2">
-                                {[85, 92, 78, 95, 88, 70, 92].map((h, i) => (
-                                    <div key={i} className="flex-1 flex flex-col items-center gap-4 group">
-                                        <div className="w-full bg-slate-50 rounded-2xl relative h-full overflow-hidden border border-slate-100/50">
-                                            <div 
-                                                className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-school-navy to-school-blue rounded-2xl transition-all duration-1000 ease-out shadow-lg shadow-school-blue/20"
-                                                style={{ height: `${h}%` }}
-                                            >
-                                                <div className="absolute top-2 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                    <span className="text-[9px] font-black text-white">{h}%</span>
-                                                </div>
-                                            </div>
+                            <div className="h-72 rounded-2xl border border-slate-100 bg-white/70 p-3">
+                                {galleryLoading ? (
+                                    <div className="h-full flex items-center justify-center text-slate-400 font-bold">Loading gallery...</div>
+                                ) : galleryImages.length === 0 ? (
+                                    <div className="h-full flex items-center justify-center text-slate-400 font-bold">No gallery images uploaded yet.</div>
+                                ) : (
+                                    <div className="h-full relative rounded-xl overflow-hidden">
+                                        {galleryImages.map((img, idx) => (
+                                            <img
+                                                key={img.id}
+                                                src={`${img.image_url}${token ? `?token=${token}` : ''}`}
+                                                alt={img.title}
+                                                className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-700 select-none ${idx === currentSlide ? 'opacity-100' : 'opacity-0'}`}
+                                                onContextMenu={(e) => e.preventDefault()}
+                                                onDragStart={(e) => e.preventDefault()}
+                                            />
+                                        ))}
+                                        <div className="absolute inset-x-0 bottom-0 p-3 bg-gradient-to-t from-black/50 to-transparent">
+                                            <p className="text-white font-bold text-sm truncate">{galleryImages[currentSlide]?.title}</p>
                                         </div>
-                                        <span className="text-[10px] font-black text-slate-400 group-hover:text-school-navy transition-colors">Day {i+1}</span>
+                                        <div className="absolute bottom-3 right-3 flex gap-1.5">
+                                            {galleryImages.map((img, idx) => (
+                                                <button
+                                                    key={img.id}
+                                                    type="button"
+                                                    onClick={() => setCurrentSlide(idx)}
+                                                    className={`w-2.5 h-2.5 rounded-full ${idx === currentSlide ? 'bg-white' : 'bg-white/50'}`}
+                                                />
+                                            ))}
+                                        </div>
                                     </div>
-                                ))}
+                                )}
                             </div>
                         </div>
 
                         {/* Recent Activity / Calendar Placeholder (Light Theme) */}
                         <div className="lg:col-span-4 bg-white/80 backdrop-blur-xl p-8 rounded-[2.5rem] border border-slate-100 shadow-xl shadow-slate-200/40 relative overflow-hidden group hover:shadow-2xl hover:shadow-school-blue/10 transition-all duration-500">
                             <div className="absolute top-0 right-0 w-32 h-32 bg-school-blue/5 blur-3xl rounded-full -mr-16 -mt-16 group-hover:bg-school-blue/10 transition-colors"></div>
-                            <h3 className="font-poppins font-bold text-school-text text-lg mb-8 flex items-center gap-2">
-                                <span className="w-2 h-2 rounded-full bg-school-blue animate-pulse"></span>
-                                Academic Calendar
+                            <h3 className="font-poppins font-bold text-school-text text-lg mb-8 flex items-center justify-between gap-2">
+                                <div className="flex items-center gap-2">
+                                    <span className="w-2 h-2 rounded-full bg-school-blue animate-pulse"></span>
+                                    Academic Calendar
+                                </div>
+                                <span className="text-xs font-black text-school-navy bg-school-blue/5 px-3 py-1 rounded-full uppercase tracking-widest">
+                                    {new Date().toLocaleString('default', { month: 'long' })} {new Date().getFullYear()}
+                                </span>
                             </h3>
-                            <div className="grid grid-cols-7 gap-2 text-center mb-6">
-                                {['S','M','T','W','T','F','S'].map(d => (
-                                    <span key={d} className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{d}</span>
+                            <div className="grid grid-cols-7 gap-3 text-center mb-6 px-1">
+                                {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((day, i) => (
+                                    <span key={i} className="text-[11px] font-black text-slate-400 uppercase tracking-widest">{day}</span>
                                 ))}
                             </div>
                             <div className="grid grid-cols-7 gap-2">
-                                {Array.from({length: 31}, (_, i) => (
-                                    <div 
-                                        key={i} 
-                                        className={`aspect-square flex items-center justify-center text-[11px] rounded-xl transition-all cursor-pointer border
-                                            ${i+1 === new Date().getDate() 
-                                                ? 'bg-gradient-to-br from-school-navy to-school-blue text-white font-black border-transparent shadow-lg shadow-school-blue/30 scale-110 z-10' 
-                                                : 'hover:bg-slate-50 text-slate-600 font-bold border-slate-50 hover:border-slate-100 hover:text-school-navy'}`}
-                                    >
-                                        {i+1}
-                                    </div>
-                                ))}
+                                {(() => {
+                                    const today = new Date();
+                                    const month = today.getMonth();
+                                    const year = today.getFullYear();
+                                    const firstDay = new Date(year, month, 1).getDay();
+                                    const totalDays = new Date(year, month + 1, 0).getDate();
+                                    const cells = [];
+
+                                    // Add spacers for days before the 1st
+                                    for (let i = 0; i < firstDay; i++) {
+                                        cells.push(<div key={`empty-${i}`} className="aspect-square" />);
+                                    }
+
+                                    // Add actual days
+                                    for (let d = 1; d <= totalDays; d++) {
+                                        const isToday = d === today.getDate();
+                                        cells.push(
+                                            <div
+                                                key={`day-${d}`}
+                                                className={`aspect-square flex items-center justify-center text-[11px] rounded-xl transition-all cursor-pointer border
+                                                    ${isToday
+                                                        ? 'bg-gradient-to-br from-school-navy to-school-blue text-white font-black border-transparent shadow-lg shadow-school-blue/30 scale-110 z-10'
+                                                        : 'hover:bg-slate-50 text-slate-600 font-bold border-slate-50 hover:border-slate-100 hover:text-school-navy'}`}
+                                            >
+                                                {d}
+                                            </div>
+                                        );
+                                    }
+                                    return cells;
+                                })()}
                             </div>
                             <div className="mt-10 space-y-5">
                                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] pl-1">Upcoming Events</p>
@@ -243,7 +322,7 @@ const AdminDashboard = () => {
                         <p className="text-slate-400 text-sm mt-1">Fill in the details to create a new student account.</p>
                         <div className="absolute right-8 top-8 opacity-20 text-6xl">🎓</div>
                     </div>
-                    
+
                     <form onSubmit={handleSubmit} className="p-8 space-y-8">
                         {/* Section: Personal Info */}
                         <div className="space-y-6">
@@ -252,7 +331,7 @@ const AdminDashboard = () => {
                                 <h4 className="font-bold text-school-text uppercase tracking-wider text-sm">Personal Information</h4>
                                 <div className="flex-1 h-px bg-slate-100"></div>
                             </div>
-                            
+
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div className="space-y-2">
                                     <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">First Name</label>
@@ -334,7 +413,7 @@ const AdminDashboard = () => {
                                         required
                                     >
                                         <option value="">Select Group</option>
-                                        {['A+','A-','B+','B-','AB+','AB-','O+','O-'].map(bg => <option key={bg} value={bg}>{bg}</option>)}
+                                        {['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'].map(bg => <option key={bg} value={bg}>{bg}</option>)}
                                     </select>
                                 </div>
                             </div>
@@ -347,7 +426,7 @@ const AdminDashboard = () => {
                                 <h4 className="font-bold text-school-text uppercase tracking-wider text-sm">Academic Details</h4>
                                 <div className="flex-1 h-px bg-slate-100"></div>
                             </div>
-                            
+
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                                 <div className="space-y-2">
                                     <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">Admission No</label>
@@ -395,6 +474,16 @@ const AdminDashboard = () => {
                                         {mainSections.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                                     </select>
                                 </div>
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">Bus No (Optional)</label>
+                                    <input
+                                        type="text"
+                                        placeholder="e.g. BUS-01"
+                                        value={formData.bus_no}
+                                        onChange={(e) => setFormData({ ...formData, bus_no: e.target.value })}
+                                        className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-school-navy/5 outline-none focus:bg-white focus:border-school-navy/20 transition-all"
+                                    />
+                                </div>
                             </div>
                             <div className="space-y-2">
                                 <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">Admission Date</label>
@@ -418,23 +507,45 @@ const AdminDashboard = () => {
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div className="space-y-2">
-                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">Guardian Name</label>
+                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">Father's Name</label>
                                     <input
                                         type="text"
-                                        placeholder="Full name of parent/guardian"
-                                        value={formData.parent_guardian_name}
-                                        onChange={(e) => setFormData({ ...formData, parent_guardian_name: e.target.value })}
+                                        placeholder="Full name of father"
+                                        value={formData.father_name}
+                                        onChange={(e) => setFormData({ ...formData, father_name: e.target.value })}
                                         className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-school-navy/5 outline-none focus:bg-white focus:border-school-navy/20 transition-all"
                                         required
                                     />
                                 </div>
                                 <div className="space-y-2">
-                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">Contact Number</label>
+                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">Father's Contact</label>
                                     <input
                                         type="tel"
-                                        placeholder="Contact phone number"
-                                        value={formData.parent_contact_number}
-                                        onChange={(e) => setFormData({ ...formData, parent_contact_number: e.target.value })}
+                                        placeholder="Father's phone number"
+                                        value={formData.father_contact}
+                                        onChange={(e) => setFormData({ ...formData, father_contact: e.target.value })}
+                                        className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-school-navy/5 outline-none focus:bg-white focus:border-school-navy/20 transition-all font-medium"
+                                        required
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">Mother's Name</label>
+                                    <input
+                                        type="text"
+                                        placeholder="Full name of mother"
+                                        value={formData.mother_name}
+                                        onChange={(e) => setFormData({ ...formData, mother_name: e.target.value })}
+                                        className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-school-navy/5 outline-none focus:bg-white focus:border-school-navy/20 transition-all"
+                                        required
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">Mother's Contact</label>
+                                    <input
+                                        type="tel"
+                                        placeholder="Mother's phone number"
+                                        value={formData.mother_contact}
+                                        onChange={(e) => setFormData({ ...formData, mother_contact: e.target.value })}
                                         className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-school-navy/5 outline-none focus:bg-white focus:border-school-navy/20 transition-all font-medium"
                                         required
                                     />
