@@ -106,9 +106,6 @@ def build_teacher_id_card_pdf(
     phone = _clip(teacher.phone_number or teacher.user.phone or '', 20)
 
     c.setFillColorRGB(0.05, 0.05, 0.08)
-    c.setFont('Helvetica-Bold', 9)
-    c.drawString(lx, y, 'TEACHER ID CARD')
-    y -= line + 1 * mm
 
     def row(lbl, val, lw=28 * mm):
         nonlocal y

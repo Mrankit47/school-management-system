@@ -79,11 +79,14 @@ class BulkIDCardGenerationView(APIView):
                 details = [
                     ('Adm No', p.admission_number),
                     ('Roll No', p.roll_number or '—'),
-                    ('Class', p.class_section.class_ref.name if p.class_section else '—'),
-                    ('Section', p.class_section.section_ref.name if p.class_section else '—'),
-                    ('Phone', p.user.phone or '—'),
+                    ('Class', f"{p.class_section.class_ref.name} {p.class_section.section_ref.name}" if p.class_section else '—'),
+                    ('Father', p.father_name or '—'),
+                    ('Blood Group', p.blood_group or '—'),
+                    ('Phone', p.user.phone or p.father_contact or '—'),
+                    ('Address', p.address or '—'),
                 ]
                 users_data.append({
+                    'type_label': 'STUDENT ID CARD',
                     'name': p.user.name or p.user.username,
                     'photo_path': p.photo.path if p.photo and os.path.exists(p.photo.path) else None,
                     'details': details
@@ -94,11 +97,12 @@ class BulkIDCardGenerationView(APIView):
                 details = [
                     ('Emp ID', p.employee_id),
                     ('Role', p.role or 'Teacher'),
-                    ('Specialization', p.subject_specialization or '—'),
                     ('Phone', p.phone_number or '—'),
+                    ('Subject', p.subject_specialization or '—'),
                     ('Status', p.status),
                 ]
                 users_data.append({
+                    'type_label': 'TEACHER ID CARD',
                     'name': p.user.name or p.user.username,
                     'photo_path': p.photo.path if p.photo and os.path.exists(p.photo.path) else None,
                     'details': details
