@@ -46,7 +46,7 @@ const Profile = () => {
             api.get('assignments/my-submissions/'),
             api.get('attendance/my-attendance/'),
             api.get('fees/my/'),
-            api.get('common/school-info/'),
+            api.get('tenants/common/school-info/'),
         ]).then(([profileRes, assignmentRes, submissionRes, attendanceRes, feesRes, schoolRes]) => {
                 if (profileRes.status === 'fulfilled') {
                     setProfile(profileRes.value?.data || null);
@@ -404,57 +404,73 @@ const Profile = () => {
                         boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)',
                         fontFamily: 'system-ui, -apple-system, sans-serif',
                         display: 'flex',
-                        flexDirection: 'column'
+                        flexDirection: 'column',
+                        position: 'relative'
                     }}>
-                        {/* ID Card Header */}
-                        <div style={{ 
-                            backgroundColor: '#ffcc00', 
-                            padding: '12px 16px', 
-                            display: 'flex', 
-                            alignItems: 'center', 
-                            justifyContent: 'center',
-                            gap: 10,
-                            borderBottom: '4px solid #0f172a',
-                            position: 'relative'
-                        }}>
-                            {schoolInfo?.logo_url && (
-                                <img src={schoolInfo.logo_url} alt="Logo" style={{ width: 28, height: 28, objectFit: 'contain' }} />
-                            )}
-                            <h2 style={{ margin: 0, fontSize: 18, fontWeight: 900, color: '#0f172a', letterSpacing: '-0.02em', textAlign: 'center' }}>
-                                {schoolInfo?.name || 'Standard Public School'}
-                            </h2>
-                        </div>
+                        {/* Background Hero Image Watermark */}
+                        {schoolInfo?.hero_image && (
+                            <div style={{
+                                position: 'absolute',
+                                inset: 0,
+                                backgroundImage: `url(${schoolInfo.hero_image})`,
+                                backgroundSize: 'cover',
+                                backgroundPosition: 'center',
+                                opacity: 0.1,
+                                zIndex: 0
+                            }} />
+                        )}
 
-                        <div style={{ padding: 14, display: 'flex', gap: 14, flex: 1, alignItems: 'center' }}>
-                            <div style={{ flex: 1 }}>
-                                <div style={{ display: 'grid', gap: 4, marginTop: 4 }}>
-                                    {[
-                                        { label: 'Name', value: profile.name },
-                                        { label: 'Adm No', value: profile.admission_number },
-                                        { label: 'Roll No', value: profile.roll_number || '—' },
-                                        { label: 'Class', value: profile.class_section_display || classDisplay },
-                                        { label: 'Father', value: fatherName },
-                                        { label: 'Blood Group', value: profile.blood_group || '—' },
-                                        { label: 'Phone', value: profile.phone || profile.father_contact || '—' },
-                                        { label: 'Address', value: profile.address || '—' },
-                                    ].map((item, idx) => (
-                                        <div key={idx} style={{ display: 'flex', gap: 6, fontSize: 10 }}>
-                                            <span style={{ fontWeight: 800, color: '#64748b', minWidth: 80 }}>{item.label}:</span>
-                                            <span style={{ fontWeight: 700, color: '#1e293b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.value}</span>
-                                        </div>
-                                    ))}
+                        <div style={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', height: '100%' }}>
+                            {/* ID Card Header */}
+                            <div style={{ 
+                                backgroundColor: '#ffcc00', 
+                                padding: '12px 16px', 
+                                display: 'flex', 
+                                alignItems: 'center', 
+                                justifyContent: 'center',
+                                gap: 10,
+                                borderBottom: '4px solid #0f172a',
+                                position: 'relative'
+                            }}>
+                                {schoolInfo?.logo && (
+                                    <img src={schoolInfo.logo} alt="Logo" style={{ width: 28, height: 28, objectFit: 'contain' }} />
+                                )}
+                                <h2 style={{ margin: 0, fontSize: 18, fontWeight: 900, color: '#0f172a', letterSpacing: '-0.02em', textAlign: 'center' }}>
+                                    {schoolInfo?.name || 'Standard Public School'}
+                                </h2>
+                            </div>
+
+                            <div style={{ padding: 14, display: 'flex', gap: 14, flex: 1, alignItems: 'center' }}>
+                                <div style={{ flex: 1 }}>
+                                    <div style={{ display: 'grid', gap: 4, marginTop: 4 }}>
+                                        {[
+                                            { label: 'Name', value: profile.name },
+                                            { label: 'Adm No', value: profile.admission_number },
+                                            { label: 'Roll No', value: profile.roll_number || '—' },
+                                            { label: 'Class', value: profile.class_section_display || classDisplay },
+                                            { label: 'Father', value: fatherName },
+                                            { label: 'Blood Group', value: profile.blood_group || '—' },
+                                            { label: 'Phone', value: profile.phone || profile.father_contact || '—' },
+                                            { label: 'Address', value: profile.address || '—' },
+                                        ].map((item, idx) => (
+                                            <div key={idx} style={{ display: 'flex', gap: 6, fontSize: 10 }}>
+                                                <span style={{ fontWeight: 800, color: '#64748b', minWidth: 80 }}>{item.label}:</span>
+                                                <span style={{ fontWeight: 700, color: '#1e293b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.value}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                                <div style={{ width: 80, height: 100, border: '1px solid #e2e8f0', borderRadius: 10, backgroundColor: '#f8fafc', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
+                                    {profile.photo_url ? (
+                                        <img src={profile.photo_url} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                    ) : (
+                                        <div style={{ fontSize: 28, fontWeight: 900, color: '#e2e8f0' }}>{photoInitial}</div>
+                                    )}
                                 </div>
                             </div>
-                            <div style={{ width: 80, height: 100, border: '1px solid #e2e8f0', borderRadius: 10, backgroundColor: '#f8fafc', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
-                                {profile.photo_url ? (
-                                    <img src={profile.photo_url} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                                ) : (
-                                    <div style={{ fontSize: 28, fontWeight: 900, color: '#e2e8f0' }}>{photoInitial}</div>
-                                )}
-                            </div>
+                            
+                            <div style={{ height: 6, background: 'linear-gradient(90deg, #2563eb, #ffcc00)' }}></div>
                         </div>
-                        
-                        <div style={{ height: 6, background: 'linear-gradient(90deg, #2563eb, #ffcc00)' }}></div>
                     </div>
                 </div>
             </div>
