@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import api from '../../services/api';
+import { useStudent } from '../../context/StudentContext';
 
 const inputStyle = {
     width: '100%',
@@ -75,6 +76,7 @@ function toDateKey(date) {
 }
 
 const StudentHolidays = () => {
+    const { selectedStudentId } = useStudent();
     const [tab, setTab] = useState('calendar');
     const [loading, setLoading] = useState(false);
     const [holidays, setHolidays] = useState([]);
@@ -111,14 +113,14 @@ const StudentHolidays = () => {
             loadHolidays(params).catch(() => {});
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [tab, search, filterType, filterMonth, filterYear]);
+    }, [tab, search, filterType, filterMonth, filterYear, selectedStudentId]);
 
     useEffect(() => {
         if (tab === 'calendar') {
             loadHolidays({ month: calMonth, year: calYear }).catch(() => {});
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [tab, calMonth, calYear]);
+    }, [tab, calMonth, calYear, selectedStudentId]);
 
     const holidayByDay = useMemo(() => {
         const map = new Map();

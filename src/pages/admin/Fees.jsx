@@ -332,7 +332,7 @@ const AdminFees = () => {
                         <input type="text" value={structureForm.description} onChange={(e) => setStructureForm({ ...structureForm, description: e.target.value })} style={inputStyle} />
                     </div>
                     <div style={{ gridColumn: '1 / -1', display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-                        <button type="submit" style={{ padding: '12px 18px', borderRadius: '12px', border: 'none', backgroundColor: '#2563eb', color: '#fff', fontWeight: 900, cursor: 'pointer' }}>
+                        <button type="submit" style={{ padding: '12px 24px', borderRadius: '12px', border: 'none', backgroundColor: '#2563eb', color: '#fff', fontWeight: 900, cursor: 'pointer', boxShadow: '0 4px 12px rgba(37, 99, 235, 0.2)' }}>
                             {editingStructureId ? 'Update structure' : 'Save structure'}
                         </button>
                         {editingStructureId ? (
@@ -377,10 +377,10 @@ const AdminFees = () => {
                                     </td>
                                     <td style={{ padding: '10px' }}>{s.due_date}</td>
                                     <td style={{ padding: '10px' }}>
-                                        <button type="button" onClick={() => editStructure(s)} style={{ marginRight: '8px', padding: '6px 10px', borderRadius: '8px', border: 'none', backgroundColor: '#16a34a', color: '#fff', fontWeight: 800, cursor: 'pointer' }}>
+                                        <button type="button" onClick={() => editStructure(s)} style={{ marginRight: '8px', padding: '8px 16px', borderRadius: '8px', border: 'none', backgroundColor: '#eff6ff', color: '#2563eb', fontWeight: 800, cursor: 'pointer' }}>
                                             Edit
                                         </button>
-                                        <button type="button" onClick={() => deleteStructure(s.id)} style={{ padding: '6px 10px', borderRadius: '8px', border: 'none', backgroundColor: '#ef4444', color: '#fff', fontWeight: 800, cursor: 'pointer' }}>
+                                        <button type="button" onClick={() => deleteStructure(s.id)} style={{ padding: '8px 16px', borderRadius: '8px', border: 'none', backgroundColor: '#fef2f2', color: '#ef4444', fontWeight: 800, cursor: 'pointer' }}>
                                             Delete
                                         </button>
                                     </td>
@@ -419,7 +419,7 @@ const AdminFees = () => {
                     <button
                         type="button"
                         onClick={() => (assignStudentId ? assignStudentFee() : syncClass())}
-                        style={{ padding: '10px 16px', borderRadius: '12px', border: 'none', backgroundColor: '#2563eb', color: '#fff', fontWeight: 900, cursor: 'pointer', height: '40px' }}
+                        style={{ padding: '10px 24px', borderRadius: '12px', border: 'none', backgroundColor: '#2563eb', color: '#fff', fontWeight: 900, cursor: 'pointer', height: '40px', boxShadow: '0 4px 12px rgba(37, 99, 235, 0.2)' }}
                     >
                         Assign Fee
                     </button>
@@ -445,7 +445,7 @@ const AdminFees = () => {
                                 placeholder="Search student..."
                                 style={{ ...inputStyle, width: '220px' }}
                             />
-                            <button type="button" onClick={exportCsv} style={{ padding: '10px 14px', borderRadius: '10px', border: '1px solid #e5e7eb', backgroundColor: '#fff', fontWeight: 800, cursor: 'pointer' }}>
+                            <button type="button" onClick={exportCsv} style={{ padding: '10px 16px', borderRadius: '10px', border: 'none', backgroundColor: '#ecfdf5', color: '#166534', fontWeight: 800, cursor: 'pointer' }}>
                                 Export CSV
                             </button>
                         </div>
@@ -540,7 +540,7 @@ const AdminFees = () => {
                                                     <button
                                                         type="button"
                                                         onClick={() => downloadReceipt(p.id)}
-                                                        style={{ padding: '6px 10px', borderRadius: '8px', border: 'none', backgroundColor: '#6d28d9', color: '#fff', fontWeight: 800, cursor: 'pointer' }}
+                                                        style={{ padding: '6px 14px', borderRadius: '8px', border: 'none', backgroundColor: '#f5f3ff', color: '#6d28d9', fontWeight: 800, cursor: 'pointer' }}
                                                     >
                                                         PDF
                                                     </button>

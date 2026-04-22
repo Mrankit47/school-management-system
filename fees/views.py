@@ -14,6 +14,7 @@ from rest_framework.response import Response
 
 from core.permissions import IsStudent, IsAdmin
 from students.models import StudentProfile
+from students.utils import get_requested_student
 from .models import ClassFeeCard, ClassFeeCardRollback, FeeStructure, StudentFee, Payment
 from .serializers import (
     ClassFeeCardSerializer,
@@ -74,8 +75,11 @@ class MyFeesView(views.APIView):
     permission_classes = [IsStudent]
 
     def get(self, request):
-        student = StudentProfile.objects.select_related('class_section__class_ref').filter(user=request.user).first()
-        if student and student.class_section:
+        student = get_requested_student(request)
+        if not student:
+            return Response({'error': 'Student profile not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        if student.class_section:
             structure = FeeStructure.objects.filter(class_ref_id=student.class_section.class_ref_id).first()
             if structure:
                 sf, _ = StudentFee.objects.get_or_create(
@@ -88,7 +92,7 @@ class MyFeesView(views.APIView):
                     sf.save(update_fields=['due_date'])
 
         fees = (
-            StudentFee.objects.filter(student__user=request.user)
+            StudentFee.objects.filter(student=student)
             .select_related('student__user', 'student__class_section__class_ref', 'student__class_section__section_ref', 'fee_structure')
             .prefetch_related('payments')
         )
@@ -379,11 +383,14 @@ class StudentClassFeeCardListView(views.APIView):
     permission_classes = [IsStudent]
 
     def get(self, request):
-        student = StudentProfile.objects.select_related('class_section__class_ref').filter(user=request.user).first()
+        student = get_requested_student(request)
         student_class_name = ''
-        if student and student.class_section and student.class_section.class_ref:
-            student_class_name = student.class_section.class_ref.name
-        qs = ClassFeeCard.objects.filter(school=request.user.school).order_by('class_name')
+        if student and student.class_section:
+            student_class_name = f"{student.class_section.class_ref.name}-{student.class_section.section_ref.name}"
+        
+        # We still show all cards for the school, but 'student_class_name' will now be sibling-aware
+        school = student.school if student else request.user.school
+        qs = ClassFeeCard.objects.filter(school=school).order_by('class_name')
         return Response(
             {
                 "student_class_name": student_class_name,
@@ -511,13 +518,17 @@ class StudentPaymentCreateView(views.APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
+        student = get_requested_student(request)
+        if not student:
+            return Response({"error": "Student profile not found"}, status=status.HTTP_404_NOT_FOUND)
+
         sf = (
             StudentFee.objects.select_related('fee_structure')
-            .filter(id=student_fee_id, student__user=request.user)
+            .filter(id=student_fee_id, student=student)
             .first()
         )
         if not sf:
-            return Response({"error": "Student fee record not found"}, status=status.HTTP_404_NOT_FOUND)
+            return Response({"error": "Student fee record not found for the active student"}, status=status.HTTP_404_NOT_FOUND)
 
         try:
             amount_dec = Decimal(str(amount))
@@ -767,13 +778,17 @@ class StudentReceiptPDFView(views.APIView):
     permission_classes = [IsStudent]
 
     def get(self, request, payment_id: int):
+        student = get_requested_student(request)
+        if not student:
+             return Response({"error": "Student profile not found"}, status=status.HTTP_404_NOT_FOUND)
+
         pay = (
             Payment.objects.select_related(
                 'student_fee__student__user',
                 'student_fee__student__class_section__class_ref',
                 'student_fee__student__class_section__section_ref',
             )
-            .filter(id=payment_id, student_fee__student__user=request.user)
+            .filter(id=payment_id, student_fee__student=student)
             .first()
         )
         if not pay:

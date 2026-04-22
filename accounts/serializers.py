@@ -51,5 +51,10 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
             'profile_photo': request.build_absolute_uri(user.profile_photo.url) if user.profile_photo else None,
         }
 
+        if user.role == 'student':
+            sp = getattr(user, 'student_profile', None)
+            if sp:
+                data['user']['student_profile_id'] = sp.id
+
 
         return data

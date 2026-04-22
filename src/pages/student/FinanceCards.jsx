@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import api from '../../services/api';
+import { useStudent } from '../../context/StudentContext';
 
 const pageWrap = {
     padding: 24,
@@ -14,11 +15,13 @@ const panel = {
 };
 
 const StudentFinanceCards = () => {
+    const { selectedStudentId } = useStudent();
     const [cards, setCards] = useState([]);
     const [myClass, setMyClass] = useState('');
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
+        setLoading(true);
         api
             .get('fees/my/class-fee-cards/')
             .then((res) => {
@@ -30,7 +33,7 @@ const StudentFinanceCards = () => {
                 setMyClass('');
             })
             .finally(() => setLoading(false));
-    }, []);
+    }, [selectedStudentId]);
 
     if (loading) return <div style={{ padding: 24, color: '#6b7280' }}>Loading finance cards...</div>;
 

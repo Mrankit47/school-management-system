@@ -13,6 +13,16 @@ api.interceptors.request.use((config) => {
     if (token) {
         config.headers.Authorization = `Bearer ${token}`;
     }
+
+    // Global Sibling Switching: Automatically append student_id from localStorage
+    const selectedStudentId = localStorage.getItem('selectedStudentId');
+    if (selectedStudentId) {
+        if (!config.params) config.params = {};
+        // Only append if not already explicitly provided in the request
+        if (config.params.student_id === undefined) {
+            config.params.student_id = selectedStudentId;
+        }
+    }
     if (config.data instanceof FormData) {
         delete config.headers['Content-Type'];
     }

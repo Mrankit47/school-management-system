@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import api from '../../services/api';
+import { useStudent } from '../../context/StudentContext';
 
 const cardStyle = {
     backgroundColor: '#fff',
@@ -31,6 +32,7 @@ function isImageAttachment(url) {
 }
 
 const StudentMessaging = () => {
+    const { selectedStudentId } = useStudent();
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [conversations, setConversations] = useState([]);
@@ -55,7 +57,7 @@ const StudentMessaging = () => {
     useEffect(() => {
         loadConversations();
         loadTeachers();
-    }, []);
+    }, [selectedStudentId]);
 
     const loadConversations = async () => {
         setLoading(true);

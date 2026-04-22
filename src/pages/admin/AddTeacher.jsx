@@ -570,14 +570,15 @@ const AddTeacher = () => {
                                 disabled={busy}
                                 style={{
                                     width: '100%',
-                                    backgroundColor: '#0d5bd7',
+                                    backgroundColor: '#2563eb',
                                     color: '#fff',
                                     padding: '14px 18px',
                                     border: 'none',
                                     cursor: 'pointer',
                                     borderRadius: '12px',
-                                    fontWeight: 800,
+                                    fontWeight: 1000,
                                     fontSize: '15px',
+                                    boxShadow: '0 4px 12px rgba(37, 99, 235, 0.2)',
                                     opacity: busy ? 0.7 : 1,
                                 }}
                             >

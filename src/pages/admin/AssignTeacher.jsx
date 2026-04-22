@@ -364,13 +364,13 @@ const AssignTeacher = () => {
                                             <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
                                                 <button
                                                     onClick={() => startEdit(row)}
-                                                    style={{ border: 'none', background: '#f1f5f9', padding: '8px 12px', borderRadius: '8px', cursor: 'pointer', color: '#475569', fontWeight: 700 }}
+                                                    style={{ border: 'none', background: '#eff6ff', padding: '8px 16px', borderRadius: '8px', cursor: 'pointer', color: '#2563eb', fontWeight: 700 }}
                                                 >
                                                     Edit
                                                 </button>
                                                 <button
                                                     onClick={() => deleteAssignment(row.id)}
-                                                    style={{ border: 'none', background: '#fee2e2', padding: '8px 12px', borderRadius: '8px', cursor: 'pointer', color: '#b91c1c', fontWeight: 700 }}
+                                                    style={{ border: 'none', background: '#fef2f2', padding: '8px 16px', borderRadius: '8px', cursor: 'pointer', color: '#ef4444', fontWeight: 700 }}
                                                 >
                                                     Delete
                                                 </button>

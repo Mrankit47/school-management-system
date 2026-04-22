@@ -82,7 +82,8 @@ class TimeTableViewSet(viewsets.ModelViewSet):
             return queryset.filter(teacher=user, shift_ref__isnull=False).order_by('day', 'period_number')
         
         if user.role == 'student':
-            student = getattr(user, 'student_profile', None)
+            from students.utils import get_requested_student
+            student = get_requested_student(self.request)
             if student and student.class_section:
                 qs = queryset.filter(
                     class_name=student.class_section.class_ref.name,
@@ -128,7 +129,8 @@ class TimeTableViewSet(viewsets.ModelViewSet):
     def user_shift(self, request):
         user = request.user
         if user.role == 'student':
-            student = getattr(user, 'student_profile', None)
+            from students.utils import get_requested_student
+            student = get_requested_student(request)
             if student and student.class_section:
                 return Response({'shift_id': student.class_section.assigned_shift_id})
         elif user.role == 'teacher':

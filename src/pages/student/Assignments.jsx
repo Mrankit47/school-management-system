@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import api from '../../services/api';
+import { useStudent } from '../../context/StudentContext';
 
 const colors = {
     bg: '#f9fafb',
@@ -98,6 +99,7 @@ function Modal({ open, onClose, title, children }) {
 }
 
 export default function StudentAssignments() {
+    const { selectedStudentId } = useStudent();
     const [assignments, setAssignments] = useState([]);
     const [submissions, setSubmissions] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -141,7 +143,7 @@ export default function StudentAssignments() {
             })
             .catch((e) => setError(e?.response?.data?.error || 'Could not load assignments.'))
             .finally(() => setLoading(false));
-    }, []);
+    }, [selectedStudentId]);
 
     const openDetails = (a) => {
         setSelected(a);
@@ -195,11 +197,11 @@ export default function StudentAssignments() {
             </style>
 
             {/* Premium Header Card */}
-            <div className="animate-up" style={{ 
-                backgroundColor: '#fff', 
-                padding: '28px', 
-                borderRadius: '24px', 
-                marginBottom: '20px', 
+            <div className="animate-up" style={{
+                backgroundColor: '#fff',
+                padding: '28px',
+                borderRadius: '24px',
+                marginBottom: '20px',
                 boxShadow: '0 1px 12px rgba(16,24,40,0.08)',
                 border: '1px solid #e5e7eb',
                 background: 'linear-gradient(135deg, #fff 0%, #f8fafc 100%)',

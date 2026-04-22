@@ -281,14 +281,14 @@ const Classes = () => {
                                         <button
                                             type="button"
                                             onClick={() => openEditClass(c)}
-                                            style={{ padding: '6px 10px', borderRadius: '999px', border: 'none', backgroundColor: '#16a34a', color: '#fff', fontWeight: 800, cursor: 'pointer' }}
+                                            style={{ padding: '6px 14px', borderRadius: '8px', border: 'none', backgroundColor: '#eff6ff', color: '#2563eb', fontWeight: 800, cursor: 'pointer', transition: 'all 0.2s' }}
                                         >
                                             Edit
                                         </button>
                                         <button
                                             type="button"
                                             onClick={() => deleteClass(c.id)}
-                                            style={{ padding: '6px 10px', borderRadius: '999px', border: 'none', backgroundColor: '#ef4444', color: '#fff', fontWeight: 800, cursor: 'pointer' }}
+                                            style={{ padding: '6px 14px', borderRadius: '8px', border: 'none', backgroundColor: '#fef2f2', color: '#dc2626', fontWeight: 800, cursor: 'pointer', transition: 'all 0.2s' }}
                                         >
                                             Delete
                                         </button>
@@ -364,14 +364,14 @@ const Classes = () => {
                                                 <button
                                                     type="button"
                                                     onClick={() => openEditSection(s)}
-                                                    style={{ padding: '6px 10px', borderRadius: '999px', border: 'none', backgroundColor: '#16a34a', color: '#fff', fontWeight: 800, cursor: 'pointer' }}
+                                                    style={{ padding: '6px 14px', borderRadius: '8px', border: 'none', backgroundColor: '#eff6ff', color: '#2563eb', fontWeight: 800, cursor: 'pointer' }}
                                                 >
                                                     Edit
                                                 </button>
                                                 <button
                                                     type="button"
                                                     onClick={() => deleteSection(s.id)}
-                                                    style={{ padding: '6px 10px', borderRadius: '999px', border: 'none', backgroundColor: '#ef4444', color: '#fff', fontWeight: 800, cursor: 'pointer' }}
+                                                    style={{ padding: '6px 14px', borderRadius: '8px', border: 'none', backgroundColor: '#fef2f2', color: '#dc2626', fontWeight: 800, cursor: 'pointer' }}
                                                 >
                                                     Delete
                                                 </button>

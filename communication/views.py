@@ -53,9 +53,9 @@ class MyNotificationsView(views.APIView):
     def _ensure_student_exam_notifications(self, request):
         if request.user.role != 'student':
             return
-        try:
-            student_profile = request.user.student_profile
-        except ObjectDoesNotExist:
+        from students.utils import get_requested_student
+        student_profile = get_requested_student(request)
+        if not student_profile:
             return
         if not student_profile.class_section_id:
             return
@@ -120,8 +120,14 @@ class MyNotificationsView(views.APIView):
     def get(self, request):
         try:
             self._ensure_student_exam_notifications(request)
+            target_user = request.user
+            if request.user.role == 'student':
+                from students.utils import get_requested_student
+                sp = get_requested_student(request)
+                if sp: target_user = sp.user
+
             notifications = (
-                Notification.objects.filter(user=request.user)
+                Notification.objects.filter(user=target_user)
                 .select_related('related_exam', 'related_announcement')
                 .order_by('-created_at')
             )
@@ -152,7 +158,12 @@ class NotificationMarkAllReadView(views.APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request):
-        updated = Notification.objects.filter(user=request.user, is_read=False).update(is_read=True)
+        target_user = request.user
+        if request.user.role == 'student':
+            from students.utils import get_requested_student
+            sp = get_requested_student(request)
+            if sp: target_user = sp.user
+        updated = Notification.objects.filter(user=target_user, is_read=False).update(is_read=True)
         return Response({'message': 'All notifications marked as read', 'updated': updated})
 
 
@@ -160,7 +171,12 @@ class NotificationDetailView(views.APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def patch(self, request, notification_id: int):
-        row = Notification.objects.filter(user=request.user, id=notification_id).first()
+        target_user = request.user
+        if request.user.role == 'student':
+            from students.utils import get_requested_student
+            sp = get_requested_student(request)
+            if sp: target_user = sp.user
+        row = Notification.objects.filter(user=target_user, id=notification_id).first()
         if not row:
             return Response({'error': 'Notification not found'}, status=status.HTTP_404_NOT_FOUND)
         row.is_read = bool(request.data.get('is_read', True))
@@ -168,7 +184,12 @@ class NotificationDetailView(views.APIView):
         return Response(NotificationSerializer(row).data)
 
     def delete(self, request, notification_id: int):
-        row = Notification.objects.filter(user=request.user, id=notification_id).first()
+        target_user = request.user
+        if request.user.role == 'student':
+            from students.utils import get_requested_student
+            sp = get_requested_student(request)
+            if sp: target_user = sp.user
+        row = Notification.objects.filter(user=target_user, id=notification_id).first()
         if not row:
             return Response({'error': 'Notification not found'}, status=status.HTTP_404_NOT_FOUND)
         row.delete()
@@ -220,12 +241,15 @@ class MessageThreadsView(views.APIView):
                 .order_by('-created_at')
             )
         else:
-            allowed_teacher_ids = _student_allowed_teacher_ids(request.user.id)
+            from students.utils import get_requested_student
+            sp = get_requested_student(request)
+            target_user = sp.user if sp else request.user
+            allowed_teacher_ids = _student_allowed_teacher_ids(target_user.id)
             msgs = (
                 Message.objects.select_related('sender', 'receiver')
                 .filter(
-                    (Q(sender=request.user) & Q(receiver_id__in=list(allowed_teacher_ids)))
-                    | (Q(receiver=request.user) & Q(sender_id__in=list(allowed_teacher_ids)))
+                    (Q(sender=target_user) & Q(receiver_id__in=list(allowed_teacher_ids)))
+                    | (Q(receiver=target_user) & Q(sender_id__in=list(allowed_teacher_ids)))
                 )
                 .order_by('-created_at')
             )
@@ -275,29 +299,33 @@ class ConversationView(views.APIView):
     parser_classes = [MultiPartParser, FormParser, JSONParser]
 
     def get(self, request, other_user_id: int):
-        if request.user.role not in ('teacher', 'student'):
-            return Response({'error': 'Not allowed'}, status=status.HTTP_403_FORBIDDEN)
-        if not _is_allowed_pair(request.user, other_user_id):
+        from students.utils import get_requested_student
+        sp = get_requested_student(request)
+        target_user = sp.user if sp else request.user
+        
+        if not _is_allowed_pair(target_user, other_user_id):
             return Response({'error': 'Not allowed for this user'}, status=status.HTTP_403_FORBIDDEN)
 
         qs = (
             Message.objects.select_related('sender', 'receiver')
             .filter(
-                (Q(sender_id=request.user.id) & Q(receiver_id=other_user_id))
-                | (Q(sender_id=other_user_id) & Q(receiver_id=request.user.id))
+                (Q(sender_id=target_user.id) & Q(receiver_id=other_user_id))
+                | (Q(sender_id=other_user_id) & Q(receiver_id=target_user.id))
             )
             .order_by('created_at')
         )
 
         # Mark incoming messages as read.
-        Message.objects.filter(sender_id=other_user_id, receiver_id=request.user.id, is_read=False).update(is_read=True)
+        Message.objects.filter(sender_id=other_user_id, receiver_id=target_user.id, is_read=False).update(is_read=True)
 
         return Response(MessageSerializer(qs, many=True).data)
 
     def post(self, request, other_user_id: int):
-        if request.user.role not in ('teacher', 'student'):
-            return Response({'error': 'Not allowed'}, status=status.HTTP_403_FORBIDDEN)
-        if not _is_allowed_pair(request.user, other_user_id):
+        from students.utils import get_requested_student
+        sp = get_requested_student(request)
+        target_user = sp.user if sp else request.user
+        
+        if not _is_allowed_pair(target_user, other_user_id):
             return Response({'error': 'Not allowed for this user'}, status=status.HTTP_403_FORBIDDEN)
 
         content = (request.data.get('content') or '').strip()
@@ -309,7 +337,7 @@ class ConversationView(views.APIView):
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-        msg = serializer.save(sender=request.user, receiver_id=other_user_id, is_read=False)
+        msg = serializer.save(sender=target_user, receiver_id=other_user_id, is_read=False)
         return Response(MessageSerializer(msg).data, status=status.HTTP_201_CREATED)
 
 class DoubtConversationListView(views.APIView):
@@ -323,7 +351,9 @@ class DoubtConversationListView(views.APIView):
 
     def get(self, request):
         if request.user.role == 'student':
-            qs = Conversation.objects.filter(student=request.user.student_profile)
+            from students.utils import get_requested_student
+            sp = get_requested_student(request)
+            qs = Conversation.objects.filter(student=sp)
         elif request.user.role == 'teacher':
             qs = Conversation.objects.filter(teacher=request.user.teacher_profile)
             class_section_id = request.query_params.get('class_section_id')
@@ -359,6 +389,9 @@ class DoubtConversationListView(views.APIView):
         if request.user.role != 'student':
             return Response({'error': 'Only students can start doubts'}, status=status.HTTP_403_FORBIDDEN)
         
+        from students.utils import get_requested_student
+        sp = get_requested_student(request)
+        
         teacher_id = request.data.get('teacher_id')
         subject = request.data.get('subject')
         message_text = request.data.get('message')
@@ -373,7 +406,7 @@ class DoubtConversationListView(views.APIView):
             return Response({'error': 'Teacher not found'}, status=status.HTTP_404_NOT_FOUND)
 
         conv = Conversation.objects.create(
-            student=request.user.student_profile,
+            student=sp,
             teacher=teacher_profile,
             subject=subject
         )
@@ -381,7 +414,7 @@ class DoubtConversationListView(views.APIView):
         if message_text or attachment:
             Message.objects.create(
                 conversation=conv,
-                sender=request.user,
+                sender=sp.user,
                 receiver=teacher_profile.user,
                 content=message_text,
                 attachment=attachment
@@ -392,7 +425,7 @@ class DoubtConversationListView(views.APIView):
                 user=teacher_profile.user,
                 target_role='teacher',
                 title='New Doubt',
-                message=f'Student {request.user.name or request.user.username} sent a doubt: {subject or "No Subject"}'
+                message=f'Student {sp.user.name or sp.user.username} sent a doubt: {subject or "No Subject"}'
             )
 
         return Response(ConversationSerializer(conv, context={'request': request}).data, status=status.HTTP_201_CREATED)
@@ -407,8 +440,11 @@ class DoubtConversationDetailView(views.APIView):
             return Response({'error': 'Conversation not found'}, status=status.HTTP_404_NOT_FOUND)
         
         # Check permission
-        if request.user.role == 'student' and conv.student.user_id != request.user.id:
-            return Response({'error': 'Access denied'}, status=status.HTTP_403_FORBIDDEN)
+        if request.user.role == 'student':
+            from students.utils import get_requested_student
+            sp = get_requested_student(request)
+            if conv.student_id != sp.id:
+                return Response({'error': 'Access denied'}, status=status.HTTP_403_FORBIDDEN)
         if request.user.role == 'teacher' and conv.teacher.user_id != request.user.id:
             return Response({'error': 'Access denied'}, status=status.HTTP_403_FORBIDDEN)
 
@@ -433,11 +469,17 @@ class DoubtConversationDetailView(views.APIView):
         if not content and not attachment:
             return Response({'error': 'Content or attachment required'}, status=status.HTTP_400_BAD_REQUEST)
 
+        target_user = request.user
+        if request.user.role == 'student':
+            from students.utils import get_requested_student
+            sp = get_requested_student(request)
+            target_user = sp.user if sp else request.user
+
         receiver = conv.teacher.user if request.user.role == 'student' else conv.student.user
         
         msg = Message.objects.create(
             conversation=conv,
-            sender=request.user,
+            sender=target_user,
             receiver=receiver,
             content=content,
             attachment=attachment
@@ -473,7 +515,13 @@ class DoubtMessageDetailView(views.APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def patch(self, request, message_id):
-        msg = Message.objects.filter(id=message_id, sender=request.user).first()
+        target_user = request.user
+        if request.user.role == 'student':
+            from students.utils import get_requested_student
+            sp = get_requested_student(request)
+            target_user = sp.user if sp else request.user
+            
+        msg = Message.objects.filter(id=message_id, sender=target_user).first()
         if not msg:
             return Response({'error': 'Message not found or you are not the sender'}, status=status.HTTP_404_NOT_FOUND)
         
@@ -486,7 +534,13 @@ class DoubtMessageDetailView(views.APIView):
         return Response(MessageSerializer(msg).data)
 
     def delete(self, request, message_id):
-        msg = Message.objects.filter(id=message_id, sender=request.user).first()
+        target_user = request.user
+        if request.user.role == 'student':
+            from students.utils import get_requested_student
+            sp = get_requested_student(request)
+            target_user = sp.user if sp else request.user
+
+        msg = Message.objects.filter(id=message_id, sender=target_user).first()
         if not msg:
             return Response({'error': 'Message not found or you are not the sender'}, status=status.HTTP_404_NOT_FOUND)
         

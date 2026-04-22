@@ -253,13 +253,14 @@ const SubjectDetails = () => {
                                         setNoteModalOpen(true);
                                     }}
                                     style={{
-                                        padding: '10px 14px',
+                                        padding: '10px 24px',
                                         borderRadius: '12px',
                                         border: 'none',
                                         cursor: 'pointer',
                                         backgroundColor: '#2563eb',
                                         color: '#fff',
-                                        fontWeight: 900,
+                                        fontWeight: 1000,
+                                        boxShadow: '0 4px 12px rgba(37, 99, 235, 0.2)',
                                     }}
                                 >
                                     + Add Note
@@ -303,13 +304,13 @@ const SubjectDetails = () => {
                                                         type="button"
                                                         onClick={() => deleteNote(n.id)}
                                                         style={{
-                                                            padding: '8px 12px',
-                                                            borderRadius: '999px',
+                                                            padding: '8px 16px',
+                                                            borderRadius: '8px',
                                                             border: 'none',
                                                             cursor: 'pointer',
-                                                            backgroundColor: '#ef4444',
-                                                            color: '#fff',
-                                                            fontWeight: 900,
+                                                            backgroundColor: '#fef2f2',
+                                                            color: '#ef4444',
+                                                            fontWeight: 800,
                                                         }}
                                                     >
                                                         Delete
@@ -333,13 +334,14 @@ const SubjectDetails = () => {
                                         setAssignmentModalOpen(true);
                                     }}
                                     style={{
-                                        padding: '10px 14px',
+                                        padding: '10px 24px',
                                         borderRadius: '12px',
                                         border: 'none',
                                         cursor: 'pointer',
                                         backgroundColor: '#2563eb',
                                         color: '#fff',
-                                        fontWeight: 900,
+                                        fontWeight: 1000,
+                                        boxShadow: '0 4px 12px rgba(37, 99, 235, 0.2)',
                                     }}
                                 >
                                     + Add Assignment
@@ -379,13 +381,13 @@ const SubjectDetails = () => {
                                                         type="button"
                                                         onClick={() => deleteAssignment(a.id)}
                                                         style={{
-                                                            padding: '8px 12px',
-                                                            borderRadius: '999px',
+                                                            padding: '8px 16px',
+                                                            borderRadius: '8px',
                                                             border: 'none',
                                                             cursor: 'pointer',
-                                                            backgroundColor: '#ef4444',
-                                                            color: '#fff',
-                                                            fontWeight: 900,
+                                                            backgroundColor: '#fef2f2',
+                                                            color: '#ef4444',
+                                                            fontWeight: 800,
                                                         }}
                                                     >
                                                         Delete
@@ -406,13 +408,13 @@ const SubjectDetails = () => {
                                     type="button"
                                     onClick={fetchMarks}
                                     style={{
-                                        padding: '10px 14px',
+                                        padding: '10px 18px',
                                         borderRadius: '12px',
                                         border: 'none',
                                         cursor: 'pointer',
-                                        backgroundColor: '#6d28d9',
-                                        color: '#fff',
-                                        fontWeight: 900,
+                                        backgroundColor: '#f5f3ff',
+                                        color: '#6d28d9',
+                                        fontWeight: 800,
                                     }}
                                 >
                                     Refresh

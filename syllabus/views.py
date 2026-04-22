@@ -80,7 +80,8 @@ class StudentSyllabusFiltersView(views.APIView):
     permission_classes = [IsStudent]
 
     def get(self, request):
-        sp = getattr(request.user, 'student_profile', None)
+        from students.utils import get_requested_student
+        sp = get_requested_student(request)
         if not sp or not sp.class_section_id:
             return Response({'error': 'Student class not found'}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -133,7 +134,8 @@ class SyllabusListView(views.APIView):
             return Syllabus.objects.filter(query)
 
         if user.role == 'student':
-            sp = getattr(user, 'student_profile', None)
+            from students.utils import get_requested_student
+            sp = get_requested_student(self.request)
             if not sp or not sp.class_section_id:
                 return Syllabus.objects.none()
             return Syllabus.objects.filter(class_ref_id=sp.class_section.class_ref_id)

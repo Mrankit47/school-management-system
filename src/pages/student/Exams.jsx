@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import api from '../../services/api';
+import { useStudent } from '../../context/StudentContext';
 
 const colors = {
     primary: '#2563eb',
@@ -27,6 +28,7 @@ function parseYmd(s) {
 }
 
 export default function StudentExams() {
+    const { selectedStudentId } = useStudent();
     const [searchParams] = useSearchParams();
     const highlightId = searchParams.get('exam');
     const highlightRef = useRef(null);
@@ -51,6 +53,7 @@ export default function StudentExams() {
     };
 
     useEffect(() => {
+        setLoading(true);
         api.get('academics/exams/')
             .then((res) => {
                 const list = res.data || [];
@@ -65,7 +68,7 @@ export default function StudentExams() {
                 setExams(sorted);
             })
             .finally(() => setLoading(false));
-    }, []);
+    }, [selectedStudentId]);
 
     useEffect(() => {
         if (!highlightId || !exams.length) return;

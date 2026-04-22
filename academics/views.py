@@ -21,6 +21,7 @@ from django.db.models import Count
 from django.http import HttpResponse
 from communication.models import Notification
 from students.models import StudentProfile
+from students.utils import get_requested_student
 from subjects.models import Subject, TeacherAssignment
 from classes.models import ClassSection
 
@@ -97,8 +98,9 @@ class ExamListCreateView(views.APIView):
     def get(self, request):
         qs = Exam.objects.select_related('class_section__class_ref', 'class_section__section_ref').all()
         if request.user.role == 'student':
-            student_profile = request.user.student_profile
-            qs = qs.filter(class_section=student_profile.class_section)
+            student_profile = get_requested_student(request)
+            if student_profile:
+                qs = qs.filter(class_section=student_profile.class_section)
         class_section = request.query_params.get('class_section')
         if class_section:
             qs = qs.filter(class_section_id=class_section)
@@ -455,7 +457,8 @@ class ExamResultDashboardView(views.APIView):
             exam_type=exam_type_slug
         )
         if request.user.role == 'student':
-            qs = qs.filter(student__user=request.user)
+            student = get_requested_student(request)
+            qs = qs.filter(student=student)
         elif student_id:
             qs = qs.filter(student_id=student_id)
 
@@ -756,7 +759,7 @@ class MyResultsView(views.APIView):
     permission_classes = [IsStudent]
 
     def get(self, request):
-        profile = getattr(request.user, 'student_profile', None)
+        profile = get_requested_student(request)
         if not profile:
             return Response([])
         
@@ -788,7 +791,7 @@ class MyResultMarksheetPDFView(views.APIView):
             return Response({'error': 'Exam not found'}, status=status.HTTP_404_NOT_FOUND)
 
         exam_type_slug = exam.exam_type.lower().replace(' ', '_')
-        profile = getattr(request.user, 'student_profile', None)
+        profile = get_requested_student(request)
         if not profile:
             return Response({'error': 'Student profile not found'}, status=status.HTTP_404_NOT_FOUND)
 

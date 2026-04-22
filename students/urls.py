@@ -9,6 +9,8 @@ from .views import (
     StudentProfileView,
     StudentProfilePhotoView,
     StudentIdCardPdfView,
+    SiblingListView,
+    SiblingDashboardView,
 )
 
 urlpatterns = [
@@ -21,4 +23,6 @@ urlpatterns = [
     path('delete/<int:student_id>/', StudentDeleteView.as_view(), name='student-delete'),
     path('update/<int:student_id>/', StudentUpdateView.as_view(), name='student-update'),
     path('by-class/<int:class_section_id>/', StudentsByClassSectionView.as_view(), name='students-by-class'),
+    path('siblings/', SiblingListView.as_view(), name='sibling-list'),
+    path('dashboard/', SiblingDashboardView.as_view(), name='sibling-dashboard'),
 ]

@@ -706,19 +706,19 @@ const Exams = () => {
                                                         <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
                                                             {editingScheduleId === r.id ? (
                                                                 <>
-                                                                    <button type="button" onClick={saveScheduleEdit} style={{ padding: '7px 10px', borderRadius: '8px', border: 'none', backgroundColor: '#16a34a', color: '#fff', fontWeight: 800, cursor: 'pointer' }}>
+                                                                    <button type="button" onClick={saveScheduleEdit} style={{ padding: '7px 12px', borderRadius: '8px', border: 'none', backgroundColor: '#ecfdf5', color: '#16a34a', fontWeight: 800, cursor: 'pointer' }}>
                                                                         Save
                                                                     </button>
-                                                                    <button type="button" onClick={cancelEditSchedule} style={{ padding: '7px 10px', borderRadius: '8px', border: '1px solid #e5e7eb', backgroundColor: '#fff', color: '#111827', fontWeight: 800, cursor: 'pointer' }}>
+                                                                    <button type="button" onClick={cancelEditSchedule} style={{ padding: '7px 12px', borderRadius: '8px', border: '1px solid #e5e7eb', backgroundColor: '#fff', color: '#64748b', fontWeight: 800, cursor: 'pointer' }}>
                                                                         Cancel
                                                                     </button>
                                                                 </>
                                                             ) : (
                                                                 <>
-                                                                    <button type="button" onClick={() => startEditSchedule(r)} style={{ padding: '7px 10px', borderRadius: '8px', border: 'none', backgroundColor: '#2563eb', color: '#fff', fontWeight: 800, cursor: 'pointer' }}>
+                                                                    <button type="button" onClick={() => startEditSchedule(r)} style={{ padding: '7px 12px', borderRadius: '8px', border: 'none', backgroundColor: '#eff6ff', color: '#2563eb', fontWeight: 800, cursor: 'pointer' }}>
                                                                         Edit
                                                                     </button>
-                                                                    <button type="button" onClick={() => deleteSchedule(r.id)} style={{ padding: '7px 10px', borderRadius: '8px', border: 'none', backgroundColor: '#ef4444', color: '#fff', fontWeight: 800, cursor: 'pointer' }}>
+                                                                    <button type="button" onClick={() => deleteSchedule(r.id)} style={{ padding: '7px 12px', borderRadius: '8px', border: 'none', backgroundColor: '#fef2f2', color: '#ef4444', fontWeight: 800, cursor: 'pointer' }}>
                                                                         Delete
                                                                     </button>
                                                                 </>
@@ -830,9 +830,9 @@ const Exams = () => {
                                                 <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>📊 {e.total_marks} Pts</div>
                                             </div>
                                             <div style={{ marginTop: '16px', display: 'flex', gap: '8px' }}>
-                                                <button onClick={() => setViewingExam(e)} style={{ flex: 1, padding: '8px', borderRadius: '10px', border: `1px solid ${colors.secondary}`, backgroundColor: 'transparent', color: colors.secondary, fontSize: '12px', fontWeight: 900, cursor: 'pointer' }}>View</button>
-                                                <button onClick={() => startEditExam(e)} style={{ flex: 1, padding: '8px', borderRadius: '10px', border: `1px solid ${colors.primary}`, backgroundColor: 'transparent', color: colors.primary, fontSize: '12px', fontWeight: 900, cursor: 'pointer' }}>Edit</button>
-                                                <button onClick={() => deleteExam(e.id, e.name)} disabled={deletingExamId === e.id} style={{ flex: 1, padding: '8px', borderRadius: '10px', border: 'none', backgroundColor: colors.dangerLight, color: colors.danger, fontSize: '12px', fontWeight: 900, cursor: 'pointer' }}>Delete</button>
+                                                <button onClick={() => setViewingExam(e)} style={{ flex: 1, padding: '8px', borderRadius: '10px', border: 'none', backgroundColor: '#f1f5f9', color: '#475569', fontSize: '12px', fontWeight: 900, cursor: 'pointer' }}>View</button>
+                                                <button onClick={() => startEditExam(e)} style={{ flex: 1, padding: '8px', borderRadius: '10px', border: 'none', backgroundColor: '#eff6ff', color: '#2563eb', fontSize: '12px', fontWeight: 900, cursor: 'pointer' }}>Edit</button>
+                                                <button onClick={() => deleteExam(e.id, e.name)} disabled={deletingExamId === e.id} style={{ flex: 1, padding: '8px', borderRadius: '10px', border: 'none', backgroundColor: '#fef2f2', color: '#ef4444', fontSize: '12px', fontWeight: 900, cursor: 'pointer' }}>Delete</button>
                                             </div>
                                         </>
                                     )}

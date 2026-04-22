@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import api from '../../services/api';
 import authService from '../../services/authService';
+import { useStudent } from '../../context/StudentContext';
 import {
     Calendar,
     MapPin,
@@ -169,6 +170,7 @@ const TimetableGrid = ({ entries, isAdmin, isEditMode, handleCellClick, shift })
 };
 
 const TimeTable = () => {
+    const { selectedStudentId } = useStudent();
     const [entries, setEntries] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -206,7 +208,7 @@ const TimeTable = () => {
             setLoading(false);
         };
         init();
-    }, []);
+    }, [selectedStudentId]);
 
     useEffect(() => {
         if (isAdmin && (filters.class_name || selectedTeacherId)) {

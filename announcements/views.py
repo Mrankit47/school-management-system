@@ -224,9 +224,9 @@ def _filter_for_viewer(qs, request, *, active_only: bool):
     if active_only:
         qs = qs.filter(end_date__gte=timezone.localdate())
     if user.role == 'student':
-        try:
-            sp = user.student_profile
-        except ObjectDoesNotExist:
+        from students.utils import get_requested_student
+        sp = get_requested_student(request)
+        if not sp:
             return qs.none()
         qs = qs.filter(
             Q(target_audience=Announcement.AUDIENCE_ALL) | Q(target_audience=Announcement.AUDIENCE_STUDENTS)

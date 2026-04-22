@@ -2,6 +2,14 @@ import uuid
 from django.db import models
 from django.conf import settings
 
+class Parent(models.Model):
+    name = models.CharField(max_length=255)
+    mobile = models.CharField(max_length=15, unique=True)
+    email = models.EmailField(null=True, blank=True)
+
+    def __str__(self):
+        return f"{self.name} ({self.mobile})"
+
 class StudentProfile(models.Model):
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='student_profile')
     school = models.ForeignKey('tenants.School', on_delete=models.CASCADE, null=True, blank=True)
@@ -10,6 +18,7 @@ class StudentProfile(models.Model):
     roll_number = models.CharField(max_length=20, null=True, blank=True)
     rfid_code = models.CharField(max_length=100, unique=True, blank=True, null=True)
     class_section = models.ForeignKey('classes.ClassSection', on_delete=models.SET_NULL, null=True, blank=True, related_name='students')
+    parent = models.ForeignKey(Parent, on_delete=models.SET_NULL, null=True, blank=True, related_name='children')
     
     dob = models.DateField(null=True, blank=True)
     gender = models.CharField(max_length=20, blank=True, null=True)

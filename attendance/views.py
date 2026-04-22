@@ -18,6 +18,7 @@ from django.http import HttpResponse
 from classes.models import ClassSection
 from classes.teacher_access import teacher_teaches_class_section, teacher_can_mark_attendance
 from students.models import StudentProfile
+from students.utils import get_requested_student
 from django.utils import timezone
 
 class AttendanceMarkView(views.APIView):
@@ -248,7 +249,7 @@ class StudentPunchAttendanceView(views.APIView):
     permission_classes = [IsStudent]
 
     def post(self, request):
-        student_profile = getattr(request.user, 'student_profile', None)
+        student_profile = get_requested_student(request)
         if not student_profile:
             return Response({'error': 'Student profile not found'}, status=status.HTTP_404_NOT_FOUND)
 
@@ -598,7 +599,11 @@ class MyAttendanceView(views.APIView):
     permission_classes = [IsStudent]
 
     def get(self, request):
-        records = Attendance.objects.filter(student__user=request.user).order_by('-date')
+        student = get_requested_student(request)
+        if not student:
+            return Response({'error': 'Student profile not found'}, status=status.HTTP_404_NOT_FOUND)
+            
+        records = Attendance.objects.filter(student=student).order_by('-date')
         serializer = AttendanceSerializer(records, many=True)
         return Response(serializer.data)
 
@@ -641,13 +646,13 @@ class MyAttendanceReportPDFView(views.APIView):
             end_date = date_type(year, 12, 31)
             period_label = f'{year}'
 
-        student_profile = getattr(request.user, 'student_profile', None)
+        student_profile = get_requested_student(request)
         if not student_profile:
             return Response({'error': 'Student profile not found'}, status=status.HTTP_404_NOT_FOUND)
 
-        # Attendance records in range (student-only).
+        # Attendance records in range.
         records_qs = (
-            Attendance.objects.filter(student__user=request.user)
+            Attendance.objects.filter(student=student_profile)
             .filter(date__gte=start_date, date__lte=end_date)
             .select_related('marked_by')
             .order_by('date')
@@ -755,7 +760,7 @@ class MyAttendanceReportPDFView(views.APIView):
                     }
                 )
 
-        student_name = request.user.name or request.user.username
+        student_name = student_profile.user.name or student_profile.user.username
         class_label = 'N/A'
         if student_profile.class_section_id:
             cs = student_profile.class_section

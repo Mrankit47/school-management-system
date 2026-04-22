@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 import useAuthStore from '../../store/authStore';
+import { useStudent } from '../../context/StudentContext';
 
 const colors = {
     bg: '#f9fafb',
@@ -208,32 +209,39 @@ export default function StudentDashboard() {
     const [results, setResults] = useState([]);
     const [feeRecords, setFeeRecords] = useState([]);
 
-    useEffect(() => {
+    const { selectedStudentId, setSelectedStudentId } = useStudent();
+
+    const fetchDashboardData = async (studentId) => {
         setLoading(true);
-        Promise.all([
-            api.get('students/profile/').catch(e => ({ data: null })),
-            api.get('attendance/my-attendance/').catch(e => ({ data: [] })),
-            api.get('timetable/').catch(e => ({ data: [] })),
-            api.get('communication/my/').catch(e => ({ data: [] })),
-            api.get('assignments/').catch(e => ({ data: [] })),
-            api.get('assignments/my-submissions/').catch(e => ({ data: [] })),
-            api.get('academics/exams/').catch(e => ({ data: [] })),
-            api.get('academics/results/my/').catch(e => ({ data: [] })),
-            api.get('fees/my/').catch(e => ({ data: [] })),
-        ])
-            .then(([pRes, aRes, tRes, nRes, asRes, subRes, eRes, rRes, fRes]) => {
-                setProfile(pRes.data || null);
-                setAttendance(aRes.data || []);
-                setTimetable(tRes.data || []);
-                setNotifications(nRes.data || []);
-                setAssignments(asRes.data || []);
-                setAssignmentSubmissions(subRes.data || []);
-                setExams(eRes.data || []);
-                setResults(rRes.data || []);
-                setFeeRecords(fRes.data || []);
-            })
-            .finally(() => setLoading(false));
-    }, []);
+        try {
+            const url = studentId ? `students/dashboard/?student_id=${studentId}` : 'students/dashboard/';
+            const res = await api.get(url);
+            const data = res.data;
+
+            setProfile(data.profile || null);
+            setAttendance(data.attendance || []);
+            setTimetable(data.timetable || []);
+            setNotifications(data.notifications || []);
+            setAssignments(data.assignments || []);
+            setAssignmentSubmissions(data.assignment_submissions || []);
+            setExams(data.exams || []);
+            setResults(data.results || []);
+            setFeeRecords(data.fees || []);
+
+            if (!selectedStudentId && data.profile) {
+                setSelectedStudentId(data.profile.id);
+            }
+        } catch (e) {
+            console.error('Failed to fetch dashboard data', e);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+
+    useEffect(() => {
+        fetchDashboardData(selectedStudentId);
+    }, [selectedStudentId]);
 
     useEffect(() => {
         localStorage.setItem('theme', theme);
@@ -564,7 +572,7 @@ export default function StudentDashboard() {
 
     return (
         <div style={wrapperStyle}>
-            <div style={{ ...cardStyle, padding: 24, borderRadius: 20, marginBottom: 20, background: 'linear-gradient(135deg, #fff 0%, #f8fafc 100%)', border: 'none', position: 'relative', overflow: 'hidden' }}>
+            <div style={{ ...cardStyle, padding: 24, borderRadius: 20, marginBottom: 20, background: 'linear-gradient(135deg, #fff 0%, #f8fafc 100%)', border: 'none', position: 'relative', overflow: 'visible' }}>
                 <div style={{ position: 'absolute', top: -30, right: -30, width: 200, height: 200, background: 'rgba(37, 99, 235, 0.03)', borderRadius: '50%', zIndex: 0 }}></div>
                 <div style={{ position: 'relative', zIndex: 1, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
@@ -608,6 +616,7 @@ export default function StudentDashboard() {
                         type="button"
                         onClick={() => {
                             logout();
+                            localStorage.removeItem('selectedStudentId');
                             navigate('/login');
                         }}
                         style={{
@@ -622,6 +631,7 @@ export default function StudentDashboard() {
                     >
                         Logout
                     </button>
+                    
                 </div>
             </div>
         </div>

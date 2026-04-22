@@ -369,11 +369,12 @@ const AdminHolidays = () => {
                             borderRadius: '12px',
                             border: 'none',
                             cursor: 'pointer',
-                            backgroundColor: '#16a34a',
+                            backgroundColor: '#2563eb',
                             color: '#fff',
                             fontWeight: 1000,
                             height: '40px',
                             whiteSpace: 'nowrap',
+                            boxShadow: '0 4px 12px rgba(37, 99, 235, 0.2)',
                         }}
                     >
                         + Add Holiday
@@ -437,8 +438,8 @@ const AdminHolidays = () => {
                                         borderRadius: '12px',
                                         border: '1px solid #e5e7eb',
                                         cursor: 'pointer',
-                                        backgroundColor: '#fff',
-                                        color: '#111827',
+                                        backgroundColor: '#f8fafc',
+                                        color: '#334155',
                                         fontWeight: 900,
                                         height: '40px',
                                     }}
@@ -501,12 +502,12 @@ const AdminHolidays = () => {
                                                             type="button"
                                                             onClick={() => openEdit(h)}
                                                             style={{
-                                                                padding: '8px 12px',
-                                                                borderRadius: '999px',
+                                                                padding: '8px 16px',
+                                                                borderRadius: '8px',
                                                                 border: 'none',
                                                                 cursor: 'pointer',
-                                                                backgroundColor: '#16a34a',
-                                                                color: '#fff',
+                                                                backgroundColor: '#ecfdf5',
+                                                                color: '#16a34a',
                                                                 fontWeight: 900,
                                                             }}
                                                         >
@@ -516,12 +517,12 @@ const AdminHolidays = () => {
                                                             type="button"
                                                             onClick={() => deleteHoliday(h.id)}
                                                             style={{
-                                                                padding: '8px 12px',
-                                                                borderRadius: '999px',
+                                                                padding: '8px 16px',
+                                                                borderRadius: '8px',
                                                                 border: 'none',
                                                                 cursor: 'pointer',
-                                                                backgroundColor: '#ef4444',
-                                                                color: '#fff',
+                                                                backgroundColor: '#fef2f2',
+                                                                color: '#ef4444',
                                                                 fontWeight: 900,
                                                             }}
                                                         >
