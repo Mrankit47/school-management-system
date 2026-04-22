@@ -55,78 +55,96 @@ def _draw_photo(canv, image_path, x, y, w, h):
 
 def draw_single_card(c, x, y, user_data, school_info):
     """Draws a single ID card at given (x, y) coordinates."""
-    # Colors (Oceanic / Professional theme)
-    navy = (0.10, 0.24, 0.48)
-    gold = (0.99, 0.84, 0.28)
-    body_bg = (0.98, 0.98, 0.97)
+    # Colors (UI Standard: Yellow header #ffcc00, Dark Blue accents #0f172a)
+    yellow_header = (1.0, 0.8, 0.0) # #ffcc00
+    dark_navy = (0.05, 0.09, 0.16)   # #0f172a
+    white = (1.0, 1.0, 1.0)
+    label_gray = (0.39, 0.45, 0.54) # #64748b
+    text_slate = (0.12, 0.16, 0.23) # #1e293b
     
-    # Card Background (instead of border, we use a subtle background fill or just the inner rects)
-    # The user asked for NO border, but we still need a base if we want rounded corners for the design.
-    # We'll draw the rounded rect with stroke=0
-    c.setStrokeColorRGB(*navy)
-    c.setLineWidth(0.8)
-    c.roundRect(x, y, CARD_W, CARD_H, 2.5 * mm, stroke=0, fill=0)
+    # --- 1. Card Base & Background ---
+    # Draw white background with subtle border
+    c.setStrokeColorRGB(0.88, 0.91, 0.94)
+    c.setLineWidth(0.4)
+    c.setFillColorRGB(*white)
+    c.roundRect(x, y, CARD_W, CARD_H, 3 * mm, stroke=1, fill=1)
     
-    # Header Band
-    header_h = 10 * mm
-    c.setFillColorRGB(*gold)
-    c.rect(x + 0.5*mm, y + CARD_H - header_h - 0.5*mm, CARD_W - 1*mm, header_h, stroke=0, fill=1)
+    # --- 2. Header (Yellow) ---
+    header_h = 11.5 * mm
+    c.saveState()
+    # Create clipping path for rounded top corners
+    p = c.beginPath()
+    p.roundRect(x, y + CARD_H - header_h, CARD_W, header_h, 3 * mm)
+    c.clipPath(p, stroke=0, fill=0)
+    # Fill the clipped area with yellow
+    c.setFillColorRGB(*yellow_header)
+    c.rect(x, y + CARD_H - header_h, CARD_W, header_h, stroke=0, fill=1)
+    c.restoreState()
     
-    # School Name
-    school_name = (school_info.get('name') or 'SCHOOL NAME')[:40]
-    c.setFillColorRGB(0, 0, 0)
-    c.setFont('Helvetica-Bold', 9)
-    # Center text in header
-    tw = c.stringWidth(school_name, 'Helvetica-Bold', 9)
-    c.drawString(x + (CARD_W - tw) / 2, y + CARD_H - 6.5 * mm, school_name)
+    # Header Bottom Border (Thick Dark Navy as in UI)
+    c.setStrokeColorRGB(*dark_navy)
+    c.setLineWidth(1.0)
+    c.line(x, y + CARD_H - header_h, x + CARD_W, y + CARD_H - header_h)
     
-    # Body Area
-    c.setFillColorRGB(*body_bg)
-    c.rect(x + 0.5*mm, y + 0.5*mm, CARD_W - 1*mm, CARD_H - header_h - 1*mm, stroke=0, fill=1)
+    # School Name (Centered in Yellow Header)
+    school_name = (school_info.get('name') or 'Standard Public School').upper()[:45]
+    c.setFillColorRGB(*dark_navy)
+    c.setFont('Helvetica-Bold', 8.5)
+    tw = c.stringWidth(school_name, 'Helvetica-Bold', 8.5)
+    c.drawString(x + (CARD_W - tw) / 2, y + CARD_H - 7 * mm, school_name)
     
-    # Photo Block
-    photo_w = 20 * mm
-    photo_h = 24 * mm
-    px = x + CARD_W - photo_w - 3 * mm
-    py = y + 4 * mm
+    # --- 3. Body Content ---
     
+    # Photo Frame (Right Side)
+    photo_w = 18 * mm
+    photo_h = 23 * mm
+    rx = x + CARD_W - photo_w - 4 * mm
+    ry = y + 4.5 * mm
+    
+    # Draw photo if available
     photo_path = user_data.get('photo_path')
     if photo_path:
-        _draw_photo(c, photo_path, px, py, photo_w, photo_h)
+        c.saveState()
+        pp = c.beginPath()
+        pp.roundRect(rx, ry, photo_w, photo_h, 2 * mm)
+        c.clipPath(pp, stroke=0, fill=0)
+        _draw_photo(c, photo_path, rx, ry, photo_w, photo_h)
+        c.restoreState()
     
-    c.setStrokeColorRGB(0.8, 0.8, 0.8)
-    c.setLineWidth(0.4)
-    c.rect(px, py, photo_w, photo_h, stroke=1, fill=0)
+    # Photo Border (as seen in UI)
+    c.setStrokeColorRGB(0.88, 0.91, 0.94)
+    c.setLineWidth(0.6)
+    c.roundRect(rx, ry, photo_w, photo_h, 2 * mm, stroke=1, fill=0)
     
-    # User Details
-    dx = x + 4 * mm
+    # Details (Left Side)
+    dx = x + 4.5 * mm
     dy = y + CARD_H - header_h - 5 * mm
-    line_h = 3.5 * mm
+    line_h = 3.2 * mm
     
-    c.setFillColorRGB(0.1, 0.1, 0.1)
+    # Name (Bold & Navy)
+    c.setFillColorRGB(*dark_navy)
     c.setFont('Helvetica-Bold', 7.5)
-    c.drawString(dx, dy, user_data.get('name', 'Name')[:25])
-    dy -= line_h
+    c.drawString(dx, dy, user_data.get('name', 'Name')[:30])
+    dy -= 4.5 * mm
     
-    c.setFont('Helvetica', 6.5)
-    c.setFillColorRGB(0.3, 0.3, 0.3)
-    
-    # Detail rows
+    # Detail Rows (Matching UI Labels)
     details = user_data.get('details', [])
-    for label, value in details[:5]:
-        c.setFont('Helvetica-Bold', 6)
+    for label, value in details[:7]:
+        c.setFillColorRGB(*label_gray)
+        c.setFont('Helvetica-Bold', 5.5)
         c.drawString(dx, dy, f"{label}:")
-        c.setFont('Helvetica', 6)
-        c.drawString(dx + 16*mm, dy, str(value)[:20])
-        dy -= 3 * mm
-    
-    # Footer (School Address)
-    addr = (school_info.get('address') or '')[:60]
-    if addr:
-        c.setFont('Helvetica', 5)
-        c.setFillColorRGB(0.5, 0.5, 0.5)
-        aw = c.stringWidth(addr, 'Helvetica', 5)
-        c.drawString(x + (CARD_W - aw) / 2, y + 1.5 * mm, addr)
+        
+        c.setFillColorRGB(*text_slate)
+        c.setFont('Helvetica-Bold', 5.5)
+        c.drawString(dx + 16 * mm, dy, str(value or '—')[:30])
+        dy -= line_h
+
+    # --- 4. Accent (Bottom Bar) ---
+    c.setLineWidth(1.4)
+    c.setStrokeColorRGB(0.14, 0.38, 0.92) # Blue part
+    c.line(x + 4*mm, y + 1.2*mm, x + CARD_W/2, y + 1.2*mm)
+    c.setStrokeColorRGB(1.0, 0.8, 0.0) # Yellow part
+    c.line(x + CARD_W/2, y + 1.2*mm, x + CARD_W - 4*mm, y + 1.2*mm)
 
 def generate_bulk_pdf(users_data, school_info):
     """Generates multi-page A4 PDF with 10 cards per page."""

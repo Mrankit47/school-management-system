@@ -427,13 +427,11 @@ const Profile = () => {
 
                         <div style={{ padding: 14, display: 'flex', gap: 14, flex: 1, alignItems: 'center' }}>
                             <div style={{ flex: 1 }}>
-                                <div style={{ fontSize: 11, fontWeight: 900, color: '#0f172a', marginBottom: 8, letterSpacing: '0.05em' }}>
-                                    STUDENT ID CARD
-                                </div>
-                                <div style={{ display: 'grid', gap: 4 }}>
+                                <div style={{ display: 'grid', gap: 4, marginTop: 4 }}>
                                     {[
                                         { label: 'Name', value: profile.name },
                                         { label: 'Adm No', value: profile.admission_number },
+                                        { label: 'Roll No', value: profile.roll_number || '—' },
                                         { label: 'Class', value: profile.class_section_display || classDisplay },
                                         { label: 'Father', value: fatherName },
                                         { label: 'Blood Group', value: profile.blood_group || '—' },
