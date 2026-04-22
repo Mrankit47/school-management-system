@@ -28,7 +28,9 @@ def submit_enquiry(request):
                     recipient_list=[settings.CONTACT_EMAIL],
                     fail_silently=False,
                 )
+                print(f"✅ Admin notification email sent to {settings.CONTACT_EMAIL}")
             except Exception as e:
+                print(f"❌ Failed to send admin email: {e}")
                 logger.error(f"Failed to send admin notification email: {e}")
 
             # confirmation email to user
@@ -43,7 +45,9 @@ def submit_enquiry(request):
                     recipient_list=[enquiry.email],
                     fail_silently=False,
                 )
+                print(f"✅ Confirmation email sent to {enquiry.email}")
             except Exception as e:
+                print(f"❌ Failed to send user email: {e}")
                 logger.error(f"Failed to send user confirmation email: {e}")
 
             return Response({"status": "success", "message": "Enquiry submitted successfully!"})

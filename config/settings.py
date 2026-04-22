@@ -1,9 +1,9 @@
 import os
 from pathlib import Path
 from datetime import timedelta
-# from dotenv import load_dotenv
+from dotenv import load_dotenv
 
-# load_dotenv()
+load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -161,15 +161,30 @@ DATABASES = {
     }
 }
 
-# Email Configuration
-# Using Console backend for demonstration. 
-# Swap to 'django.core.mail.backends.smtp.EmailBackend' for production.
-EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend' 
+# ============================================================
+# EMAIL CONFIGURATION
+# ============================================================
+# STEP 1: Replace 'your-email@gmail.com' with your official Gmail address
+#         (e.g., 'schoolconduct.official@gmail.com')
+#
+# STEP 2: Replace 'your-app-password' with a Gmail App Password.
+#         ⚠️  This is NOT your Gmail login password!
+#         To generate an App Password:
+#           1. Go to https://myaccount.google.com/apppasswords
+#           2. Sign in → Select app "Mail" → Select device "Other"
+#           3. Click "Generate" → Copy the 16-character password
+#           4. Paste it below in EMAIL_HOST_PASSWORD
+#
+# STEP 3: Replace 'admin-email@gmail.com' in CONTACT_EMAIL with the
+#         official email where you want to RECEIVE all enquiry notifications.
+# ============================================================
+
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
-EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER', 'your-email@gmail.com')
-EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD', 'your-app-password')
+EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER', 'your-email@gmail.com')          # ← SENDER email (your Gmail)
+EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD', 'your-app-password')      # ← Gmail App Password (16 chars)
 
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
-CONTACT_EMAIL = os.getenv('CONTACT_EMAIL', 'admin-email@gmail.com')
+CONTACT_EMAIL = os.getenv('CONTACT_EMAIL', 'admin-email@gmail.com')              # ← RECEIVER email (enquiries go here)

@@ -40,6 +40,11 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
             if not user.school.is_active:
                 raise serializers.ValidationError("Your school account is suspended. Please contact support.")
 
+        # Build logo URL: use absolute URI so frontend can display it directly
+        school_logo_url = None
+        if not is_platform_role and user.school and user.school.logo:
+            school_logo_url = request.build_absolute_uri(user.school.logo.url)
+
         data['user'] = {
             'id': user.id,
             'username': user.username,
@@ -48,6 +53,7 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
             'role': 'superadmin' if user.is_superuser else user.role,
             'school_id': getattr(user.school, 'school_id', None),
             'school_name': getattr(user.school, 'name', None),
+            'school_logo': school_logo_url,
             'profile_photo': request.build_absolute_uri(user.profile_photo.url) if user.profile_photo else None,
         }
 
