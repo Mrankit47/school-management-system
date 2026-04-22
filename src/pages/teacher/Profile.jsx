@@ -647,10 +647,7 @@ const TeacherProfile = () => {
 
                             <div style={{ padding: 16, display: 'flex', gap: 16, flex: 1, alignItems: 'center' }}>
                                 <div style={{ flex: 1 }}>
-                                    <div style={{ fontSize: 12, fontWeight: 900, color: '#0f172a', marginBottom: 10, letterSpacing: '0.05em' }}>
-                                        TEACHER ID CARD
-                                    </div>
-                                    <div style={{ display: 'grid', gap: 5 }}>
+                                <div style={{ display: 'grid', gap: 5, marginTop: 4 }}>
                                         {[
                                             { label: 'Name', value: form.name },
                                             { label: 'Emp ID', value: form.employee_id },

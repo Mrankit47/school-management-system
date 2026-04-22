@@ -115,8 +115,8 @@ def build_student_id_card_pdf(
     phone = _clip(student.user.phone or student.father_contact or '', 24)
     blood_group = _clip(student.blood_group or '', 8)
     addr = _clip(student.address or '', 46)
-    adm = _clip(student.admission_number, 18)
-
+    roll = _clip(student.roll_number or '', 18)
+    
     def row(lbl, val, bold_val=True):
         nonlocal y
         c.setFont('Helvetica-Bold', 8.5)
@@ -129,6 +129,7 @@ def build_student_id_card_pdf(
     row('Name:', name)
     row('Father Name:', father)
     row('Admission No:', adm)
+    row('Roll No:', roll)
     row('Class:', class_full)
     row('Blood Group:', blood_group)
     row('Phone:', phone)

@@ -37,6 +37,7 @@ class StudentProfileSerializer(serializers.ModelSerializer):
             'name',
             'phone',
             'admission_number',
+            'roll_number',
             'rfid_code',
             'class_name',
             'section_name',
