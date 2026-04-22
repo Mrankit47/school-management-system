@@ -11,6 +11,10 @@ const authService = {
             const userData = response.data.user;
             localStorage.setItem('user_role', userData.role);
             localStorage.setItem('user_name', userData.name);
+            // Always clear school fields first to prevent stale data from previous sessions
+            localStorage.removeItem('school_id');
+            localStorage.removeItem('school_name');
+            localStorage.removeItem('school_logo');
             if (userData.school_id) localStorage.setItem('school_id', userData.school_id);
             if (userData.school_name) localStorage.setItem('school_name', userData.school_name);
             if (userData.school_logo) localStorage.setItem('school_logo', userData.school_logo);

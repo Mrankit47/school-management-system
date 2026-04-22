@@ -278,7 +278,7 @@ export default function SuperAdminDashboard() {
         school_id: utilState.school_id,
         user_type: utilState.user_type
       }, { responseType: 'blob' });
-      
+
       const url = URL.createObjectURL(new Blob([resp.data]));
       const link = document.createElement('a');
       link.href = url;
@@ -312,7 +312,7 @@ export default function SuperAdminDashboard() {
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-12">
           <div>
             <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Platform Overview</h1>
-            <p className="text-slate-500 mt-1 text-sm font-medium">Managing multi-tenant infrastructure for Atheris Lab School</p>
+            <p className="text-slate-500 mt-1 text-sm font-medium">Managing multi-tenant infrastructure for Multiple Schools</p>
           </div>
 
           <div className="flex items-center gap-6">
