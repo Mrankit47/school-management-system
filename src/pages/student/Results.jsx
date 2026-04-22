@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import api from '../../services/api';
+import { useStudent } from '../../context/StudentContext';
 
 const colors = {
     primary: '#2563eb',
@@ -49,6 +50,7 @@ const badgeStyle = (pass) => ({
 });
 
 export default function Results() {
+    const { selectedStudentId } = useStudent();
     const [profile, setProfile] = useState(null);
     const [marks, setMarks] = useState([]);
     const [exams, setExams] = useState([]);
@@ -73,7 +75,7 @@ export default function Results() {
             })
             .catch(err => console.error("Error fetching results:", err))
             .finally(() => setLoading(false));
-    }, []);
+    }, [selectedStudentId]);
 
     const marksByExamType = useMemo(() => {
         const map = new Map();

@@ -6,6 +6,11 @@ class StudentProfileSerializer(serializers.ModelSerializer):
     user = UserSerializer(read_only=True)
     class_name = serializers.CharField(source='class_section.class_ref.name', read_only=True)
     section_name = serializers.CharField(source='class_section.section_ref.name', read_only=True)
+    photo_url = serializers.SerializerMethodField()
+    has_photo = serializers.SerializerMethodField()
+    name = serializers.CharField(source='user.name', read_only=True)
+    phone = serializers.CharField(source='user.phone', read_only=True)
+
     class_section_display = serializers.SerializerMethodField()
 
     def get_class_section_display(self, obj):
@@ -13,11 +18,24 @@ class StudentProfileSerializer(serializers.ModelSerializer):
             return f"{obj.class_section.class_ref.name} - {obj.class_section.section_ref.name}"
         return None
 
+    def get_photo_url(self, obj):
+        if obj.photo:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.photo.url)
+            return obj.photo.url
+        return None
+
+    def get_has_photo(self, obj):
+        return bool(obj.photo)
+
     class Meta:
         model = StudentProfile
         fields = [
             'id',
             'user',
+            'name',
+            'phone',
             'admission_number',
             'rfid_code',
             'class_name',
@@ -34,4 +52,6 @@ class StudentProfileSerializer(serializers.ModelSerializer):
             'address',
             'date_of_admission',
             'category',
+            'photo_url',
+            'has_photo',
         ]

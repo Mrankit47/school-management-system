@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
+import { useStudent } from '../../context/StudentContext';
 
 const card = {
     border: '1px solid #e5e7eb',
@@ -11,6 +12,7 @@ const card = {
 
 const Profile = () => {
     const navigate = useNavigate();
+    const { selectedStudentId } = useStudent();
     const [profile, setProfile] = useState(null);
     const [assignments, setAssignments] = useState([]);
     const [submissions, setSubmissions] = useState([]);
@@ -92,7 +94,7 @@ const Profile = () => {
                 }
             })
             .finally(() => setLoading(false));
-    }, []);
+    }, [selectedStudentId]);
 
     const submissionMap = useMemo(() => {
         const m = new Map();

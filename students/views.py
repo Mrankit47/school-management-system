@@ -6,13 +6,24 @@ from rest_framework import status, views, permissions
 from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.response import Response
 from accounts.models import User
-from .models import StudentProfile
+from accounts.utils import get_unique_username
+from .models import StudentProfile, Parent
 from .pdf_id_card import build_student_id_card_pdf
+from .utils import get_requested_student
 from core.permissions import IsAdmin
 from classes.models import ClassSection, MainClass, MainSection
 from classes.teacher_access import teacher_teaches_class_section
 import re
-from accounts.utils import get_unique_username
+from attendance.models import Attendance
+from attendance.serializers import AttendanceSerializer
+from assignments.models import Assignment, Submission
+from academics.models import Result, Exam
+from fees.models import StudentFee
+from timetable.models import TimeTableEntry
+from timetable.serializers import TimeTableEntrySerializer
+from communication.models import Notification
+from communication.serializers import NotificationSerializer
+from django.db.models import Q
 
 
 
@@ -280,9 +291,14 @@ class AdminStudentCreateView(views.APIView):
                 from tenants.models import School
                 school = School.objects.first()
 
+            # Handle duplicate email (common for siblings)
+            email = data.get('email')
+            if email and User.objects.filter(email=email).exists():
+                email = None
+
             user = User.objects.create_user(
                 username=get_unique_username(data['username']),
-                email=data['email'],
+                email=email,
                 password=data['password'],
                 # First/Last name are stored on the User model; `name` is kept for backward compatibility.
                 first_name=data.get('first_name', ''),
@@ -321,19 +337,30 @@ class AdminStudentCreateView(views.APIView):
             
             admission_number = admission_number or _next_admission_number(school)
 
-            profile = StudentProfile.objects.create(
+            # Link to Parent (for Sibling logic)
+            father_contact = data.get('father_contact')
+            father_name = data.get('father_name')
+            parent_obj = None
+            if father_contact:
+                parent_obj, _ = Parent.objects.get_or_create(
+                    mobile=father_contact,
+                    defaults={'name': father_name}
+                )
 
+            profile = StudentProfile.objects.create(
                 user=user,
+                school=school,
                 admission_number=admission_number,
                 roll_number=roll_number,
                 rfid_code=data.get('rfid_code'),
                 class_section_id=class_section_id,
+                parent=parent_obj,
                 dob=data.get('dob'),
                 gender=data.get('gender'),
                 blood_group=data.get('blood_group'),
-                father_name=data.get('father_name'),
+                father_name=father_name,
                 mother_name=data.get('mother_name'),
-                father_contact=data.get('father_contact'),
+                father_contact=father_contact,
                 mother_contact=data.get('mother_contact'),
                 bus_no=data.get('bus_no'),
                 address=data.get('address'),
@@ -348,63 +375,19 @@ class StudentProfileView(views.APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
-        if request.user.role != 'student':
-            return Response({"error": "Only students can access this profile"}, status=status.HTTP_403_FORBIDDEN)
-        
-        s = (
-            StudentProfile.objects.select_related(
-                'user',
-                'class_section__class_ref',
-                'class_section__section_ref',
-            )
-            .filter(user=request.user)
-            .first()
-        )
+        s = get_requested_student(request)
         if not s:
             return Response({"error": "Student profile not found"}, status=status.HTTP_404_NOT_FOUND)
 
-        photo_url = None
-        has_photo = False
-        if s.photo and s.photo.name:
-            try:
-                photo_url = request.build_absolute_uri(s.photo.url)
-                has_photo = True
-            except ValueError:
-                pass
-
-        return Response({
-            "id": s.id,
-            "admission_number": f"{s.school.school_id if s.school else 'NS'}-{s.admission_number}",
-            "roll_number": s.roll_number,
-            "name": s.user.name or s.user.username,
-
-
-            "username": s.user.username,
-            "email": s.user.email,
-            "phone": s.user.phone,
-            "class_name": (
-                f"{s.class_section.class_ref.name} - {s.class_section.section_ref.name}"
-                if s.class_section else "N/A"
-            ),
-            "class_section_display": (
-                f"{s.class_section.class_ref.name} - {s.class_section.section_ref.name}"
-                if s.class_section else None
-            ),
-            "section_name": s.class_section.section_ref.name if s.class_section else "N/A",
-            "class_ref_name": s.class_section.class_ref.name if s.class_section else "N/A",
-            "date_of_admission": s.date_of_admission,
-            "dob": s.dob,
-            "gender": s.gender,
-            "father_name": s.father_name,
-            "mother_name": s.mother_name,
-            "father_contact": s.father_contact,
-            "mother_contact": s.mother_contact,
-            "bus_no": s.bus_no,
-            "address": s.address,
-            "blood_group": s.blood_group,
-            "photo_url": photo_url,
-            "has_photo": has_photo,
-        })
+        from .serializers import StudentProfileSerializer
+        serializer = StudentProfileSerializer(s, context={'request': request})
+        data = serializer.data
+        
+        # Override admission_number to include school prefix
+        if s.school:
+             data["admission_number"] = f"{s.school.school_id}-{s.admission_number}"
+        
+        return Response(data)
 
 
 _ALLOWED_PHOTO_CT = frozenset(
@@ -522,3 +505,163 @@ class StudentIdCardPdfView(views.APIView):
         # Students are allowed to view only, not download.
         response['Content-Disposition'] = f'inline; filename="{filename}"'
         return response
+
+class SiblingListView(views.APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        if request.user.role != 'student':
+            return Response({"error": "Only students can access this"}, status=status.HTTP_403_FORBIDDEN)
+        
+        student_profile = getattr(request.user, 'student_profile', None)
+        if not student_profile:
+            student_profile = StudentProfile.objects.filter(user=request.user).first()
+            
+        if not student_profile or not student_profile.parent:
+            return Response([])
+
+        siblings = StudentProfile.objects.filter(parent=student_profile.parent).select_related(
+            'user', 'class_section__class_ref', 'class_section__section_ref'
+        )
+        
+        return Response([
+            {
+                "id": s.id,
+                "name": s.user.name or s.user.username,
+                "class_name": f"{s.class_section.class_ref.name} - {s.class_section.section_ref.name}" if s.class_section else "N/A",
+                "roll_number": s.roll_number,
+                "admission_number": s.admission_number,
+                "photo_url": request.build_absolute_uri(s.photo.url) if s.photo else None,
+            }
+            for s in siblings
+        ])
+
+class SiblingDashboardView(views.APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        if request.user.role != 'student':
+            return Response({"error": "Only students can access this dashboard"}, status=status.HTTP_403_FORBIDDEN)
+
+        logged_in_student = StudentProfile.objects.filter(user=request.user).first()
+        if not logged_in_student:
+            return Response({"error": "Student profile not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        target_student_id = request.query_params.get('student_id')
+        if target_student_id:
+            try:
+                target_student_id = int(target_student_id)
+            except ValueError:
+                return Response({"error": "Invalid student_id"}, status=status.HTTP_400_BAD_REQUEST)
+        target_student = get_requested_student(request)
+        if not target_student:
+            return Response({"error": "Student profile not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        # Fetch all dashboard data for target_student
+        
+        # 1. Profile
+        profile_data = {
+            "id": target_student.id,
+            "name": target_student.user.name or target_student.user.username,
+            "admission_number": target_student.admission_number,
+            "class_name": f"{target_student.class_section.class_ref.name} - {target_student.class_section.section_ref.name}" if target_student.class_section else "N/A",
+            "class_section_display": f"{target_student.class_section.class_ref.name} - {target_student.class_section.section_ref.name}" if target_student.class_section else None,
+            "photo_url": request.build_absolute_uri(target_student.photo.url) if target_student.photo else None,
+        }
+
+        # 2. Attendance
+        attendance_qs = Attendance.objects.filter(student=target_student).order_by('-date')
+        attendance_data = AttendanceSerializer(attendance_qs, many=True).data
+
+        # 3. Results
+        results_qs = Result.objects.filter(student=target_student).select_related('exam').order_by('-exam__date')
+        results_data = [
+            {
+                "exam_id": r.exam.id,
+                "exam_name": r.exam.name,
+                "subject": r.subject,
+                "marks": float(r.marks) if r.marks else 0,
+                "max_marks": float(r.max_marks),
+                "percentage": round((float(r.marks) / float(r.max_marks) * 100), 2) if r.marks and r.max_marks else 0,
+                "grade": "A" if (float(r.marks or 0)/float(r.max_marks or 1)) > 0.8 else "B", # Simple logic for demo
+                "result_status": "Pass" if (float(r.marks or 0)/float(r.max_marks or 1)) > 0.33 else "Fail",
+            }
+            for r in results_qs
+        ]
+
+        # 4. Fees
+        fees_qs = StudentFee.objects.filter(student=target_student).select_related('fee_structure')
+        fees_data = [
+            {
+                "id": f.id,
+                "fee_type": f.fee_structure.class_ref.name,
+                "total_amount": float(f.fee_structure.total_fees),
+                "amount_paid": float(f.amount_paid),
+                "due_amount": float(f.due_amount),
+                "status": f.status,
+                "due_date": f.due_date,
+            }
+            for f in fees_qs
+        ]
+
+        # 5. Assignments
+        submissions = []
+        if target_student.class_section:
+            assignments_qs = Assignment.objects.filter(class_section=target_student.class_section).order_by('-due_date')
+            submissions = Submission.objects.filter(student=target_student).values_list('assignment_id', flat=True)
+            assignments_data = [
+                {
+                    "id": a.id,
+                    "title": a.title,
+                    "subject": a.subject,
+                    "due_date": a.due_date,
+                    "status": "Submitted" if a.id in submissions else "Pending",
+                }
+                for a in assignments_qs
+            ]
+        else:
+            assignments_data = []
+
+        # 6. Timetable
+        if target_student.class_section:
+            timetable_qs = TimeTableEntry.objects.filter(
+                class_name=target_student.class_section.class_ref.name,
+                section=target_student.class_section.section_ref.name
+            )
+            timetable_data = TimeTableEntrySerializer(timetable_qs, many=True).data
+        else:
+            timetable_data = []
+
+        # 7. Communication / Notifications
+        notices_qs = Notification.objects.filter(
+            user=target_student.user
+        ).order_by('-created_at')[:10]
+        notices_data = NotificationSerializer(notices_qs, many=True).data
+
+        # 8. Exams
+        if target_student.class_section:
+            exams_qs = Exam.objects.filter(class_section=target_student.class_section).order_by('-date')
+            exams_data = [
+                {
+                    "id": e.id,
+                    "name": e.name,
+                    "date": e.date,
+                    "exam_type": e.exam_type,
+                    "status": e.status,
+                }
+                for e in exams_qs
+            ]
+        else:
+            exams_data = []
+
+        return Response({
+            "profile": profile_data,
+            "attendance": attendance_data,
+            "results": results_data,
+            "fees": fees_data,
+            "assignments": assignments_data,
+            "assignment_submissions": list(submissions),
+            "timetable": timetable_data,
+            "notifications": notices_data,
+            "exams": exams_data,
+        })

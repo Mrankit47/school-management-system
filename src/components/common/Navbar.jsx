@@ -3,6 +3,8 @@ import { useNavigate, Link } from 'react-router-dom';
 import authService from '../../services/authService';
 import useAuthStore from '../../store/authStore';
 import api from '../../services/api';
+import SiblingSwitcher from '../student/SiblingSwitcher';
+import { useStudent } from '../../context/StudentContext';
 
 const Navbar = () => {
     const navigate = useNavigate();
@@ -11,15 +13,18 @@ const Navbar = () => {
     const [studentProfile, setStudentProfile] = useState(null);
     const [teacherProfile, setTeacherProfile] = useState(null);
     const [isProfileOpen, setIsProfileOpen] = useState(false);
+    const { selectedStudentId, setSelectedStudentId } = useStudent();
+    const [siblings, setSiblings] = useState([]);
 
     useEffect(() => {
         if (user.role === 'student') {
             api.get('students/profile/').then(res => setStudentProfile(res.data)).catch(() => {});
+            api.get('students/siblings/').then(res => setSiblings(res.data)).catch(() => {});
         }
         if (user.role === 'teacher') {
             api.get('teachers/profile/').then(res => setTeacherProfile(res.data)).catch(() => {});
         }
-    }, [user.role]);
+    }, [user.role, selectedStudentId]);
 
     const handleLogout = () => {
         const sid = user.school_id;
@@ -31,7 +36,8 @@ const Navbar = () => {
         }
     };
 
-    const initials = (user.name || 'U').split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
+    const displayName = user.role === 'student' ? (studentProfile?.name || user.name) : user.name;
+    const initials = (displayName || 'U').split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
     const profileId = user.role === 'student'
         ? studentProfile?.admission_number
         : user.role === 'teacher'
@@ -81,12 +87,19 @@ const Navbar = () => {
             <div className="flex items-center gap-5">
                 {/* Repositioned Class Info */}
                 {user.role === 'student' && (
-                    <div className="hidden md:flex px-4 py-1.5 bg-slate-50 border border-slate-100 rounded-xl items-center gap-2.5 shadow-sm hover:shadow-md transition-all group cursor-default">
-                        <span className="text-lg group-hover:scale-110 transition-transform">🏫</span>
-                        <div className="flex flex-col">
-                            <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest leading-none">Class</span>
-                            <span className="text-[12px] font-black text-school-navy leading-tight">{studentProfile?.class_name || '...'}</span>
+                    <div className="flex items-center gap-3">
+                        <div className="hidden md:flex px-4 py-1.5 bg-slate-50 border border-slate-100 rounded-xl items-center gap-2.5 shadow-sm hover:shadow-md transition-all group cursor-default">
+                            <span className="text-lg group-hover:scale-110 transition-transform">🏫</span>
+                            <div className="flex flex-col">
+                                <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest leading-none">Class</span>
+                                <span className="text-[12px] font-black text-school-navy leading-tight">{studentProfile?.class_section_display || '...'}</span>
+                            </div>
                         </div>
+                        <SiblingSwitcher 
+                            siblings={siblings}
+                            selectedStudentId={selectedStudentId}
+                            onSwitch={setSelectedStudentId}
+                        />
                     </div>
                 )}
 
@@ -119,7 +132,9 @@ const Navbar = () => {
                             <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-emerald-500 rounded-lg border-[3px] border-white shadow-sm"></div>
                         </div>
                         <div className="flex flex-col items-start min-w-[80px]">
-                            <span className="text-[13px] font-black text-slate-800 leading-tight group-hover:text-school-navy transition-colors">{user.name}</span>
+                            <span className="text-[13px] font-black text-slate-800 leading-tight group-hover:text-school-navy transition-colors">
+                                {user.role === 'student' ? (studentProfile?.name || user.name) : user.name}
+                            </span>
                             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-tight">{user.role}</span>
                         </div>
                         <span className={`text-[10px] text-slate-400 transition-transform duration-300 ${isProfileOpen ? 'rotate-180' : ''}`}>▼</span>
@@ -136,7 +151,9 @@ const Navbar = () => {
                                             {initials}
                                         </div>
                                         <div className="flex flex-col">
-                                            <h3 className="font-black text-slate-900 leading-tight">{user.name}</h3>
+                                            <h3 className="font-black text-slate-900 leading-tight">
+                                                {user.role === 'student' ? (studentProfile?.name || user.name) : user.name}
+                                            </h3>
                                             <p className="text-[11px] font-bold text-school-blue mt-0.5">ID: {profileId || '---'}</p>
                                         </div>
                                     </div>
@@ -144,7 +161,7 @@ const Navbar = () => {
                                         <div className="grid grid-cols-2 gap-2">
                                             <div className="bg-white p-2 rounded-xl border border-slate-100">
                                                 <p className="text-[8px] font-bold text-slate-400 uppercase tracking-tighter italic">Class</p>
-                                                <p className="text-[10px] font-black text-slate-800">{studentProfile?.class_ref_name || 'N/A'}</p>
+                                                <p className="text-[10px] font-black text-slate-800">{studentProfile?.class_section_display || 'N/A'}</p>
                                             </div>
                                             <div className="bg-white p-2 rounded-xl border border-slate-100">
                                                 <p className="text-[8px] font-bold text-slate-400 uppercase tracking-tighter italic">Semester</p>

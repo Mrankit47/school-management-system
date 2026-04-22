@@ -484,7 +484,7 @@ const AddStudent = () => {
 
                     <button
                         type="submit"
-                        style={{ backgroundColor: '#28a745', color: '#fff', padding: '12px 18px', border: 'none', cursor: 'pointer', borderRadius: '10px', width: '100%', fontWeight: 700 }}
+                        style={{ backgroundColor: '#2563eb', color: '#fff', padding: '14px 20px', border: 'none', cursor: 'pointer', borderRadius: '12px', width: '100%', fontWeight: 1000, boxShadow: '0 4px 12px rgba(37, 99, 235, 0.2)' }}
                     >
                         Create Student
                     </button>

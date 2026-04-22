@@ -6,6 +6,7 @@ from .serializers import AssignmentSerializer, SubmissionSerializer, SubmissionD
 
 from core.permissions import IsTeacher, IsStudent
 from students.models import StudentProfile
+from students.utils import get_requested_student
 from teachers.models import TeacherProfile
 from communication.models import Notification
 
@@ -17,8 +18,11 @@ class AssignmentListView(views.APIView):
 
     def get(self, request):
         if request.user.role == 'student':
-            student_profile = request.user.student_profile
-            assignments = Assignment.objects.filter(class_section=student_profile.class_section)
+            student_profile = get_requested_student(request)
+            if student_profile:
+                assignments = Assignment.objects.filter(class_section=student_profile.class_section)
+            else:
+                assignments = []
         elif request.user.role == 'teacher':
             assignments = Assignment.objects.filter(created_by=request.user.teacher_profile)
         else:
@@ -142,7 +146,9 @@ class MyAssignmentSubmissionsView(views.APIView):
     permission_classes = [IsStudent]
 
     def get(self, request):
-        student_profile = request.user.student_profile
+        student_profile = get_requested_student(request)
+        if not student_profile:
+            return Response([])
         submissions_qs = (
             Submission.objects.select_related('assignment')
             .filter(student=student_profile)
@@ -180,7 +186,9 @@ class StudentAssignmentSubmissionCreateView(views.APIView):
     permission_classes = [IsStudent]
 
     def post(self, request):
-        student_profile = request.user.student_profile
+        student_profile = get_requested_student(request)
+        if not student_profile:
+            return Response({'error': 'Student profile not found'}, status=status.HTTP_404_NOT_FOUND)
         assignment_id = request.data.get('assignment_id')
         file_url = request.data.get('file_url')
 

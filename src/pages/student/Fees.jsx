@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import api from '../../services/api';
+import { useStudent } from '../../context/StudentContext';
 
 const card = {
     backgroundColor: '#fff',
@@ -10,18 +11,20 @@ const card = {
 };
 
 const Fees = () => {
+    const { selectedStudentId } = useStudent();
     const [feeRecords, setFeeRecords] = useState([]);
     const [loading, setLoading] = useState(true);
     const [paymentForms, setPaymentForms] = useState({});
     const [payingId, setPayingId] = useState(null);
 
     useEffect(() => {
+        setLoading(true);
         api
             .get('fees/my/')
             .then((res) => setFeeRecords(res.data || []))
             .catch(() => setFeeRecords([]))
             .finally(() => setLoading(false));
-    }, []);
+    }, [selectedStudentId]);
 
     useEffect(() => {
         const init = {};

@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams, useParams } from 'react-router-dom';
 import authService from '../../services/authService';
 import useAuthStore from '../../store/authStore';
 import useSchoolStore from '../../store/schoolStore';
+import { useStudent } from '../../context/StudentContext';
 
 const Login = () => {
     const { schoolId } = useParams();
@@ -15,6 +16,7 @@ const Login = () => {
     const [isLoading, setIsLoading] = useState(false);
     
     const { setUser, logout } = useAuthStore();
+    const { setSelectedStudentId } = useStudent();
     const { school, loading: schoolLoading, fetchSchoolInfo, clearSchool } = useSchoolStore();
 
     useEffect(() => {
@@ -58,7 +60,12 @@ const Login = () => {
                 
                 if (user.role === 'admin') navigate('/admin/dashboard');
                 else if (user.role === 'teacher') navigate('/teacher/dashboard');
-                else navigate('/student/dashboard');
+                else {
+                    if (user.student_profile_id) {
+                        setSelectedStudentId(user.student_profile_id);
+                    }
+                    navigate('/student/dashboard');
+                }
             }
         } catch (err) {
             const errorMsg = err.response?.data?.detail || err.response?.data?.error || 'Invalid credentials. Please check your username and password.';

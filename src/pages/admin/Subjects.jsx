@@ -226,12 +226,12 @@ const AdminSubjects = () => {
                                                 type="button"
                                                 onClick={() => navigate(`/admin/subjects/${s.id}`)}
                                                 style={{
-                                                    padding: '8px 12px',
-                                                    borderRadius: '999px',
+                                                    padding: '8px 16px',
+                                                    borderRadius: '8px',
                                                     border: 'none',
                                                     cursor: 'pointer',
-                                                    backgroundColor: '#6d28d9',
-                                                    color: '#fff',
+                                                    backgroundColor: '#f5f3ff',
+                                                    color: '#6d28d9',
                                                     fontWeight: 800,
                                                 }}
                                             >
@@ -241,12 +241,12 @@ const AdminSubjects = () => {
                                                 type="button"
                                                 onClick={() => openEdit(s)}
                                                 style={{
-                                                    padding: '8px 12px',
-                                                    borderRadius: '999px',
+                                                    padding: '8px 16px',
+                                                    borderRadius: '8px',
                                                     border: 'none',
                                                     cursor: 'pointer',
-                                                    backgroundColor: '#16a34a',
-                                                    color: '#fff',
+                                                    backgroundColor: '#ecfdf5',
+                                                    color: '#16a34a',
                                                     fontWeight: 800,
                                                 }}
                                             >
@@ -256,12 +256,12 @@ const AdminSubjects = () => {
                                                 type="button"
                                                 onClick={() => deleteSubject(s.id)}
                                                 style={{
-                                                    padding: '8px 12px',
-                                                    borderRadius: '999px',
+                                                    padding: '8px 16px',
+                                                    borderRadius: '8px',
                                                     border: 'none',
                                                     cursor: 'pointer',
-                                                    backgroundColor: '#ef4444',
-                                                    color: '#fff',
+                                                    backgroundColor: '#fef2f2',
+                                                    color: '#ef4444',
                                                     fontWeight: 800,
                                                 }}
                                             >

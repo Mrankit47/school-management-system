@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import api from '../../services/api';
+import { useStudent } from '../../context/StudentContext';
 
 const colors = {
     bg: '#f9fafb',
@@ -63,6 +64,7 @@ function Modal({ open, title, onClose, children }) {
 }
 
 export default function StudentSyllabus() {
+    const { selectedStudentId } = useStudent();
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
 
@@ -103,7 +105,7 @@ export default function StudentSyllabus() {
     useEffect(() => {
         loadMetaAndList();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
+    }, [selectedStudentId]);
 
     useEffect(() => {
         // When subject changes, refetch list only.

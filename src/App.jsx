@@ -33,10 +33,14 @@ const AppContent = () => {
   );
 };
 
+import { StudentProvider } from './context/StudentContext';
+
 function App() {
   return (
     <Router>
-      <AppContent />
+      <StudentProvider>
+        <AppContent />
+      </StudentProvider>
     </Router>
   );
 }

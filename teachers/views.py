@@ -262,7 +262,9 @@ class TeacherIdCardPdfView(views.APIView):
             school_website=getattr(settings, 'SCHOOL_WEBSITE', ''),
         )
 
-        filename = f"teacher-id-card-{profile.employee_id or profile.id}.pdf"
+        prefix = profile.school.school_id if profile.school else 'NS'
+        full_id = f"{prefix}-{profile.employee_id}" if profile.employee_id else profile.id
+        filename = f"teacher-id-card-{full_id}.pdf"
         response = HttpResponse(pdf_bytes, content_type='application/pdf')
         # Teachers are allowed to view only, not download.
         response['Content-Disposition'] = f'inline; filename="{filename}"'

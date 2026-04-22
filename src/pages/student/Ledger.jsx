@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import api from '../../services/api';
+import { useStudent } from '../../context/StudentContext';
 
 const card = {
     backgroundColor: '#fff',
@@ -23,6 +24,7 @@ const toIsoDate = (d) => {
 };
 
 const StudentLedger = () => {
+    const { selectedStudentId } = useStudent();
     const [feeRecords, setFeeRecords] = useState([]);
     const [loading, setLoading] = useState(true);
     const [fromDate, setFromDate] = useState('');
@@ -30,12 +32,13 @@ const StudentLedger = () => {
     const [monthFilter, setMonthFilter] = useState('');
 
     useEffect(() => {
+        setLoading(true);
         api
             .get('fees/my/')
             .then((res) => setFeeRecords(res.data || []))
             .catch(() => setFeeRecords([]))
             .finally(() => setLoading(false));
-    }, []);
+    }, [selectedStudentId]);
 
     const ledgerRows = useMemo(() => {
         const rows = [];

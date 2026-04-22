@@ -99,7 +99,8 @@ def build_teacher_id_card_pdf(
     label_x = lx + 28 * mm
 
     name = _clip(teacher.user.name or teacher.user.username, 40)
-    eid = _clip(teacher.employee_id, 12)
+    prefix = teacher.school.school_id if teacher.school else 'NS'
+    eid = _clip(f"{prefix}-{teacher.employee_id}", 20)
     role = _clip(role_label or 'Teacher', 42)
     spec = _clip(teacher.subject_specialization, 40)
     phone = _clip(teacher.phone_number or teacher.user.phone or '', 20)

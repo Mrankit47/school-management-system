@@ -186,6 +186,21 @@ const FinanceCards = () => {
                 .animate-up { animation: fadeIn 0.4s ease forwards; }
                 .admin-card { transition: all 0.2s ease; }
                 .admin-card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+                .btn-premium {
+                    transition: all 0.2s ease;
+                    cursor: pointer;
+                    display: inline-flex;
+                    align-items: center;
+                    justify-content: center;
+                    gap: 8px;
+                }
+                .btn-premium:hover {
+                    transform: translateY(-1px);
+                    filter: brightness(1.05);
+                }
+                .btn-premium:active {
+                    transform: translateY(0);
+                }
                 `}
             </style>
 
@@ -212,10 +227,10 @@ const FinanceCards = () => {
                         </p>
                     </div>
                     <div style={{ display: 'flex', gap: '10px' }}>
-                        <button onClick={bootstrapCards} style={{ padding: '10px 16px', borderRadius: '12px', border: '1px solid #e5e7eb', backgroundColor: '#fff', fontWeight: 1000, cursor: 'pointer', fontSize: '13px' }}>
+                        <button className="btn-premium" onClick={bootstrapCards} style={{ padding: '10px 20px', borderRadius: '14px', border: 'none', backgroundColor: '#f0f9ff', color: '#0369a1', fontWeight: 1000, fontSize: '13px' }}>
                             Bootstrap Defaults
                         </button>
-                        <button onClick={rollbackLastChange} style={{ padding: '10px 16px', borderRadius: '12px', border: '1px solid #e5e7eb', backgroundColor: '#fff', fontWeight: 1000, cursor: 'pointer', fontSize: '13px', color: '#64748b' }}>
+                        <button className="btn-premium" onClick={rollbackLastChange} style={{ padding: '10px 20px', borderRadius: '14px', border: '1px solid #e5e7eb', backgroundColor: '#fff', fontWeight: 1000, fontSize: '13px', color: '#64748b', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
                             Rollback
                         </button>
                     </div>
@@ -247,10 +262,10 @@ const FinanceCards = () => {
                         <input style={fieldStyle} placeholder="Sports Fee" type="number" value={form.sports_fee} onChange={(e) => setForm((p) => ({ ...p, sports_fee: e.target.value }))} />
                     </div>
                     <p style={{ marginTop: 10, marginBottom: 8, fontWeight: 700 }}>Total Fee: ₹{formTotal.toFixed(2)}</p>
-                    <button type="submit" style={{ border: 'none', borderRadius: 10, padding: '10px 16px', backgroundColor: '#2563eb', color: '#fff', fontWeight: 700, cursor: 'pointer' }}>
+                    <button type="submit" className="btn-premium" style={{ border: 'none', borderRadius: 12, padding: '12px 28px', backgroundColor: '#2563eb', color: '#fff', fontWeight: 1000, boxShadow: '0 4px 12px rgba(37, 99, 235, 0.25)' }}>
                         Create Card
                     </button>
-                    <button type="button" onClick={bootstrapCards} style={{ marginLeft: 8, border: '1px solid #e5e7eb', borderRadius: 10, padding: '10px 16px', backgroundColor: '#fff', fontWeight: 700, cursor: 'pointer' }}>
+                    <button type="button" className="btn-premium" onClick={bootstrapCards} style={{ marginLeft: 8, border: '1px solid #e2e8f0', borderRadius: 12, padding: '12px 28px', backgroundColor: '#fff', color: '#475569', fontWeight: 1000 }}>
                         Create Nursery to 12 Defaults
                     </button>
                 </form>
@@ -267,21 +282,23 @@ const FinanceCards = () => {
                     onChange={(e) => setBulkRows(e.target.value)}
                     placeholder="Nursery,700,3300,2050,0,5200,0,0"
                 />
-                <div style={{ marginTop: 10, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-                    <button type="button" onClick={uploadBulk} style={{ border: 'none', borderRadius: 10, padding: '10px 16px', backgroundColor: '#16a34a', color: '#fff', fontWeight: 700, cursor: 'pointer' }}>
+                <div style={{ marginTop: 16, display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+                    <button type="button" className="btn-premium" onClick={uploadBulk} style={{ border: 'none', borderRadius: 12, padding: '14px 28px', backgroundColor: '#10b981', color: '#fff', fontWeight: 1000, boxShadow: '0 4px 12px rgba(16, 185, 129, 0.2)' }}>
                         Upload Cards
                     </button>
                     <button
                         type="button"
+                        className="btn-premium"
                         onClick={deleteAllCards}
-                        style={{ border: 'none', borderRadius: 10, padding: '10px 16px', backgroundColor: '#dc2626', color: '#fff', fontWeight: 700, cursor: 'pointer' }}
+                        style={{ border: 'none', borderRadius: 12, padding: '14px 28px', backgroundColor: '#ef4444', color: '#fff', fontWeight: 1000, boxShadow: '0 4px 12px rgba(239, 68, 68, 0.2)' }}
                     >
                         Delete All Cards
                     </button>
                     <button
                         type="button"
+                        className="btn-premium"
                         onClick={rollbackLastChange}
-                        style={{ border: '1px solid #e5e7eb', borderRadius: 10, padding: '10px 16px', backgroundColor: '#fff', color: '#111827', fontWeight: 700, cursor: 'pointer' }}
+                        style={{ border: '1px solid #e2e8f0', borderRadius: 12, padding: '14px 28px', backgroundColor: '#fff', color: '#64748b', fontWeight: 1000, boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}
                     >
                         Rollback Last Change
                     </button>
@@ -300,7 +317,7 @@ const FinanceCards = () => {
                         onChange={(e) => setUploadFile(e.target.files?.[0] || null)}
                         style={{ ...fieldStyle, width: 280, padding: '8px 10px' }}
                     />
-                    <button type="button" onClick={uploadFromFile} style={{ border: 'none', borderRadius: 10, padding: '10px 16px', backgroundColor: '#2563eb', color: '#fff', fontWeight: 700, cursor: 'pointer' }}>
+                    <button type="button" className="btn-premium" onClick={uploadFromFile} style={{ border: 'none', borderRadius: 12, padding: '12px 28px', backgroundColor: '#eff6ff', color: '#2563eb', fontWeight: 1000 }}>
                         Upload File
                     </button>
                 </div>

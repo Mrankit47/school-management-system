@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import api from '../../services/api';
+import { useStudent } from '../../context/StudentContext';
 
 const colors = {
     present: '#16a34a',
@@ -161,6 +162,7 @@ function ProgressBar({ percentage }) {
 
 const StudentAttendance = () => {
     const now = new Date();
+    const { selectedStudentId } = useStudent();
     const [attendance, setAttendance] = useState([]);
     const [timetable, setTimetable] = useState([]);
     const [holidays, setHolidays] = useState([]);
@@ -202,7 +204,7 @@ const StudentAttendance = () => {
         return () => {
             mounted = false;
         };
-    }, []);
+    }, [selectedStudentId]);
 
     useEffect(() => {
         setHolidays([]);

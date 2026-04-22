@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import api from '../../services/api';
+import { useStudent } from '../../context/StudentContext';
 
 const colors = {
     bg: '#f9fafb',
@@ -98,6 +99,7 @@ function Modal({ open, onClose, title, children }) {
 }
 
 export default function StudentAssignments() {
+    const { selectedStudentId } = useStudent();
     const [assignments, setAssignments] = useState([]);
     const [submissions, setSubmissions] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -141,7 +143,7 @@ export default function StudentAssignments() {
             })
             .catch((e) => setError(e?.response?.data?.error || 'Could not load assignments.'))
             .finally(() => setLoading(false));
-    }, []);
+    }, [selectedStudentId]);
 
     const openDetails = (a) => {
         setSelected(a);

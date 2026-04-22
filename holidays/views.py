@@ -48,7 +48,8 @@ class HolidayListCreateView(views.APIView):
 
         class_id = request.query_params.get('class_id')
         if not class_id and request.user.role == 'student':
-            student_profile = getattr(request.user, 'student_profile', None)
+            from students.utils import get_requested_student
+            student_profile = get_requested_student(request)
             if student_profile and student_profile.class_section:
                 class_id = student_profile.class_section.class_ref_id
 
