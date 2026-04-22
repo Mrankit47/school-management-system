@@ -260,6 +260,8 @@ class TeacherIdCardPdfView(views.APIView):
                 or getattr(settings, 'SCHOOL_EMAIL', '')
             ),
             school_website=getattr(settings, 'SCHOOL_WEBSITE', ''),
+            logo_path=school_obj.logo.path if school_obj and school_obj.logo and os.path.exists(school_obj.logo.path) else None,
+            hero_image_path=school_obj.hero_image.path if school_obj and school_obj.hero_image and os.path.exists(school_obj.hero_image.path) else None,
         )
 
         prefix = profile.school.school_id if profile.school else 'NS'

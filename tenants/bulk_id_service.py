@@ -69,6 +69,26 @@ def draw_single_card(c, x, y, user_data, school_info):
     c.setFillColorRGB(*white)
     c.roundRect(x, y, CARD_W, CARD_H, 3 * mm, stroke=1, fill=1)
     
+    # --- 1.5 Background Hero Image (Subtle watermark) ---
+    hero_path = school_info.get('hero_image_path')
+    if hero_path and os.path.exists(hero_path):
+        try:
+            c.saveState()
+            # Create clipping path for the card base (rounded corners)
+            p = c.beginPath()
+            p.roundRect(x, y, CARD_W, CARD_H, 3 * mm)
+            c.clipPath(p, stroke=0, fill=0)
+            
+            # Set transparency (Alpha) for background
+            c.setFillAlpha(0.08) # Very subtle
+            
+            # Draw hero image across the entire card
+            _draw_photo(c, hero_path, x, y, CARD_W, CARD_H)
+            
+            c.restoreState()
+        except Exception:
+            pass
+    
     # --- 2. Header (Yellow) ---
     header_h = 11.5 * mm
     c.saveState()
@@ -86,12 +106,29 @@ def draw_single_card(c, x, y, user_data, school_info):
     c.setLineWidth(1.0)
     c.line(x, y + CARD_H - header_h, x + CARD_W, y + CARD_H - header_h)
     
-    # School Name (Centered in Yellow Header)
+    # Logo (Top Left of Header)
+    logo_path = school_info.get('logo_path')
+    logo_w = 0
+    if logo_path and os.path.exists(logo_path):
+        try:
+            logo_w = 8 * mm
+            logo_h = 8 * mm
+            lx_logo = x + 4 * mm
+            ly_logo = y + CARD_H - (header_h + logo_h) / 2
+            c.drawImage(ImageReader(logo_path), lx_logo, ly_logo, width=logo_w, height=logo_h, mask='auto')
+            logo_w += 2 * mm # Padding for text
+        except Exception:
+            logo_w = 0
+
+    # School Name (Centered in Yellow Header, accounting for logo)
     school_name = (school_info.get('name') or 'Standard Public School').upper()[:45]
     c.setFillColorRGB(*dark_navy)
     c.setFont('Helvetica-Bold', 8.5)
     tw = c.stringWidth(school_name, 'Helvetica-Bold', 8.5)
-    c.drawString(x + (CARD_W - tw) / 2, y + CARD_H - 7 * mm, school_name)
+    
+    # If logo exists, try to center name in the remaining space or just center globally
+    # Centering globally is usually better for symmetry unless logo is huge
+    c.drawString(x + (CARD_W - tw) / 2 + (logo_w/4 if logo_w else 0), y + CARD_H - 7 * mm, school_name)
     
     # --- 3. Body Content ---
     

@@ -30,6 +30,19 @@ class PublicSchoolInfoView(APIView):
         serializer = PublicSchoolSerializer(school)
         return Response(serializer.data)
 
+class CommonSchoolInfoView(APIView):
+    """
+    Authenticated API to fetch branding details for the logged-in user's school.
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        if not hasattr(request.user, 'school') or not request.user.school:
+            return Response({"error": "No school assigned to this user"}, status=status.HTTP_400_BAD_REQUEST)
+        
+        serializer = PublicSchoolSerializer(request.user.school)
+        return Response(serializer.data)
+
 class IsSuperAdmin(permissions.BasePermission):
     """Custom permission to only allow superadmins."""
     def has_permission(self, request, view):
@@ -116,6 +129,8 @@ class BulkIDCardGenerationView(APIView):
         school_info = {
             'name': school.name,
             'address': school.address or school.location,
+            'hero_image_path': school.hero_image.path if school.hero_image and os.path.exists(school.hero_image.path) else None,
+            'logo_path': school.logo.path if school.logo and os.path.exists(school.logo.path) else None,
         }
 
         pdf_bytes = generate_bulk_pdf(users_data, school_info)

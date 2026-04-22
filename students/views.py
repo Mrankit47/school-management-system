@@ -499,6 +499,8 @@ class StudentIdCardPdfView(views.APIView):
                 or getattr(settings, 'SCHOOL_EMAIL', '')
             ),
             school_website=getattr(settings, 'SCHOOL_WEBSITE', ''),
+            logo_path=school_obj.logo.path if school_obj and school_obj.logo and os.path.exists(school_obj.logo.path) else None,
+            hero_image_path=school_obj.hero_image.path if school_obj and school_obj.hero_image and os.path.exists(school_obj.hero_image.path) else None,
         )
         filename = f"id-card-{s.admission_number or s.id}.pdf"
         response = HttpResponse(pdf_bytes, content_type='application/pdf')

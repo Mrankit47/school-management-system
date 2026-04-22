@@ -115,7 +115,7 @@ const TeacherProfile = () => {
         Promise.all([
             api.get('teachers/profile/'),
             api.get('teachers/profile/documents/'),
-            api.get('common/school-info/').catch(() => ({ data: null }))
+            api.get('tenants/common/school-info/').catch(() => ({ data: null }))
         ])
             .then(([pRes, dRes, sRes]) => {
                 const p = pRes.data || null;
@@ -624,54 +624,70 @@ const TeacherProfile = () => {
                             boxShadow: colors.shadow,
                             fontFamily: 'system-ui, -apple-system, sans-serif',
                             display: 'flex',
-                            flexDirection: 'column'
+                            flexDirection: 'column',
+                            position: 'relative'
                         }}>
-                            {/* ID Card Header */}
-                            <div style={{ 
-                                backgroundColor: '#ffcc00', 
-                                padding: '14px 20px', 
-                                display: 'flex', 
-                                alignItems: 'center', 
-                                justifyContent: 'center',
-                                gap: 10,
-                                borderBottom: '4px solid #0f172a',
-                                position: 'relative'
-                            }}>
-                                {schoolInfo?.logo_url && (
-                                    <img src={schoolInfo.logo_url} alt="Logo" style={{ width: 32, height: 32, objectFit: 'contain' }} />
-                                )}
-                                <h2 style={{ margin: 0, fontSize: 20, fontWeight: 900, color: '#0f172a', letterSpacing: '-0.02em', textAlign: 'center' }}>
-                                    {schoolInfo?.name || 'Standard Public School'}
-                                </h2>
-                            </div>
+                            {/* Background Hero Image Watermark */}
+                            {schoolInfo?.hero_image && (
+                                <div style={{
+                                    position: 'absolute',
+                                    inset: 0,
+                                    backgroundImage: `url(${schoolInfo.hero_image})`,
+                                    backgroundSize: 'cover',
+                                    backgroundPosition: 'center',
+                                    opacity: 0.1,
+                                    zIndex: 0
+                                }} />
+                            )}
 
-                            <div style={{ padding: 16, display: 'flex', gap: 16, flex: 1, alignItems: 'center' }}>
-                                <div style={{ flex: 1 }}>
-                                <div style={{ display: 'grid', gap: 5, marginTop: 4 }}>
-                                        {[
-                                            { label: 'Name', value: form.name },
-                                            { label: 'Emp ID', value: form.employee_id },
-                                            { label: 'Role', value: profile.role_label || 'Teacher' },
-                                            { label: 'Phone', value: form.phone || '—' },
-                                            { label: 'Subject', value: form.subject_specialization || '—' }
-                                        ].map((item, idx) => (
-                                            <div key={idx} style={{ display: 'flex', gap: 6, fontSize: 12 }}>
-                                                <span style={{ fontWeight: 800, color: '#64748b', minWidth: 80 }}>{item.label}:</span>
-                                                <span style={{ fontWeight: 700, color: '#1e293b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.value}</span>
-                                            </div>
-                                        ))}
+                            <div style={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', height: '100%' }}>
+                                {/* ID Card Header */}
+                                <div style={{ 
+                                    backgroundColor: '#ffcc00', 
+                                    padding: '14px 20px', 
+                                    display: 'flex', 
+                                    alignItems: 'center', 
+                                    justifyContent: 'center',
+                                    gap: 10,
+                                    borderBottom: '4px solid #0f172a',
+                                    position: 'relative'
+                                }}>
+                                    {schoolInfo?.logo && (
+                                        <img src={schoolInfo.logo} alt="Logo" style={{ width: 32, height: 32, objectFit: 'contain' }} />
+                                    )}
+                                    <h2 style={{ margin: 0, fontSize: 20, fontWeight: 900, color: '#0f172a', letterSpacing: '-0.02em', textAlign: 'center' }}>
+                                        {schoolInfo?.name || 'Standard Public School'}
+                                    </h2>
+                                </div>
+
+                                <div style={{ padding: 16, display: 'flex', gap: 16, flex: 1, alignItems: 'center' }}>
+                                    <div style={{ flex: 1 }}>
+                                    <div style={{ display: 'grid', gap: 5, marginTop: 4 }}>
+                                            {[
+                                                { label: 'Name', value: form.name },
+                                                { label: 'Emp ID', value: form.employee_id },
+                                                { label: 'Role', value: profile.role_label || 'Teacher' },
+                                                { label: 'Phone', value: form.phone || '—' },
+                                                { label: 'Subject', value: form.subject_specialization || '—' }
+                                            ].map((item, idx) => (
+                                                <div key={idx} style={{ display: 'flex', gap: 6, fontSize: 12 }}>
+                                                    <span style={{ fontWeight: 800, color: '#64748b', minWidth: 80 }}>{item.label}:</span>
+                                                    <span style={{ fontWeight: 700, color: '#1e293b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.value}</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                    <div style={{ width: 90, height: 110, border: '1px solid #e2e8f0', borderRadius: 12, backgroundColor: '#f8fafc', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
+                                        {previewImageSrc ? (
+                                            <img src={previewImageSrc} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                        ) : (
+                                            <div style={{ fontSize: 32, fontWeight: 900, color: '#e2e8f0' }}>{(form.name || 'T')[0].toUpperCase()}</div>
+                                        )}
                                     </div>
                                 </div>
-                                <div style={{ width: 90, height: 110, border: '1px solid #e2e8f0', borderRadius: 12, backgroundColor: '#f8fafc', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
-                                    {previewImageSrc ? (
-                                        <img src={previewImageSrc} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                                    ) : (
-                                        <div style={{ fontSize: 32, fontWeight: 900, color: '#e2e8f0' }}>{(form.name || 'T')[0].toUpperCase()}</div>
-                                    )}
-                                </div>
+                                
+                                <div style={{ height: 6, background: 'linear-gradient(90deg, #2563eb, #ffcc00)' }}></div>
                             </div>
-                            
-                            <div style={{ height: 6, background: 'linear-gradient(90deg, #2563eb, #ffcc00)' }}></div>
                         </div>
                     </div>
                 </div>

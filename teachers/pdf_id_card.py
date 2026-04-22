@@ -1,6 +1,7 @@
 """Teacher ID card PDF — same shell as student: gold header, details left, ID + photo right."""
 from __future__ import annotations
 
+import os
 from io import BytesIO
 
 from reportlab.lib.units import mm
@@ -50,6 +51,8 @@ def build_teacher_id_card_pdf(
     school_phone: str = '',
     school_email: str = '',
     school_website: str = '',
+    logo_path: str = None,
+    hero_image_path: str = None,
 ) -> bytes:
     W, H = 128 * mm, 74 * mm
     m = 3.0 * mm
@@ -65,6 +68,18 @@ def build_teacher_id_card_pdf(
     c.setLineWidth(1.3)
     c.roundRect(m, m, W - 2 * m, H - 2 * m, 3.5, stroke=1, fill=0)
 
+    # background hero watermark
+    if hero_image_path and os.path.exists(hero_image_path):
+        try:
+            c.saveState()
+            p = c.beginPath()
+            p.roundRect(m, m, W - 2 * m, H - 2 * m, 3.5)
+            c.clipPath(p, stroke=0, fill=0)
+            c.setFillAlpha(0.08)
+            _draw_photo_cover_box(c, hero_image_path, m, m, W - 2 * m, H - 2 * m)
+            c.restoreState()
+        except: pass
+
     c.setFillColorRGB(*gold)
     c.rect(m, H - m - header_h, W - 2 * m, header_h, stroke=0, fill=1)
 
@@ -72,11 +87,22 @@ def build_teacher_id_card_pdf(
     c.setFillColorRGB(*body_bg)
     c.rect(m, m, W - 2 * m, body_top_y - m, stroke=0, fill=1)
 
+    # Logo (Header Left)
+    logo_w = 0
+    if logo_path and os.path.exists(logo_path):
+        try:
+            lw, lh = 9 * mm, 9 * mm
+            lx = m + 4 * mm
+            ly = H - m - (header_h + lh)/2
+            c.drawImage(ImageReader(logo_path), lx, ly, width=lw, height=lh, mask='auto')
+            logo_w = lw + 2 * mm
+        except: pass
+
     title = _header_title(school_name)
     c.setFillColorRGB(0, 0, 0)
     c.setFont('Helvetica-Bold', 14)
     tw = c.stringWidth(title, 'Helvetica-Bold', 14)
-    c.drawString((W - tw) / 2, H - m - header_h + 4.2 * mm, title)
+    c.drawString((W - tw) / 2 + (logo_w/4 if logo_w else 0), H - m - header_h + 4.2 * mm, title)
 
     contact_bits = []
     if school_phone:
