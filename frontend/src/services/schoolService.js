@@ -8,8 +8,11 @@ const schoolService = {
    */
   getSchoolInfo: async (schoolId) => {
     try {
-      const response = await api.get(`/tenants/school-info/${schoolId}/`);
-      return response.data;
+      const API = import.meta.env.VITE_API_URL;
+      const response = await fetch(`${API}schools/school-info/${schoolId}/`);
+      if (!response.ok) throw new Error('Failed to fetch school information');
+      const data = await response.json();
+      return data;
     } catch (error) {
       console.error(`Error fetching school info for ${schoolId}:`, error);
       throw error;
