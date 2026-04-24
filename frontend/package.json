@@ -4,7 +4,7 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "build": "vite build && node -e \"require('fs').copyFileSync('public/_redirects', 'dist/_redirects')\"",
+    "build": "vite build",
     "lint": "eslint src --ext js,jsx --report-unused-disable-directives",
     "preview": "vite preview"
   },
