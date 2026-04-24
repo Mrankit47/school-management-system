@@ -11,19 +11,29 @@ from .bulk_id_service import generate_bulk_pdf
 from students.models import StudentProfile
 from teachers.models import TeacherProfile
 
-class PublicSchoolInfoView(APIView):
+class SchoolDetailView(APIView):
     """
-    Public API to fetch branding and basic details of a specific school.
-    No authentication required.
+    Public API to fetch branding and basic details of a specific school/tenant.
+    Uses 'name' (which maps to school_id) to look up the tenant.
+    Returns explicit 404 JSON if not found.
     """
     permission_classes = [permissions.AllowAny]
 
-    def get(self, request, school_id):
-        school = get_object_or_404(School, school_id=school_id)
-        
+    def get(self, request, name):
+        try:
+            school = School.objects.get(school_id=name)
+        except School.DoesNotExist:
+            return Response(
+                {
+                    "error": "Not Found", 
+                    "message": f"No school or tenant found matching '{name}'."
+                }, 
+                status=status.HTTP_404_NOT_FOUND
+            )
+            
         if not school.is_active:
             return Response(
-                {"detail": "This institution's access has been suspended. Please contact the platform administrator for assistance."},
+                {"error": "Forbidden", "message": "This institution's access has been suspended. Please contact the platform administrator."},
                 status=status.HTTP_403_FORBIDDEN
             )
             
