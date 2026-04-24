@@ -20,35 +20,38 @@ class SchoolDetailView(APIView):
     permission_classes = [permissions.AllowAny]
 
     def get(self, request, name):
-        try:
-            school = School.objects.get(school_id=name)
-        except School.DoesNotExist:
-            # AUTO-CREATE logic for DEFAULT tenant to prevent 404s in production
-            if name.upper() == 'DEFAULT':
-                school = School.objects.create(
-                    name="Default School",
-                    school_id="DEFAULT",
-                    tagline="Welcome to our institution",
-                    about="This is a default school profile created automatically.",
-                    is_active=True
-                )
-            else:
+        name_upper = name.upper()
+        
+        # Use get_or_create for DEFAULT tenant to ensure no 404 in production
+        if name_upper == 'DEFAULT':
+            school, created = School.objects.get_or_create(
+                school_id='DEFAULT',
+                defaults={
+                    'name': 'Default School',
+                    'tagline': 'Welcome to our platform',
+                    'is_active': True
+                }
+            )
+        else:
+            try:
+                school = School.objects.get(school_id=name)
+                created = False
+            except School.DoesNotExist:
                 return Response(
-                    {
-                        "error": "Not Found", 
-                        "message": f"No school or tenant found matching '{name}'."
-                    }, 
+                    {"error": "Not Found", "message": f"School '{name}' not found."}, 
                     status=status.HTTP_404_NOT_FOUND
                 )
-            
-        if not school.is_active:
-            return Response(
-                {"error": "Forbidden", "message": "This institution's access has been suspended. Please contact the platform administrator."},
-                status=status.HTTP_403_FORBIDDEN
-            )
-            
-        serializer = PublicSchoolSerializer(school)
-        return Response(serializer.data)
+
+        # TASK 5: RETURN CLEAN JSON
+        return Response({
+            "school": school.school_id,
+            "status": "active" if school.is_active else "suspended",
+            "created": created,
+            # Branding details for the frontend
+            "name": school.name,
+            "tagline": school.tagline,
+            "logo": request.build_absolute_uri(school.logo.url) if school.logo else None
+        }, status=status.HTTP_200_OK)
 
 class CommonSchoolInfoView(APIView):
     """
