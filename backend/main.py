@@ -348,7 +348,16 @@ def mark_attendance(data: MarkAttendanceSchema, user = Depends(get_current_user)
         return JSONResponse(status_code=404, content={"success": False, "message": "Teacher profile not found.", "data": None})
         
     # 🔒 VALIDATION: Teacher must belong to class
-    is_assigned = Timetable.objects.filter(teacher=teacher, class_section_id=data.class_id).exists()
+    try:
+        cs = ClassSection.objects.get(id=data.class_id)
+        is_assigned = TimeTableEntry.objects.filter(
+            teacher=user, 
+            class_name=cs.class_ref.name, 
+            section=cs.section_ref.name
+        ).exists()
+    except ClassSection.DoesNotExist:
+        is_assigned = False
+
     if not is_assigned:
         return JSONResponse(status_code=403, content={"success": False, "message": "Permission Denied: You are not assigned to this class.", "data": None})
 
@@ -386,7 +395,16 @@ def create_assignment(data: AssignmentCreateSchema, user = Depends(get_current_u
     
     teacher = TeacherProfile.objects.get(user=user)
     
-    is_assigned = Timetable.objects.filter(teacher=teacher, class_section_id=data.class_section).exists()
+    try:
+        cs = ClassSection.objects.get(id=data.class_section)
+        is_assigned = TimeTableEntry.objects.filter(
+            teacher=user, 
+            class_name=cs.class_ref.name, 
+            section=cs.section_ref.name
+        ).exists()
+    except ClassSection.DoesNotExist:
+        is_assigned = False
+        
     if not is_assigned:
         return JSONResponse(status_code=403, content={"success": False, "message": "Permission denied: not mapped to this class", "data": None})
 

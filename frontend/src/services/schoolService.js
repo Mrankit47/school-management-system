@@ -9,7 +9,9 @@ const schoolService = {
   getSchoolInfo: async (schoolId) => {
     try {
       const API = import.meta.env.VITE_API_URL;
-      const response = await fetch(`${API}schools/school-info/${schoolId}/`);
+      const url = `${API}schools/${schoolId}/`;
+      console.log("API CALL:", url);
+      const response = await fetch(url);
       if (!response.ok) throw new Error('Failed to fetch school information');
       const data = await response.json();
       return data;
