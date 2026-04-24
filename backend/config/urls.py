@@ -8,7 +8,7 @@ from rest_framework_simplejwt.views import TokenRefreshView
 from rest_framework_simplejwt.views import TokenObtainPairView
 from accounts.serializers import CustomTokenObtainPairSerializer
 from accounts.views import AdminDashboardStatsView
-from tenants.views import PublicSchoolInfoView
+from tenants.views import SchoolDetailView
 
 class CustomTokenObtainPairView(TokenObtainPairView):
     serializer_class = CustomTokenObtainPairSerializer
@@ -41,7 +41,7 @@ urlpatterns = [
     path('health/', health_check, name='health_check'),
     
     # Optional direct school route as requested
-    path('school/<str:school_id>/', PublicSchoolInfoView.as_view(), name='direct-school-info'),
+    path('school/<str:name>/', SchoolDetailView.as_view(), name='direct-school-info'),
 
     path('admin/', admin.site.urls),
     
