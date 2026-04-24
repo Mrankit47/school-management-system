@@ -1,4 +1,4 @@
-import api from './api';
+import api from "./api";
 
 const schoolService = {
   /**
@@ -12,7 +12,7 @@ const schoolService = {
       const url = `${API}schools/${schoolId}/`;
       console.log("API CALL:", url);
       const response = await fetch(url);
-      if (!response.ok) throw new Error('Failed to fetch school information');
+      if (!response.ok) throw new Error("Failed to fetch school information");
       const data = await response.json();
       return data;
     } catch (error) {
@@ -26,13 +26,13 @@ const schoolService = {
    */
   getAllSchools: async () => {
     try {
-      const response = await api.get('/tenants/admin-schools/');
+      const response = await api.get("/tenants/admin-schools/");
       return response.data;
     } catch (error) {
-      console.error('Error fetching all schools:', error);
+      console.error("Error fetching all schools:", error);
       throw error;
     }
-  }
+  },
 };
 
 export default schoolService;
