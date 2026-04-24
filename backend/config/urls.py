@@ -27,6 +27,11 @@ def health_check(request):
     """Health check endpoint for Render deployment verification."""
     return JsonResponse({"status": "healthy"})
 
+def test_route(request):
+    """Debug route requested to confirm server functionality."""
+    return JsonResponse({"status": "success", "message": "Test route is working perfectly on Render!"})
+
+
 # Custom 404 handler to ensure all Not Found errors return JSON instead of Django's default HTML
 handler404 = 'config.urls.custom_404'
 def custom_404(request, exception=None):
@@ -39,8 +44,9 @@ urlpatterns = [
     # Server Base URLs
     path('', root_view, name='root'),
     path('health/', health_check, name='health_check'),
+    path('test/', test_route, name='test_route'),
     
-    # Optional direct school route as requested
+    # Dynamic route for tenant/school access
     path('school/<str:name>/', SchoolDetailView.as_view(), name='direct-school-info'),
 
     path('admin/', admin.site.urls),

@@ -12,7 +12,8 @@ SCHOOL_NAME = os.getenv('SCHOOL_NAME', 'School Management System')
 
 SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-default-key')
 DEBUG = os.getenv('DEBUG', 'False') == 'True'
-ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '*').split(',')
+raw_hosts = os.getenv('ALLOWED_HOSTS', '*')
+ALLOWED_HOSTS = [host.strip() for host in raw_hosts.split(',')] if raw_hosts else ['*']
 
 # Application definition
 INSTALLED_APPS = [
@@ -151,7 +152,13 @@ MEDIA_ROOT = BASE_DIR / 'media'
 
 
 # CSRF Trusted Origins for Render
-CSRF_TRUSTED_ORIGINS = [f"https://{host}" for host in ALLOWED_HOSTS if host not in ['localhost', '127.0.0.1']]
+CSRF_TRUSTED_ORIGINS = []
+for host in ALLOWED_HOSTS:
+    if host and host != '*':
+        if not host.startswith('http'):
+            CSRF_TRUSTED_ORIGINS.append(f"https://{host}")
+        else:
+            CSRF_TRUSTED_ORIGINS.append(host)
 
 # ============================================================
 # EMAIL CONFIGURATION
