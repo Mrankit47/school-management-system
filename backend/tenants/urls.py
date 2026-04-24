@@ -9,5 +9,6 @@ urlpatterns = [
     path('school-info/<str:school_id>/', PublicSchoolInfoView.as_view(), name='school-info'),
     path('common/school-info/', CommonSchoolInfoView.as_view(), name='common-school-info'),
     path('bulk-id-cards/', BulkIDCardGenerationView.as_view(), name='bulk-id-cards'),
+    path('<str:school_id>/', PublicSchoolInfoView.as_view(), name='school-info-short'),
     path('', include(router.urls)),
 ]
