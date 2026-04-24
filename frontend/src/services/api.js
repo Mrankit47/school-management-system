@@ -1,9 +1,23 @@
 import axios from 'axios';
 
+// Centralized API Configuration
+// Supports both Vite (import.meta.env) and Vercel/CRA (process.env)
+const getBaseURL = () => {
+    const url = import.meta.env.VITE_API_URL || 
+                (typeof process !== 'undefined' ? process.env.REACT_APP_API_URL : null) || 
+                'https://school-management-system-10.onrender.com/api/';
+    
+    // Ensure trailing slash
+    return url.replace(/\/?$/, '/');
+};
+
+export const BASE_URL = getBaseURL();
+
+// Debugging: Log the API base URL to verify it's not undefined
+console.log("🚀 API Base URL:", BASE_URL);
+
 const api = axios.create({
-    baseURL: import.meta.env.VITE_API_URL 
-        ? import.meta.env.VITE_API_URL.replace(/\/?$/, '/') 
-        : 'https://your-backend.onrender.com/api/',
+    baseURL: BASE_URL,
     headers: {
         'Content-Type': 'application/json',
     },

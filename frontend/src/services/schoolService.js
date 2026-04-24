@@ -1,4 +1,4 @@
-import api from "./api";
+import api, { BASE_URL } from "./api";
 
 const schoolService = {
   /**
@@ -8,9 +8,7 @@ const schoolService = {
    */
   getSchoolInfo: async (schoolId) => {
     try {
-      const API = import.meta.env.VITE_API_URL;
-      const url = `${API}schools/${schoolId}/`;
-      console.log("API CALL:", url);
+      const url = `${BASE_URL}schools/${schoolId}/`;
       const response = await fetch(url);
       if (!response.ok) throw new Error("Failed to fetch school information");
       const data = await response.json();

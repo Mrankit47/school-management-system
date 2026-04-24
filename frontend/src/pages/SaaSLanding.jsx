@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import api, { BASE_URL } from '../services/api';
 
 /* ─── Global Base Styles ─── */
 const saasStyles = `
@@ -126,7 +127,7 @@ export default function SaaSLanding() {
     e.preventDefault();
     setEnquiryStatus('loading');
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL}enquiries/submit/`, {
+      const response = await fetch(`${BASE_URL}enquiries/submit/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
