@@ -23,13 +23,23 @@ class SchoolDetailView(APIView):
         try:
             school = School.objects.get(school_id=name)
         except School.DoesNotExist:
-            return Response(
-                {
-                    "error": "Not Found", 
-                    "message": f"No school or tenant found matching '{name}'."
-                }, 
-                status=status.HTTP_404_NOT_FOUND
-            )
+            # AUTO-CREATE logic for DEFAULT tenant to prevent 404s in production
+            if name.upper() == 'DEFAULT':
+                school = School.objects.create(
+                    name="Default School",
+                    school_id="DEFAULT",
+                    tagline="Welcome to our institution",
+                    about="This is a default school profile created automatically.",
+                    is_active=True
+                )
+            else:
+                return Response(
+                    {
+                        "error": "Not Found", 
+                        "message": f"No school or tenant found matching '{name}'."
+                    }, 
+                    status=status.HTTP_404_NOT_FOUND
+                )
             
         if not school.is_active:
             return Response(
