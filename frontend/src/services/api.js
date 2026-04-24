@@ -1,7 +1,9 @@
 import axios from 'axios';
 
 const api = axios.create({
-    baseURL: (import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api/').replace(/\/?$/, '/'),
+    baseURL: import.meta.env.VITE_API_URL 
+        ? import.meta.env.VITE_API_URL.replace(/\/?$/, '/') 
+        : 'https://your-backend.onrender.com/api/',
     headers: {
         'Content-Type': 'application/json',
     },
