@@ -8,3 +8,4 @@ django-cors-headers==4.3.1
 Pillow==10.4.0
 whitenoise==6.6.0
 reportlab==4.0.12
+PYTHON_VERSION = 3.11.9
