@@ -13,7 +13,7 @@ SCHOOL_NAME = os.getenv('SCHOOL_NAME', 'School Management System')
 SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-default-key')
 DEBUG = os.getenv('DEBUG', 'False') == 'True'
 raw_hosts = os.getenv('ALLOWED_HOSTS', '*')
-ALLOWED_HOSTS = [host.strip() for host in raw_hosts.split(',')] if raw_hosts else ['*']
+ALLOWED_HOSTS = ['.onrender.com', 'localhost', '127.0.0.1']
 
 # Application definition
 INSTALLED_APPS = [
@@ -194,4 +194,4 @@ EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER', 'your-email@gmail.com')          
 EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD', 'your-app-password')      # ← Gmail App Password (16 chars)
 
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
-CONTACT_EMAIL = os.getenv('CONTACT_EMAIL', 'admin-email@gmail.com')              # ← RECEIVER email (enquiries go here)
+CONTACT_EMAIL = os.getenv('CONTACT_EMAIL', 'admin-email@gmail.com')              # ← RECEIVER email (enquiries go here)
