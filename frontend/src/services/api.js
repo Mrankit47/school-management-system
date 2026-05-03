@@ -6,9 +6,8 @@ const getBaseURL = () => {
   const url =
     import.meta.env.VITE_API_URL ||
     (typeof process !== "undefined" ? process.env.REACT_APP_API_URL : null) ||
-    "https://school-management-system-1-ucmf.onrender.com/api/";
+    "https://school-management-system-l12n.onrender.com/api/";
 
-  // Ensure trailing slash
   return url.replace(/\/?$/, "/");
 };
 
