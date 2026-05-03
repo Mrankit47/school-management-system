@@ -130,10 +130,11 @@ SIMPLE_JWT = {
 }
 
 CORS_ALLOW_CREDENTIALS = True
-CORS_ALLOWED_ORIGINS = os.getenv(
-    'CORS_ALLOWED_ORIGINS', 
-    'http://localhost:5173,http://127.0.0.1:5173'
-).split(',')
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+    "https://school-management-system-1-ucmf.onrender.com"
+]
 
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [
@@ -160,9 +161,12 @@ MEDIA_ROOT = BASE_DIR / 'media'
 
 
 # CSRF Trusted Origins for Render
-CSRF_TRUSTED_ORIGINS = []
+CSRF_TRUSTED_ORIGINS = [
+    "https://school-management-system-l12n.onrender.com",
+    "https://school-management-system-1-ucmf.onrender.com"
+]
 for host in ALLOWED_HOSTS:
-    if host and host != '*':
+    if host and host != '*' and host != '.onrender.com':
         if not host.startswith('http'):
             CSRF_TRUSTED_ORIGINS.append(f"https://{host}")
         else:
