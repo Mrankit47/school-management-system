@@ -10,7 +10,7 @@ export default defineConfig({
     host: '127.0.0.1',
     proxy: {
       '/media': {
-        target: 'http://127.0.0.1:8000',
+        target: 'https://school-management-system-l12n.onrender.com',
         changeOrigin: true,
       }
     }
