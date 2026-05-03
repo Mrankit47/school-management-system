@@ -34,7 +34,7 @@ class User(AbstractUser):
     role = models.CharField(max_length=10, choices=ROLE_CHOICES, default='student')
     phone = models.CharField(max_length=15, blank=True, null=True)
     school = models.ForeignKey('tenants.School', on_delete=models.CASCADE, null=True, blank=True)
-    profile_photo = models.ImageField(upload_to='profile_photos/', null=True, blank=True)
+    profile_photo = models.ImageField(upload_to='school_conduct/profile_photo/', null=True, blank=True)
 
 
     REQUIRED_FIELDS = []

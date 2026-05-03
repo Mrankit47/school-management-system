@@ -21,7 +21,7 @@ class TeacherProfile(models.Model):
     )
     status = models.CharField(max_length=10, default='Active')
     profile_image_base64 = models.TextField(blank=True, null=True)
-    photo = models.ImageField(upload_to='teacher_photos/', blank=True, null=True)
+    photo = models.ImageField(upload_to='school_conduct/profile_photo/', blank=True, null=True)
 
     class Meta:
         constraints = [
@@ -40,7 +40,7 @@ class TeacherDocument(models.Model):
     Teachers can upload and view them from their profile.
     """
     teacher = models.ForeignKey(TeacherProfile, on_delete=models.CASCADE, related_name='documents')
-    file = models.FileField(upload_to='teacher_documents/', blank=True, null=True)
+    file = models.FileField(upload_to='school_conduct/teacher_documents/', blank=True, null=True)
     uploaded_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
