@@ -96,11 +96,13 @@ export default function LandingPage() {
   const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
-    if (schoolId) {
-      fetchSchoolInfo(schoolId);
+    if (!schoolId || schoolId === 'undefined') {
+      navigate('/');
+      return;
     }
+    fetchSchoolInfo(schoolId);
     return () => clearSchool();
-  }, [schoolId, fetchSchoolInfo, clearSchool]);
+  }, [schoolId, fetchSchoolInfo, clearSchool, navigate]);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 64);
@@ -180,7 +182,17 @@ export default function LandingPage() {
         <div className="max-w-7xl mx-auto px-6 lg:px-8 flex items-center justify-between">
           <div className="flex items-center gap-4 cursor-pointer group" onClick={() => scrollTo('hero')}>
             <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-105 transition-transform overflow-hidden border border-slate-100">
-               {school.logo ? <img src={school.logo} alt="" className="w-full h-full object-cover" /> : <div className="text-2xl font-black text-blue-600">{school.name[0]}</div>}
+               {school.logo ? (
+                 <img 
+                   src={school.logo} 
+                   alt="" 
+                   className="w-full h-full object-cover" 
+                   onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }}
+                 />
+               ) : null}
+               <div className="text-2xl font-black text-blue-600" style={{ display: school.logo ? 'none' : 'flex' }}>
+                 {school.name[0]}
+               </div>
             </div>
             <div>
               <p className="text-lg font-black tracking-tight leading-none text-slate-900">{school.name}</p>

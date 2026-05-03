@@ -2,6 +2,11 @@ import uuid
 from django.db import models
 from django.conf import settings
 
+def student_photo_path(instance, filename):
+    school_name = instance.school.name if getattr(instance, 'school', None) else 'Unassigned'
+    username = instance.user.username if getattr(instance, 'user', None) else 'Unknown'
+    return f"School conduct/Schools/{school_name}/Students/{username}/profile_photo/{filename}"
+
 class Parent(models.Model):
     name = models.CharField(max_length=255)
     mobile = models.CharField(max_length=15, unique=True)
@@ -31,7 +36,7 @@ class StudentProfile(models.Model):
     address = models.TextField(blank=True, null=True)
     date_of_admission = models.DateField(blank=True, null=True)
     category = models.CharField(max_length=50, blank=True, null=True)
-    photo = models.ImageField(upload_to='school_conduct/profile_photo/', blank=True, null=True)
+    photo = models.ImageField(upload_to=student_photo_path, blank=True, null=True, max_length=500)
 
     class Meta:
         constraints = [

@@ -7,6 +7,9 @@ const schoolService = {
    * @returns {Promise<Object>} The school details (name, logo, about, etc.)
    */
   getSchoolInfo: async (schoolId) => {
+    if (!schoolId || schoolId === 'undefined') {
+      throw new Error("Invalid school ID");
+    }
     try {
       const url = `${BASE_URL}schools/${schoolId}/`;
       const response = await fetch(url);
@@ -24,7 +27,7 @@ const schoolService = {
    */
   getAllSchools: async () => {
     try {
-      const response = await api.get("/tenants/admin-schools/");
+      const response = await api.get("/schools/admin-schools/");
       return response.data;
     } catch (error) {
       console.error("Error fetching all schools:", error);

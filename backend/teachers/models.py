@@ -2,6 +2,16 @@ import uuid
 from django.db import models
 from django.conf import settings
 
+def teacher_photo_path(instance, filename):
+    school_name = instance.school.name if getattr(instance, 'school', None) else 'Unassigned'
+    username = instance.user.username if getattr(instance, 'user', None) else 'Unknown'
+    return f"School conduct/Schools/{school_name}/Teachers/{username}/profile_photo/{filename}"
+
+def teacher_document_path(instance, filename):
+    school_name = instance.teacher.school.name if getattr(instance.teacher, 'school', None) else 'Unassigned'
+    username = instance.teacher.user.username if getattr(instance.teacher, 'user', None) else 'Unknown'
+    return f"School conduct/Schools/{school_name}/Teachers/{username}/documents/{filename}"
+
 class TeacherProfile(models.Model):
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='teacher_profile')
     school = models.ForeignKey('tenants.School', on_delete=models.CASCADE, null=True, blank=True)
@@ -21,7 +31,7 @@ class TeacherProfile(models.Model):
     )
     status = models.CharField(max_length=10, default='Active')
     profile_image_base64 = models.TextField(blank=True, null=True)
-    photo = models.ImageField(upload_to='school_conduct/profile_photo/', blank=True, null=True)
+    photo = models.ImageField(upload_to=teacher_photo_path, blank=True, null=True, max_length=500)
 
     class Meta:
         constraints = [
@@ -40,7 +50,7 @@ class TeacherDocument(models.Model):
     Teachers can upload and view them from their profile.
     """
     teacher = models.ForeignKey(TeacherProfile, on_delete=models.CASCADE, related_name='documents')
-    file = models.FileField(upload_to='school_conduct/teacher_documents/', blank=True, null=True)
+    file = models.FileField(upload_to=teacher_document_path, blank=True, null=True, max_length=500)
     uploaded_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):

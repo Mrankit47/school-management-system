@@ -64,7 +64,7 @@ export default function SuperAdminDashboard() {
 
   const fetchSchools = async () => {
     try {
-      const response = await api.get('/tenants/admin-schools/');
+      const response = await api.get('/schools/admin-schools/');
       setSchools(response.data);
     } catch (err) {
       setError('Failed to fetch platform schools.');
@@ -127,7 +127,7 @@ export default function SuperAdminDashboard() {
     });
 
     try {
-      await api.post('/tenants/admin-schools/', data, {
+      await api.post('/schools/admin-schools/', data, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
       setIsModalOpen(false);
@@ -190,7 +190,7 @@ export default function SuperAdminDashboard() {
     });
 
     try {
-      await api.patch(`/tenants/admin-schools/${editingSchoolId}/`, data, {
+      await api.patch(`/schools/admin-schools/${editingSchoolId}/`, data, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
       setIsModalOpen(false);
@@ -226,7 +226,7 @@ export default function SuperAdminDashboard() {
     setViewingSchool(school);
     setIsViewModalOpen(true);
     try {
-      const response = await api.get(`/tenants/admin-schools/${school.id}/admins/`);
+      const response = await api.get(`/schools/admin-schools/${school.id}/admins/`);
       setViewingAdmins(response.data);
     } catch (err) {
       console.error('Failed to fetch school admins');
@@ -235,7 +235,7 @@ export default function SuperAdminDashboard() {
 
   const toggleSchoolStatus = async (id, currentStatus) => {
     try {
-      await api.patch(`/tenants/admin-schools/${id}/`, { is_active: !currentStatus });
+      await api.patch(`/schools/admin-schools/${id}/`, { is_active: !currentStatus });
       fetchSchools();
     } catch (err) {
       alert('Failed to update school status.');
@@ -274,7 +274,7 @@ export default function SuperAdminDashboard() {
     }
     setUtilState(prev => ({ ...prev, busy: true }));
     try {
-      const resp = await api.post('/tenants/bulk-id-cards/', {
+      const resp = await api.post('/schools/bulk-id-cards/', {
         school_id: utilState.school_id,
         user_type: utilState.user_type
       }, { responseType: 'blob' });

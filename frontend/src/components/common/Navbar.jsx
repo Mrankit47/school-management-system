@@ -15,8 +15,12 @@ const Navbar = () => {
     const [isProfileOpen, setIsProfileOpen] = useState(false);
     const { selectedStudentId, setSelectedStudentId } = useStudent();
     const [siblings, setSiblings] = useState([]);
+    const [authProfile, setAuthProfile] = useState(null);
 
     useEffect(() => {
+        // Fetch base auth profile for everyone to get the latest profile_photo
+        api.get('auth/profile/').then(res => setAuthProfile(res.data)).catch(() => { });
+
         if (user.role === 'student') {
             api.get('students/profile/').then(res => setStudentProfile(res.data)).catch(() => { });
             api.get('students/siblings/').then(res => setSiblings(res.data)).catch(() => { });
@@ -44,13 +48,20 @@ const Navbar = () => {
             ? teacherProfile?.employee_id
             : user?.id;
 
+    // Use the latest fetched photo, fallback to token photo, fallback to null
+    const profilePhotoUrl = authProfile?.profile_photo || user.profile_photo;
+
     // Unified Navbar for all roles
     return (
         <header className="h-20 bg-white border-b border-slate-200 sticky top-0 z-40 flex items-center justify-between px-8">
             {/* Left Section: Branding */}
             <div className="flex items-center gap-4 min-w-[200px]">
                 <div className="w-11 h-11 bg-school-navy rounded-2xl flex items-center justify-center text-white text-2xl font-black shadow-xl shadow-school-navy/20 animate-in fade-in zoom-in duration-700 overflow-hidden">
-                    {user.role === 'superadmin' ? 'S' : user.role === 'dealer' ? 'D' : (
+                    {user.role === 'superadmin' ? (
+                        profilePhotoUrl ? (
+                            <img src={profilePhotoUrl} alt="Logo" className="w-full h-full object-cover bg-white" />
+                        ) : 'S'
+                    ) : user.role === 'dealer' ? 'D' : (
                         user.school_logo ? (
                             <img
                                 src={user.school_logo}
@@ -129,7 +140,11 @@ const Navbar = () => {
                     >
                         <div className="relative">
                             <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-school-navy to-school-blue flex items-center justify-center text-white font-black text-sm shadow-lg shadow-school-navy/20 group-hover:scale-105 transition-transform overflow-hidden">
-                                {initials}
+                                {profilePhotoUrl ? (
+                                    <img src={profilePhotoUrl} alt="Profile" className="w-full h-full object-cover" />
+                                ) : (
+                                    initials
+                                )}
                             </div>
                             <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-emerald-500 rounded-lg border-[3px] border-white shadow-sm"></div>
                         </div>
@@ -149,8 +164,12 @@ const Navbar = () => {
                             <div className="absolute right-0 mt-4 w-72 bg-white rounded-3xl shadow-2xl shadow-slate-200/80 border border-slate-100 z-50 overflow-hidden animate-in fade-in slide-in-from-top-4 duration-300 transform origin-top-right">
                                 <div className="p-6 bg-slate-50 border-b border-slate-100">
                                     <div className="flex items-center gap-4 mb-4">
-                                        <div className="w-14 h-14 rounded-2xl bg-white shadow-md flex items-center justify-center text-school-navy text-xl font-black">
-                                            {initials}
+                                        <div className="w-14 h-14 rounded-2xl bg-white shadow-md flex items-center justify-center text-school-navy text-xl font-black overflow-hidden">
+                                            {profilePhotoUrl ? (
+                                                <img src={profilePhotoUrl} alt="Profile" className="w-full h-full object-cover" />
+                                            ) : (
+                                                initials
+                                            )}
                                         </div>
                                         <div className="flex flex-col">
                                             <h3 className="font-black text-slate-900 leading-tight">

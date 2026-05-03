@@ -42,16 +42,9 @@ class SchoolDetailView(APIView):
                     status=status.HTTP_404_NOT_FOUND
                 )
 
-        # TASK 5: RETURN CLEAN JSON
-        return Response({
-            "school": school.school_id,
-            "status": "active" if school.is_active else "suspended",
-            "created": created,
-            # Branding details for the frontend
-            "name": school.name,
-            "tagline": school.tagline,
-            "logo": request.build_absolute_uri(school.logo.url) if school.logo else None
-        }, status=status.HTTP_200_OK)
+        # Serialize full public details for the frontend
+        serializer = PublicSchoolSerializer(school, context={'request': request})
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
 class CommonSchoolInfoView(APIView):
     """

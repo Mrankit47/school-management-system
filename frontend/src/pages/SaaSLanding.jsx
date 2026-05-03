@@ -159,7 +159,7 @@ export default function SaaSLanding() {
           <div className="flex items-center gap-3 cursor-pointer" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
             <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center overflow-hidden shadow-lg shadow-blue-900/10 border border-slate-100">
               <img 
-                src="/media/gallery/sc logo.jpeg" 
+                src="https://res.cloudinary.com/dutitdlwp/image/upload/v1777784687/WhatsApp_Image_2026-04-27_at_11.23.40_1_eglpnu.jpg" 
                 alt="School Conduct Logo" 
                 className="w-full h-full object-contain"
               />

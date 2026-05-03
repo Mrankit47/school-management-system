@@ -1,12 +1,18 @@
 from django.db import models
 
+def school_logo_path(instance, filename):
+    return f"School conduct/Schools/{instance.name}/logo/{filename}"
+
+def school_hero_path(instance, filename):
+    return f"School conduct/Schools/{instance.name}/hero/{filename}"
+
 class School(models.Model):
     name = models.CharField(max_length=255)
     school_id = models.CharField(max_length=50, unique=True)
     location = models.CharField(max_length=255, null=True, blank=True)
     dealer = models.ForeignKey('dealers.Dealer', on_delete=models.SET_NULL, null=True, blank=True, related_name='schools')
-    logo = models.ImageField(upload_to='school_conduct/school_logo/', null=True, blank=True)
-    hero_image = models.ImageField(upload_to='school_conduct/school_hero/', null=True, blank=True)
+    logo = models.ImageField(upload_to=school_logo_path, null=True, blank=True, max_length=500)
+    hero_image = models.ImageField(upload_to=school_hero_path, null=True, blank=True, max_length=500)
     tagline = models.CharField(max_length=255, blank=True)
     about = models.TextField(blank=True)
     established_year = models.IntegerField(null=True, blank=True)

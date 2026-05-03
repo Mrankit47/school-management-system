@@ -1,6 +1,15 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser, BaseUserManager
 
+def user_profile_photo_path(instance, filename):
+    if instance.is_superuser or instance.role == 'superadmin':
+        return f"School conduct/Root Users/{instance.username}/profile_photo/{filename}"
+    elif getattr(instance, 'school', None):
+        role_folder = "Students" if instance.role == 'student' else ("Teachers" if instance.role == 'teacher' else "Admins")
+        return f"School conduct/Schools/{instance.school.name}/{role_folder}/{instance.username}/profile_photo/{filename}"
+    else:
+        return f"School conduct/Platform Users/{instance.username}/profile_photo/{filename}"
+
 class UserManager(BaseUserManager):
     def create_user(self, username, email, password=None, **extra_fields):
         if email:
@@ -34,7 +43,7 @@ class User(AbstractUser):
     role = models.CharField(max_length=10, choices=ROLE_CHOICES, default='student')
     phone = models.CharField(max_length=15, blank=True, null=True)
     school = models.ForeignKey('tenants.School', on_delete=models.CASCADE, null=True, blank=True)
-    profile_photo = models.ImageField(upload_to='school_conduct/profile_photo/', null=True, blank=True)
+    profile_photo = models.ImageField(upload_to=user_profile_photo_path, null=True, blank=True, max_length=500)
 
 
     REQUIRED_FIELDS = []

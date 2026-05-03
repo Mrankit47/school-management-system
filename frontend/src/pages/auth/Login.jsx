@@ -20,11 +20,13 @@ const Login = () => {
     const { school, loading: schoolLoading, fetchSchoolInfo, clearSchool } = useSchoolStore();
 
     useEffect(() => {
-        if (schoolId) {
-            fetchSchoolInfo(schoolId);
+        if (!schoolId || schoolId === 'undefined') {
+            navigate('/');
+            return;
         }
+        fetchSchoolInfo(schoolId);
         return () => clearSchool();
-    }, [schoolId, fetchSchoolInfo, clearSchool]);
+    }, [schoolId, fetchSchoolInfo, clearSchool, navigate]);
 
     // Get the expected role from URL (e.g., /school/:id/login?role=admin)
     const expectedRole = searchParams.get('role') || 'student'; 
@@ -86,7 +88,17 @@ const Login = () => {
             <div className="w-full max-w-md relative z-10">
                 <div className="text-center mb-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
                     {school.logo ? (
-                        <img src={school.logo} alt={school.name} className="w-16 h-16 rounded-2xl mx-auto mb-4 shadow-xl" />
+                        <>
+                          <img 
+                            src={school.logo} 
+                            alt={school.name} 
+                            className="w-16 h-16 rounded-2xl mx-auto mb-4 shadow-xl" 
+                            onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }}
+                          />
+                          <div className="w-16 h-16 bg-school-navy rounded-2xl items-center justify-center text-white text-2xl font-bold mx-auto mb-4 shadow-xl shadow-school-navy/20" style={{ display: 'none' }}>
+                              {school.name[0]}
+                          </div>
+                        </>
                     ) : (
                         <div className="w-16 h-16 bg-school-navy rounded-2xl flex items-center justify-center text-white text-2xl font-bold mx-auto mb-4 shadow-xl shadow-school-navy/20">
                             {school.name[0]}
