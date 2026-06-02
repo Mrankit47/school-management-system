@@ -782,3 +782,101 @@ class MyAttendanceReportPDFView(views.APIView):
         response = HttpResponse(pdf_bytes, content_type='application/pdf')
         response['Content-Disposition'] = f'attachment; filename="attendance_report_{period_label.replace("/", "_")}.pdf"'
         return response
+
+
+class BiometricDevicePunchView(views.APIView):
+    """
+    Local Bridge Script se biometric card / fingerprint punch data collect karne ke liye secure API.
+    School-wise isolation is enforced by requiring the 'school_id' along with the 'rfid_code'.
+    """
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request):
+        from django.conf import settings
+        
+        # Verify Token in headers
+        api_key = request.headers.get('X-Device-Token')
+        expected_key = getattr(settings, 'DEVICE_SECRET_KEY', 'default_secret_key_123')
+        
+        if not api_key or api_key != expected_key:
+            return Response({'error': 'Unauthorized: Invalid Device Token'}, status=status.HTTP_401_UNAUTHORIZED)
+
+        rfid_code = request.data.get('rfid_code')
+        school_id = request.data.get('school_id')  # e.g., "school_01"
+        punch_time_raw = request.data.get('punch_time')  # Format: "YYYY-MM-DD HH:MM:SS"
+        
+        if not rfid_code or not school_id:
+            return Response({'error': 'rfid_code and school_id are required'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Find Student associated strictly with this rfid_code and school_id
+        student = StudentProfile.objects.select_related('class_section', 'user', 'school').filter(
+            rfid_code=rfid_code,
+            school__school_id=school_id
+        ).first()
+        
+        if not student:
+            return Response(
+                {'error': f'Student with RFID {rfid_code} not found in school {school_id}'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        # Parse punch time
+        try:
+            if punch_time_raw:
+                punch_dt = datetime_type.strptime(str(punch_time_raw), "%Y-%m-%d %H:%M:%S")
+                if timezone.is_naive(punch_dt):
+                    punch_dt = timezone.make_aware(punch_dt, timezone.get_current_timezone())
+            else:
+                punch_dt = timezone.now()
+        except Exception:
+            punch_dt = timezone.now()
+
+        target_date = punch_dt.date()
+
+        # Create/Update attendance as pending
+        attendance, created = Attendance.objects.select_related('student').get_or_create(
+            student=student,
+            date=target_date,
+            defaults={
+                'status': 'present',
+                'verification_status': 'pending',
+                'marked_via': 'rfid',
+                'punch_time': punch_dt,
+                'class_section': student.class_section
+            },
+        )
+
+        if not created and attendance.verification_status != 'pending':
+            return Response({'error': 'Attendance already verified for this date'}, status=status.HTTP_409_CONFLICT)
+
+        # Update punch details for multiple punches on the same day
+        attendance.status = 'present'
+        attendance.verification_status = 'pending'
+        attendance.marked_via = 'rfid'
+        attendance.punch_time = punch_dt
+        attendance.class_section = student.class_section
+        attendance.marked_by = None
+        attendance.verified_by = None
+        attendance.verified_at = None
+        attendance.save()
+
+        # Notify Class Teacher
+        if created:
+            class_section = student.class_section
+            if class_section and class_section.class_teacher:
+                teacher_user = class_section.class_teacher.user
+                Notification.objects.create(
+                    user=teacher_user,
+                    target_role=teacher_user.role,
+                    title='Attendance Verification Pending',
+                    message=f"{student.user.name or student.user.username} punched attendance for {target_date.isoformat()}. Please verify (Approve/Reject).",
+                    is_read=False,
+                )
+
+        return Response({
+            'message': 'Punch processed successfully',
+            'student_name': student.user.name or student.user.username,
+            'school_name': student.school.name,
+            'punch_time': punch_dt.isoformat()
+        }, status=status.HTTP_201_CREATED)
+

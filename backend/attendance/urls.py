@@ -9,6 +9,7 @@ from .views import (
     StudentPunchAttendanceView,
     TeacherAttendanceVerificationListView,
     TeacherAttendanceVerificationDecisionView,
+    BiometricDevicePunchView,
 )
 
 urlpatterns = [
@@ -16,6 +17,7 @@ urlpatterns = [
     path('teacher/sheet/', TeacherAttendanceSheetView.as_view(), name='teacher-attendance-sheet'),
     path('teacher/save/', TeacherAttendanceBulkSaveView.as_view(), name='teacher-attendance-bulk-save'),
     path('punch/', StudentPunchAttendanceView.as_view(), name='attendance-punch'),
+    path('biometric-punch/', BiometricDevicePunchView.as_view(), name='biometric-device-punch'),
     path('class-summary/', TeacherClassAttendanceSummaryView.as_view(), name='teacher-class-attendance-summary'),
     path('verification/', TeacherAttendanceVerificationListView.as_view(), name='teacher-attendance-verification'),
     path('verification/decision/<int:attendance_id>/', TeacherAttendanceVerificationDecisionView.as_view(), name='teacher-attendance-verification-decision'),

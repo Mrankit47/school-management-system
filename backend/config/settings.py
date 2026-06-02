@@ -11,6 +11,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SCHOOL_NAME = os.getenv('SCHOOL_NAME', 'School Management System')
 
 SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-default-key')
+DEVICE_SECRET_KEY = os.getenv('DEVICE_SECRET_KEY', 'default_secret_key_123')
 DEBUG = os.getenv('DEBUG', 'False') == 'True'
 raw_hosts = os.getenv('ALLOWED_HOSTS', '*')
 ALLOWED_HOSTS = ['.onrender.com', 'localhost', '127.0.0.1']
