@@ -29,7 +29,13 @@ def health_check(request):
 
 def test_route(request):
     """Debug route requested to confirm server functionality."""
-    return JsonResponse({"status": "success", "message": "Test route is working perfectly on Render!"})
+    return JsonResponse({
+        "status": "success",
+        "message": "Test route is working perfectly on Render!",
+        "key_matches": settings.DEVICE_SECRET_KEY == 'y0ur_Sup3r_S3cr3t_B1om3tr1c_K3y_987',
+        "key_length": len(settings.DEVICE_SECRET_KEY),
+        "key_start": settings.DEVICE_SECRET_KEY[:5] if settings.DEVICE_SECRET_KEY else "none"
+    })
 
 
 # Custom 404 handler to ensure all Not Found errors return JSON instead of Django's default HTML
