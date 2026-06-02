@@ -847,18 +847,35 @@ class BiometricDevicePunchView(views.APIView):
         )
 
         if not created and attendance.verification_status != 'pending':
-            return Response({'error': 'Attendance already verified for this date'}, status=status.HTTP_409_CONFLICT)
-
-        # Update punch details for multiple punches on the same day
-        attendance.status = 'present'
-        attendance.verification_status = 'pending'
-        attendance.marked_via = 'rfid'
-        attendance.punch_time = punch_dt
-        attendance.class_section = student.class_section
-        attendance.marked_by = None
-        attendance.verified_by = None
-        attendance.verified_at = None
-        attendance.save()
+            # If student was marked absent (or rejected), but now scans finger, override to present (pending verification)
+            if attendance.status == 'absent' or attendance.verification_status == 'rejected':
+                attendance.status = 'present'
+                attendance.verification_status = 'pending'
+                attendance.marked_via = 'rfid'
+                attendance.punch_time = punch_dt
+                attendance.marked_by = None
+                attendance.verified_by = None
+                attendance.verified_at = None
+                attendance.save()
+            else:
+                # If already marked present/approved, return 200 OK instead of 409 Conflict
+                return Response({
+                    'message': 'Punch received: Attendance is already marked present/approved',
+                    'student_name': student.user.name or student.user.username,
+                    'school_name': student.school.name,
+                    'punch_time': attendance.punch_time.isoformat() if attendance.punch_time else punch_dt.isoformat()
+                }, status=status.HTTP_200_OK)
+        else:
+            # Update punch details for multiple punches on the same day (for pending records)
+            attendance.status = 'present'
+            attendance.verification_status = 'pending'
+            attendance.marked_via = 'rfid'
+            attendance.punch_time = punch_dt
+            attendance.class_section = student.class_section
+            attendance.marked_by = None
+            attendance.verified_by = None
+            attendance.verified_at = None
+            attendance.save()
 
         # Notify Class Teacher
         if created:
