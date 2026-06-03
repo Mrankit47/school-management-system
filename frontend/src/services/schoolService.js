@@ -7,7 +7,7 @@ const schoolService = {
    * @returns {Promise<Object>} The school details (name, logo, about, etc.)
    */
   getSchoolInfo: async (schoolId) => {
-    if (!schoolId || schoolId === 'undefined') {
+    if (!schoolId || schoolId === "undefined") {
       throw new Error("Invalid school ID");
     }
     try {
