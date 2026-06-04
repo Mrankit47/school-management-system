@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import authService from '../../services/authService';
 import useAuthStore from '../../store/authStore';
+import useUIStore from '../../store/uiStore';
 import api from '../../services/api';
 import SiblingSwitcher from '../student/SiblingSwitcher';
 import { useStudent } from '../../context/StudentContext';
@@ -16,6 +17,10 @@ const Navbar = () => {
     const { selectedStudentId, setSelectedStudentId } = useStudent();
     const [siblings, setSiblings] = useState([]);
     const [authProfile, setAuthProfile] = useState(null);
+    const { toggleSidebar } = useUIStore();
+
+    // Determine if the sidebar hamburger toggle should show (roles that have a sidebar)
+    const showSidebarToggle = user.role !== 'superadmin' && user.role !== 'dealer';
 
     useEffect(() => {
         // Fetch base auth profile for everyone to get the latest profile_photo
@@ -53,9 +58,21 @@ const Navbar = () => {
 
     // Unified Navbar for all roles
     return (
-        <header className="h-20 bg-white border-b border-slate-200 sticky top-0 z-40 flex items-center justify-between px-8">
-            {/* Left Section: Branding */}
-            <div className="flex items-center gap-4 min-w-[200px]">
+        <header className="h-16 md:h-20 bg-white border-b border-slate-200 sticky top-0 z-40 flex items-center justify-between px-4 md:px-8">
+            {/* Left Section: Hamburger + Branding */}
+            <div className="flex items-center gap-2 md:gap-4 min-w-0 md:min-w-[200px]">
+                {/* Mobile Hamburger Toggle */}
+                {showSidebarToggle && (
+                    <button
+                        onClick={toggleSidebar}
+                        className="md:hidden flex items-center justify-center w-10 h-10 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-600 transition-all"
+                        aria-label="Toggle sidebar menu"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+                        </svg>
+                    </button>
+                )}
                 <div className="w-11 h-11 bg-school-navy rounded-2xl flex items-center justify-center text-white text-2xl font-black shadow-xl shadow-school-navy/20 animate-in fade-in zoom-in duration-700 overflow-hidden">
                     {user.role === 'superadmin' ? (
                         profilePhotoUrl ? (
@@ -93,7 +110,7 @@ const Navbar = () => {
             </div>
 
             {/* Right: Notifications & Profile Dropdown */}
-            <div className="flex items-center gap-5">
+            <div className="flex items-center gap-2 md:gap-5">
                 {/* Repositioned Class Info */}
                 {user.role === 'student' && (
                     <div className="flex items-center gap-3">
@@ -136,7 +153,7 @@ const Navbar = () => {
                 <div className="relative">
                     <button
                         onClick={() => setIsProfileOpen(!isProfileOpen)}
-                        className="flex items-center gap-3 group bg-slate-50 hover:bg-slate-100 p-1.5 pr-4 rounded-2xl transition-all border border-transparent hover:border-slate-200"
+                        className="flex items-center gap-2 md:gap-3 group bg-slate-50 hover:bg-slate-100 p-1.5 md:pr-4 rounded-2xl transition-all border border-transparent hover:border-slate-200"
                     >
                         <div className="relative">
                             <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-school-navy to-school-blue flex items-center justify-center text-white font-black text-sm shadow-lg shadow-school-navy/20 group-hover:scale-105 transition-transform overflow-hidden">
@@ -148,7 +165,7 @@ const Navbar = () => {
                             </div>
                             <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-emerald-500 rounded-lg border-[3px] border-white shadow-sm"></div>
                         </div>
-                        <div className="flex flex-col items-start min-w-[80px]">
+                        <div className="hidden sm:flex flex-col items-start min-w-[80px]">
                             <span className="text-[13px] font-black text-slate-800 leading-tight group-hover:text-school-navy transition-colors">
                                 {user.role === 'student' ? (studentProfile?.name || user.name) : user.name}
                             </span>
