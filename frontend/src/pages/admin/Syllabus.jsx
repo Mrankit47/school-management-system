@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useMemo } from 'react';
+import { useConfirm } from '../../context/ConfirmContext';
 import api from '../../services/api';
 
 const colors = {
@@ -65,6 +66,7 @@ function Modal({ open, title, onClose, children }) {
 }
 
 export default function AdminSyllabus() {
+    const confirm = useConfirm();
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [search, setSearch] = useState('');
@@ -170,7 +172,7 @@ export default function AdminSyllabus() {
     };
 
     const deleteSyllabus = async (id) => {
-        if (!window.confirm('Delete this syllabus?')) return;
+        if (!(await confirm('Delete this syllabus?'))) return;
         try {
             await api.delete(`syllabus/control/${id}/`);
             loadData();

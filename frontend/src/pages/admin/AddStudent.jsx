@@ -25,6 +25,7 @@ const AddStudent = () => {
     const [mainSections, setMainSections] = useState([]);
     const [message, setMessage] = useState('');
     const [students, setStudents] = useState([]);
+    const [isSubmitting, setIsSubmitting] = useState(false);
     const fatherPhoneDigits = (formData.father_contact || '').replace(/\D/g, '').slice(0, 10);
     const motherPhoneDigits = (formData.mother_contact || '').replace(/\D/g, '').slice(0, 10);
     const selectedSection = mainSections.find((s) => String(s.id) === String(formData.section_id));
@@ -82,6 +83,7 @@ const AddStudent = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        if (isSubmitting) return;
         const password = formData.password || '';
         const confirm = formData.confirm_password || '';
         if (password !== confirm) {
@@ -92,6 +94,7 @@ const AddStudent = () => {
             setMessage('Error: Father\'s contact number must be exactly 10 digits.');
             return;
         }
+        setIsSubmitting(true);
         try {
             // `name` kept for backward compatibility; backend also uses first/last.
             const payload = { ...formData };
@@ -142,7 +145,9 @@ const AddStudent = () => {
                 category: '',
             });
         } catch (err) {
-            setMessage('Error creating student.');
+            setMessage(err?.response?.data?.error ? `Error: ${err.response.data.error}` : 'Error creating student.');
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
@@ -484,9 +489,10 @@ const AddStudent = () => {
 
                     <button
                         type="submit"
-                        style={{ backgroundColor: '#2563eb', color: '#fff', padding: '14px 20px', border: 'none', cursor: 'pointer', borderRadius: '12px', width: '100%', fontWeight: 1000, boxShadow: '0 4px 12px rgba(37, 99, 235, 0.2)' }}
+                        disabled={isSubmitting}
+                        style={{ backgroundColor: '#2563eb', color: '#fff', padding: '14px 20px', border: 'none', cursor: 'pointer', borderRadius: '12px', width: '100%', fontWeight: 1000, boxShadow: '0 4px 12px rgba(37, 99, 235, 0.2)', opacity: isSubmitting ? 0.7 : 1 }}
                     >
-                        Create Student
+                        {isSubmitting ? 'Creating Student...' : 'Create Student'}
                     </button>
                 </form>
                 {message && <p style={{ color: message.startsWith('Error') ? '#dc2626' : 'green' }}>{message}</p>}
@@ -496,3 +502,5 @@ const AddStudent = () => {
 };
 
 export default AddStudent;
+
+

@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { useConfirm } from '../../context/ConfirmContext';
 import api from '../../services/api';
 
 const inputStyle = {
@@ -21,7 +22,28 @@ const labelStyle = {
     letterSpacing: '0.03em',
 };
 
+const getApiErrorMessage = (err, fallback) => {
+    const data = err?.response?.data;
+    if (!data) return fallback;
+    if (typeof data === 'string') {
+        if (data.includes('unique_roll_per_class_section')) {
+            return 'Another student in this section already has the same roll number. Update the roll number before assigning.';
+        }
+        if (/<\/?[a-z][\s\S]*>/i.test(data)) {
+            return fallback;
+        }
+        return data;
+    }
+    if (data.error) return data.error;
+    if (data.detail) return data.detail;
+    const firstValue = Object.values(data)[0];
+    if (Array.isArray(firstValue)) return firstValue.join(' ');
+    if (typeof firstValue === 'string') return firstValue;
+    return fallback;
+};
+
 const Classes = () => {
+    const confirm = useConfirm();
     const [classes, setClasses] = useState([]);
     const [sections, setSections] = useState([]);
     const [hierarchy, setHierarchy] = useState([]);
@@ -136,7 +158,7 @@ const Classes = () => {
     };
 
     const deleteClass = async (id) => {
-        const ok = window.confirm('Delete this class?');
+        const ok = await confirm('Delete this class?');
         if (!ok) return;
         try {
             await api.delete(`classes/admin-class/${id}/`);
@@ -200,7 +222,7 @@ const Classes = () => {
     };
 
     const deleteSection = async (id) => {
-        const ok = window.confirm('Delete this section?');
+        const ok = await confirm('Delete this section?');
         if (!ok) return;
         try {
             await api.delete(`classes/admin-sections/${id}/`);
@@ -217,11 +239,11 @@ const Classes = () => {
         e.preventDefault();
         if (!assignForm.student_id || !assignForm.class_section_id) return;
         try {
-            await api.post('classes/admin-assign-student/', assignForm);
-            setMessage('Student assigned successfully');
+            const res = await api.post('classes/admin-assign-student/', assignForm);
+            setMessage(res?.data?.message || 'Student assigned successfully');
             await fetchData();
         } catch (err) {
-            setError(err?.response?.data?.error || 'Failed to assign student');
+            setError(getApiErrorMessage(err, 'Failed to assign student'));
         } finally {
             clearMessage();
         }

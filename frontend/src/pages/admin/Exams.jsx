@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { useConfirm } from '../../context/ConfirmContext';
 import api from '../../services/api';
 
 const colors = {
@@ -98,6 +99,7 @@ function timeToMinutes(t) {
 }
 
 const Exams = () => {
+    const confirm = useConfirm();
     const [exams, setExams] = useState([]);
     const [sections, setSections] = useState([]);
     const [subjects, setSubjects] = useState([]);
@@ -422,7 +424,7 @@ const Exams = () => {
     };
 
     const deleteExam = async (examId, examName) => {
-        const ok = window.confirm(`Delete exam "${examName}"? This will also remove schedule and results linked to it.`);
+        const ok = await confirm(`Delete exam "${examName}"? This will also remove schedule and results linked to it.`);
         if (!ok) return;
         setDeletingExamId(examId);
         setError('');

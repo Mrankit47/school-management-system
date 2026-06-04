@@ -1,8 +1,10 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { useConfirm } from '../../context/ConfirmContext';
 import { useParams } from 'react-router-dom';
 import api from '../../services/api';
 
 const SubjectDetails = () => {
+    const confirm = useConfirm();
     const { subjectId } = useParams();
 
     const [loading, setLoading] = useState(false);
@@ -181,7 +183,7 @@ const SubjectDetails = () => {
     }, [marks]);
 
     const deleteNote = async (noteId) => {
-        const ok = window.confirm('Delete this note?');
+        const ok = await confirm('Delete this note?');
         if (!ok) return;
         try {
             await api.delete(`subjects/notes/${noteId}/`);
@@ -192,7 +194,7 @@ const SubjectDetails = () => {
     };
 
     const deleteAssignment = async (assignmentId) => {
-        const ok = window.confirm('Delete this assignment?');
+        const ok = await confirm('Delete this assignment?');
         if (!ok) return;
         try {
             await api.delete(`subjects/assignments/${assignmentId}/`);

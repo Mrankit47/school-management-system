@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
+import { useConfirm } from '../../context/ConfirmContext';
 import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 
 export default function DealerManagement() {
+    const confirm = useConfirm();
   const navigate = useNavigate();
   const [dealers, setDealers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -76,7 +78,7 @@ export default function DealerManagement() {
   };
 
   const handleDeleteDealer = async (id) => {
-    if (!window.confirm("Are you sure? This will delete the dealer and their associated user account.")) return;
+    if (!(await confirm("Are you sure? This will delete the dealer and their associated user account."))) return;
     try {
       await api.delete(`/dealers/management/${id}/`);
       fetchDealers();

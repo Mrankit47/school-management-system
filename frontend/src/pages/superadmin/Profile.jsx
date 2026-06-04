@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useConfirm } from '../../context/ConfirmContext';
 import api from '../../services/api';
 import authService from '../../services/authService';
 import { 
@@ -19,6 +20,7 @@ import {
 import toast from 'react-hot-toast';
 
 const SuperAdminProfile = () => {
+    const confirm = useConfirm();
     const [profile, setProfile] = useState(null);
     const [loading, setLoading] = useState(true);
     const [updating, setUpdating] = useState(false);
@@ -71,7 +73,7 @@ const SuperAdminProfile = () => {
     };
 
     const handleDeletePhoto = async () => {
-        if (!window.confirm('Delete your profile photo?')) return;
+        if (!(await confirm('Delete your profile photo?'))) return;
 
         setUpdating(true);
         try {

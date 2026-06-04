@@ -32,6 +32,7 @@ const AdminDashboard = () => {
     const [teachersCount, setTeachersCount] = useState(0);
     const [studentsCount, setStudentsCount] = useState(0);
     const [studentsLoading, setStudentsLoading] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
     const [galleryImages, setGalleryImages] = useState([]);
     const [galleryLoading, setGalleryLoading] = useState(false);
     const [currentSlide, setCurrentSlide] = useState(0);
@@ -39,6 +40,7 @@ const AdminDashboard = () => {
     const parentPhoneDigits = (formData.parent_contact_number || '').replace(/\D/g, '').slice(0, 10);
 
     const fetchCounts = async () => {
+        setIsSubmitting(true);
         try {
             const res = await api.get('admin/dashboard/stats');
             const data = res?.data?.data || {};
@@ -50,6 +52,7 @@ const AdminDashboard = () => {
     };
 
     const fetchClassesAndSections = async () => {
+        setIsSubmitting(true);
         try {
             const [cRes, sRes] = await Promise.all([
                 api.get('classes/main-classes/'),
@@ -64,6 +67,7 @@ const AdminDashboard = () => {
 
     const fetchDashboardGallery = async () => {
         setGalleryLoading(true);
+        setIsSubmitting(true);
         try {
             const res = await api.get('gallery/');
             setGalleryImages(Array.isArray(res?.data) ? res.data : []);
@@ -112,12 +116,14 @@ const AdminDashboard = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        if (isSubmitting) return;
         const password = formData.password || '';
         const confirm = formData.confirm_password || '';
         if (password !== confirm) {
             setMessage('Error: Password and confirm password do not match.');
             return;
         }
+        setIsSubmitting(true);
         try {
             const payload = { ...formData };
             const first = (formData.first_name || '').trim();
@@ -145,10 +151,11 @@ const AdminDashboard = () => {
             });
             setTimeout(() => setMessage(''), 3000);
         } catch (err) {
-            setMessage('Error creating student.');
+            setMessage(err?.response?.data?.error ? `Error: ${err.response.data.error}` : 'Error creating student.');
             setTimeout(() => setMessage(''), 3000);
+        } finally {
+            setIsSubmitting(false);
         }
-        setTimeout(() => setMessage({ text: '', type: '' }), 3000);
     };
 
     return (
@@ -576,8 +583,7 @@ const AdminDashboard = () => {
                                 >
                                     Cancel
                                 </button>
-                                <button
-                                    type="submit"
+                                <button type="submit" disabled={isSubmitting}
                                     className="px-10 py-3 bg-school-navy text-white rounded-xl text-sm font-bold hover:bg-school-blue transition-all shadow-lg shadow-school-navy/20 active:scale-95"
                                 >
                                     Create Student Account
@@ -592,3 +598,5 @@ const AdminDashboard = () => {
 };
 
 export default AdminDashboard;
+
+

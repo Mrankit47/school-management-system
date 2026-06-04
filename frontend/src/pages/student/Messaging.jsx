@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
+import { useConfirm } from '../../context/ConfirmContext';
 import api from '../../services/api';
 import { useStudent } from '../../context/StudentContext';
 
@@ -32,6 +33,7 @@ function isImageAttachment(url) {
 }
 
 const StudentMessaging = () => {
+    const confirm = useConfirm();
     const { selectedStudentId } = useStudent();
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
@@ -138,7 +140,7 @@ const StudentMessaging = () => {
     };
 
     const handleDelete = async (msgId) => {
-        if (!window.confirm('Delete this message?')) return;
+        if (!(await confirm('Delete this message?'))) return;
         try {
             await api.delete(`communication/doubts/message/${msgId}/`);
             setMessages(messages.filter(m => m.id !== msgId));

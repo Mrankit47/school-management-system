@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { useConfirm } from '../../context/ConfirmContext';
 import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 
@@ -55,6 +56,7 @@ function getStatus(a) {
 }
 
 export default function TeacherAssignmentList() {
+    const confirm = useConfirm();
     const navigate = useNavigate();
     const [rows, setRows] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -127,7 +129,7 @@ export default function TeacherAssignmentList() {
     const paged = filtered.slice((page - 1) * pageSize, page * pageSize);
 
     const onDelete = async (id) => {
-        if (!window.confirm('Delete this assignment?')) return;
+        if (!(await confirm('Delete this assignment?'))) return;
         try {
             await api.delete(`assignments/${id}/`);
             await load();

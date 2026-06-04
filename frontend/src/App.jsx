@@ -1,10 +1,10 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { BrowserRouter as Router, useLocation } from 'react-router-dom';
 import AppRoutes from './routes/AppRoutes';
 import MainLayout from './layouts/MainLayout';
 import useAuthStore from './store/authStore';
 
-import { Toaster } from 'react-hot-toast';
+import { Toaster, toast } from 'react-hot-toast';
 
 const AppContent = () => {
   const { isAuthenticated } = useAuthStore();
@@ -34,13 +34,25 @@ const AppContent = () => {
 };
 
 import { StudentProvider } from './context/StudentContext';
+import { ConfirmProvider } from './context/ConfirmContext';
 
 function App() {
+  useEffect(() => {
+    const nativeAlert = window.alert;
+    window.alert = (message) => toast(String(message || ''));
+
+    return () => {
+      window.alert = nativeAlert;
+    };
+  }, []);
+
   return (
     <Router>
-      <StudentProvider>
-        <AppContent />
-      </StudentProvider>
+      <ConfirmProvider>
+        <StudentProvider>
+          <AppContent />
+        </StudentProvider>
+      </ConfirmProvider>
     </Router>
   );
 }

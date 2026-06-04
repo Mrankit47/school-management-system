@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { useConfirm } from '../../context/ConfirmContext';
 import api from '../../services/api';
 import authService from '../../services/authService';
 import { useStudent } from '../../context/StudentContext';
@@ -246,6 +247,7 @@ const TimetableGrid = ({ entries, isAdmin, isEditMode, handleCellClick, shift })
 };
 
 const TimeTable = () => {
+    const confirm = useConfirm();
     const { selectedStudentId } = useStudent();
     const [entries, setEntries] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -396,7 +398,7 @@ const TimeTable = () => {
     };
 
     const handleDelete = async (id) => {
-        if (!window.confirm('Are you sure you want to delete this entry?')) return;
+        if (!(await confirm('Are you sure you want to delete this entry?'))) return;
         try {
             await api.delete(`timetable/${id}/`);
             fetchTimetable();

@@ -69,6 +69,7 @@ const ManageStudents = () => {
     const [page, setPage] = useState(1);
     const [viewRow, setViewRow] = useState(null);
     const [editRow, setEditRow] = useState(null);
+    const [deleteRow, setDeleteRow] = useState(null);
     const [savingEdit, setSavingEdit] = useState(false);
 
     const defaultFilters = {
@@ -238,12 +239,17 @@ const ManageStudents = () => {
         URL.revokeObjectURL(url);
     };
 
-    const handleDelete = async (row) => {
-        const ok = window.confirm(`Delete student "${row?.name}"?`);
-        if (!ok) return;
+    const handleDelete = (row) => {
+        setDeleteRow(row);
+    };
+
+    const confirmDelete = async () => {
+        if (!deleteRow) return;
+        const row = deleteRow;
         setBusyDeleteId(row.id);
         try {
             await api.delete(`students/delete/${row.id}/`);
+            setDeleteRow(null);
             await loadData();
         } catch (e) {
             window.alert(e?.response?.data?.error || 'Failed to delete student.');
@@ -530,6 +536,38 @@ const ManageStudents = () => {
                             <button type="submit" disabled={savingEdit} style={{ ...selectStyle, minWidth: 90, cursor: 'pointer', background: '#1d4ed8', color: '#fff', borderColor: '#1d4ed8', opacity: savingEdit ? 0.7 : 1 }}>{savingEdit ? 'Saving...' : 'Save'}</button>
                         </div>
                     </form>
+                </div>
+            )}
+
+            {deleteRow && (
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16, zIndex: 60 }}>
+                    <div role="dialog" aria-modal="true" aria-labelledby="delete-student-title" style={{ width: '100%', maxWidth: 420, borderRadius: 14, background: '#fff', border: '1px solid #fee2e2', boxShadow: '0 18px 45px rgba(2,6,23,0.22)', padding: 20 }}>
+                        <div style={{ width: 42, height: 42, borderRadius: 12, background: '#fee2e2', color: '#b91c1c', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, marginBottom: 12 }}>
+                            !
+                        </div>
+                        <h3 id="delete-student-title" style={{ margin: 0, fontSize: 20, color: '#0f172a' }}>Delete student?</h3>
+                        <p style={{ margin: '8px 0 0', color: '#475569', lineHeight: 1.5 }}>
+                            This will permanently delete <strong>{deleteRow?.name || 'this student'}</strong> from student records.
+                        </p>
+                        <div style={{ marginTop: 18, display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+                            <button
+                                type="button"
+                                onClick={() => setDeleteRow(null)}
+                                disabled={busyDeleteId === deleteRow.id}
+                                style={{ ...selectStyle, minWidth: 90, cursor: 'pointer', background: '#fff', color: '#334155' }}
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                type="button"
+                                onClick={confirmDelete}
+                                disabled={busyDeleteId === deleteRow.id}
+                                style={{ ...selectStyle, minWidth: 100, cursor: 'pointer', background: '#dc2626', color: '#fff', borderColor: '#dc2626', opacity: busyDeleteId === deleteRow.id ? 0.7 : 1 }}
+                            >
+                                {busyDeleteId === deleteRow.id ? 'Deleting...' : 'Delete'}
+                            </button>
+                        </div>
+                    </div>
                 </div>
             )}
         </div>
