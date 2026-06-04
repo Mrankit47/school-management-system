@@ -9,8 +9,6 @@ const Sidebar = () => {
     const [openMenus, setOpenMenus] = useState({});
     const { isSidebarOpen, closeSidebar } = useUIStore();
 
-    if (!role) return null;
-
     const studentLinks = [
         { path: '/student/dashboard', label: 'Dashboard', icon: '📊' },
         { 
@@ -124,6 +122,8 @@ const Sidebar = () => {
 
     // Initialize open menus based on current location
     useEffect(() => {
+        if (!role) return;
+
         const findActiveParentLabels = (menuItems, currentPath) => {
             let activeLabels = {};
             const search = (items, path) => {
@@ -145,12 +145,11 @@ const Sidebar = () => {
         };
 
         const initialOpenMenus = findActiveParentLabels(links, location.pathname);
-        setOpenMenus(prev => ({
-            ...initialOpenMenus,
-            // We do not spread `prev` here so that during a fresh navigation to a new section,
-            // we start with a clean accordion state matching the current URL.
-        }));
+        // Keep the accordion state aligned with the current route on navigation.
+        setOpenMenus(initialOpenMenus);
     }, [location.pathname, role]); // re-run if location or role changes
+
+    if (!role) return null;
 
     const NavItem = ({ item, depth = 0 }) => {
         const hasSubLinks = item.subLinks && item.subLinks.length > 0;
@@ -217,7 +216,7 @@ const Sidebar = () => {
             )}
 
             <aside className={`
-                fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-slate-200 flex flex-col transition-transform duration-300 ease-in-out
+                fixed inset-y-0 left-0 z-50 w-[82vw] max-w-72 md:w-64 bg-white border-r border-slate-200 flex flex-col transition-transform duration-300 ease-in-out
                 md:relative md:translate-x-0
                 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}
             `}>

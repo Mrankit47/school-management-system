@@ -58,7 +58,7 @@ const Navbar = () => {
 
     // Unified Navbar for all roles
     return (
-        <header className="h-14 sm:h-16 md:h-20 bg-white border-b border-slate-200 sticky top-0 z-40 flex items-center justify-between px-3 sm:px-4 md:px-8">
+        <header className="h-14 sm:h-16 md:h-20 bg-white border-b border-slate-200 sticky top-0 z-40 flex items-center justify-between gap-2 px-3 sm:px-4 md:px-8">
             {/* Left Section: Hamburger + Branding */}
             <div className="flex items-center gap-1.5 sm:gap-2 md:gap-4 min-w-0 md:min-w-[200px]">
                 {/* Mobile Hamburger Toggle */}
@@ -110,10 +110,10 @@ const Navbar = () => {
             </div>
 
             {/* Right: Notifications & Profile Dropdown */}
-            <div className="flex items-center gap-1 sm:gap-2 md:gap-5">
+            <div className="flex items-center justify-end gap-1 sm:gap-2 md:gap-5 min-w-0">
                 {/* Repositioned Class Info */}
                 {user.role === 'student' && (
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center justify-end gap-1 sm:gap-3 min-w-0">
                         <div className="hidden md:flex px-4 py-1.5 bg-slate-50 border border-slate-100 rounded-xl items-center gap-2.5 shadow-sm hover:shadow-md transition-all group cursor-default">
                             <span className="text-lg group-hover:scale-110 transition-transform">🏫</span>
                             <div className="flex flex-col">
@@ -135,7 +135,7 @@ const Navbar = () => {
                         {user.role === 'student' || user.role === 'teacher' ? (
                             <Link
                                 to={user.role === 'student' ? '/student/notifications' : '/teacher/notifications'}
-                                className="relative w-10 h-10 flex items-center justify-center rounded-xl bg-slate-50 text-slate-500 hover:bg-slate-100 transition-all group"
+                                className="relative hidden sm:flex w-10 h-10 items-center justify-center rounded-xl bg-slate-50 text-slate-500 hover:bg-slate-100 transition-all group"
                                 aria-label="Notifications"
                             >
                                 <span className="text-xl group-hover:scale-110 transition-transform">🔔</span>
@@ -165,8 +165,8 @@ const Navbar = () => {
                             </div>
                             <div className="absolute -bottom-1 -right-1 w-3 sm:w-4 h-3 sm:h-4 bg-emerald-500 rounded-lg border-[2px] sm:border-[3px] border-white shadow-sm"></div>
                         </div>
-                        <div className="hidden sm:flex flex-col items-start min-w-[70px] md:min-w-[80px]">
-                            <span className="text-[11px] sm:text-[13px] font-black text-slate-800 leading-tight group-hover:text-school-navy transition-colors">
+                        <div className="hidden sm:flex flex-col items-start min-w-0 max-w-[120px] md:max-w-[180px]">
+                            <span className="text-[11px] sm:text-[13px] font-black text-slate-800 leading-tight group-hover:text-school-navy transition-colors truncate max-w-full">
                                 {user.role === 'student' ? (studentProfile?.name || user.name) : user.name}
                             </span>
                             <span className="text-[8px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-tight">{user.role}</span>
@@ -178,7 +178,7 @@ const Navbar = () => {
                     {isProfileOpen && (
                         <>
                             <div className="fixed inset-0 z-10" onClick={() => setIsProfileOpen(false)}></div>
-                            <div className="absolute right-0 mt-3 w-screen sm:w-72 sm:max-w-md max-h-[90vh] overflow-y-auto bg-white rounded-3xl shadow-2xl shadow-slate-200/80 border border-slate-100 z-50 overflow-hidden animate-in fade-in slide-in-from-top-4 duration-300 transform origin-top-right sm:origin-top-right -translate-x-2 sm:translate-x-0 mx-2 sm:mx-0">
+                            <div className="fixed left-3 right-3 top-16 sm:absolute sm:left-auto sm:right-0 sm:top-auto sm:mt-3 sm:w-72 sm:max-w-md max-h-[calc(100dvh-5rem)] overflow-y-auto bg-white rounded-3xl shadow-2xl shadow-slate-200/80 border border-slate-100 z-50 animate-in fade-in slide-in-from-top-4 duration-300 transform origin-top-right">
                                 <div className="p-4 sm:p-6 bg-slate-50 border-b border-slate-100">
                                     <div className="flex items-center gap-3 sm:gap-4 mb-3 sm:mb-4">
                                         <div className="w-11 sm:w-14 h-11 sm:h-14 rounded-2xl bg-white shadow-md flex items-center justify-center text-school-navy text-lg sm:text-xl font-black overflow-hidden">

@@ -27,6 +27,8 @@ const DAYS = [
     { id: 6, name: 'Saturday', short: 'Sat' },
 ];
 
+const PERIODS = [1, 2, 3, 4, 5, 6, 7, 8];
+
 const colors = {
     primary: '#2563eb',
     primaryLight: '#eff6ff',
@@ -48,7 +50,7 @@ const TimetableGrid = ({ entries, isAdmin, isEditMode, handleCellClick, shift })
     const currentDayNum = new Date().getDay();
     const adjustedCurrentDay = currentDayNum === 0 ? 7 : currentDayNum;
     
-    const periods = [1, 2, 3, 4, 5, 6, 7, 8];
+    const periods = PERIODS;
 
     const gridData = useMemo(() => {
         const data = {};
@@ -57,6 +59,16 @@ const TimetableGrid = ({ entries, isAdmin, isEditMode, handleCellClick, shift })
         });
         return data;
     }, [entries, shift]);
+
+    const mobileRows = useMemo(() => {
+        return DAYS.map(day => ({
+            ...day,
+            entries: periods.map((period) => {
+                const entry = gridData[day.id]?.find(e => (e.period_number || e.period) === period);
+                return { period, entry };
+            }),
+        }));
+    }, [gridData, periods]);
 
     if (!shift) {
         return (
@@ -68,7 +80,71 @@ const TimetableGrid = ({ entries, isAdmin, isEditMode, handleCellClick, shift })
 
     return (
         <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
-            <div className="overflow-x-auto">
+            <div className="md:hidden divide-y divide-slate-100">
+                {mobileRows.map(day => (
+                    <section key={day.id} className={day.id === adjustedCurrentDay ? 'bg-school-blue/[0.02]' : 'bg-white'}>
+                        <div className="sticky top-0 z-10 flex items-center justify-between bg-white/95 px-4 py-3 backdrop-blur border-b border-slate-100">
+                            <div>
+                                <h3 className={`text-sm font-black uppercase tracking-wide ${day.id === adjustedCurrentDay ? 'text-school-blue' : 'text-slate-800'}`}>
+                                    {day.name}
+                                </h3>
+                                <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
+                                    {shift.name} shift
+                                </p>
+                            </div>
+                            {day.id === adjustedCurrentDay && (
+                                <span className="rounded-full bg-school-blue/10 px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-school-blue">
+                                    Today
+                                </span>
+                            )}
+                        </div>
+
+                        <div className="space-y-3 p-3">
+                            {day.entries.map(({ period, entry }) => (
+                                <button
+                                    type="button"
+                                    key={`${day.id}-${period}`}
+                                    onClick={() => handleCellClick(day.id, period)}
+                                    className={`w-full rounded-2xl border p-3 text-left transition-all ${entry
+                                        ? 'border-slate-100 bg-white shadow-sm active:scale-[0.99]'
+                                        : isEditMode && isAdmin
+                                            ? 'border-dashed border-slate-200 bg-slate-50/70 text-slate-400'
+                                            : 'border-slate-100 bg-slate-50/60 text-slate-400'
+                                        }`}
+                                >
+                                    <div className="flex items-start justify-between gap-3">
+                                        <div className="min-w-0">
+                                            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                                                Period {period}
+                                            </p>
+                                            <h4 className="mt-1 truncate text-sm font-black text-slate-800">
+                                                {entry?.subject || (isEditMode && isAdmin ? 'Tap to add class' : 'No class scheduled')}
+                                            </h4>
+                                        </div>
+                                        {entry ? (
+                                            <span className="shrink-0 rounded-xl bg-school-blue/5 px-2 py-1 text-[10px] font-black text-school-blue">
+                                                {entry.start_time_display?.split(' ')[0] || entry.start_time}
+                                            </span>
+                                        ) : isEditMode && isAdmin ? (
+                                            <Plus className="mt-1 h-4 w-4 shrink-0 text-school-blue" />
+                                        ) : null}
+                                    </div>
+
+                                    {entry && (
+                                        <div className="mt-3 grid grid-cols-2 gap-2 text-[11px] font-bold text-slate-500">
+                                            <span className="truncate">{entry.class_name}-{entry.section}</span>
+                                            <span className="truncate text-right">RM {entry.room || '-'}</span>
+                                            <span className="col-span-2 truncate text-slate-600">{entry.teacher_name || 'Teacher not assigned'}</span>
+                                        </div>
+                                    )}
+                                </button>
+                            ))}
+                        </div>
+                    </section>
+                ))}
+            </div>
+
+            <div className="hidden md:block overflow-x-auto">
                 <div className="min-w-[1000px]">
                     <div className="grid grid-cols-7 border-b border-slate-100 bg-slate-50/50">
                         <div className="p-4 text-center border-r border-slate-100 bg-slate-100/30">
@@ -332,7 +408,7 @@ const TimeTable = () => {
 
     return (
         <div className="space-y-6 animate-in fade-in duration-500 pb-10">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                 <div className="flex items-center gap-4">
                     <div className="w-12 h-12 rounded-2xl bg-school-blue/10 flex items-center justify-center">
                         <Calendar className="w-6 h-6 text-school-blue" />
@@ -343,8 +419,8 @@ const TimeTable = () => {
                     </div>
                 </div>
 
-                <div className="flex items-center gap-3">
-                    <div className="inline-flex items-center rounded-xl border border-slate-200 bg-white p-1">
+                <div className="flex w-full flex-col gap-3 md:w-auto md:flex-row md:items-center">
+                    <div className="inline-flex max-w-full items-center overflow-x-auto rounded-xl border border-slate-200 bg-white p-1">
                         {shifts.map(opt => (
                             <button
                                 key={opt.id}
@@ -360,15 +436,15 @@ const TimeTable = () => {
                     </div>
 
                     {isAdmin && (
-                        <div className="flex items-center gap-2">
-                            <div className="relative">
+                        <div className="grid w-full grid-cols-1 gap-2 sm:grid-cols-2 lg:flex lg:w-auto lg:items-center">
+                            <div className="relative min-w-0">
                                 <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
                                     <UserIcon className="w-4 h-4 text-slate-400" />
                                 </div>
                                 <select
                                     value={selectedTeacherId}
                                     onChange={(e) => setSelectedTeacherId(e.target.value)}
-                                    className="pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-600 outline-none focus:border-school-blue focus:ring-4 focus:ring-school-blue/5 transition-all appearance-none min-w-[160px]"
+                                    className="w-full pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-600 outline-none focus:border-school-blue focus:ring-4 focus:ring-school-blue/5 transition-all appearance-none lg:min-w-[160px]"
                                 >
                                     <option value="">-- All Teachers --</option>
                                     {teachers.map(t => (
@@ -376,14 +452,14 @@ const TimeTable = () => {
                                     ))}
                                 </select>
                             </div>
-                            <div className="relative">
+                            <div className="relative min-w-0">
                                 <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
                                     <Filter className="w-4 h-4 text-slate-400" />
                                 </div>
                                 <select
                                     value={selectedSectionId}
                                     onChange={handleAdminFilterChange}
-                                    className="pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-600 outline-none focus:border-school-blue focus:ring-4 focus:ring-school-blue/5 transition-all appearance-none min-w-[200px]"
+                                    className="w-full pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-600 outline-none focus:border-school-blue focus:ring-4 focus:ring-school-blue/5 transition-all appearance-none lg:min-w-[200px]"
                                 >
                                     <option value="">-- Choose Class-Section --</option>
                                     {sections.map(s => (
@@ -395,7 +471,7 @@ const TimeTable = () => {
                             <button
                                 onClick={() => setIsEditMode(!isEditMode)}
                                 disabled={!filters.class_name && !selectedTeacherId}
-                                className={`flex items-center gap-2 px-4 py-2 rounded-xl border transition-all font-bold text-sm ${isEditMode
+                                className={`flex w-full items-center justify-center gap-2 px-4 py-2 rounded-xl border transition-all font-bold text-sm sm:col-span-2 lg:w-auto ${isEditMode
                                     ? 'bg-school-blue text-white border-school-blue shadow-lg shadow-school-blue/20'
                                     : 'bg-white text-slate-600 border-slate-200 hover:border-school-blue hover:text-school-blue'
                                     } disabled:opacity-50 disabled:cursor-not-allowed`}
@@ -627,8 +703,8 @@ const AdminModal = ({ entry, onClose, onSuccess, onDelete, meta, selectedShift }
     const isNew = !entry?.id;
 
     return (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200">
-            <div className="bg-white w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden border border-slate-100">
+        <div className="fixed inset-0 z-[100] flex items-start justify-center overflow-y-auto p-3 sm:p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200">
+            <div className="my-auto bg-white w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden border border-slate-100">
                 <div className="p-4 border-b border-slate-50 flex items-center justify-between bg-slate-50/50">
                     <h3 className="text-base font-bold text-slate-800">
                         {isNew ? 'New Entry' : 'Edit Entry'}
@@ -638,8 +714,8 @@ const AdminModal = ({ entry, onClose, onSuccess, onDelete, meta, selectedShift }
                     </button>
                 </div>
 
-                <form onSubmit={handleSubmit} className="p-5 space-y-3">
-                    <div className="grid grid-cols-2 gap-3">
+                <form onSubmit={handleSubmit} className="max-h-[calc(100dvh-7rem)] overflow-y-auto p-4 sm:p-5 space-y-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div className="space-y-1">
                             <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest pl-1">Day</label>
                             <select
@@ -664,7 +740,7 @@ const AdminModal = ({ entry, onClose, onSuccess, onDelete, meta, selectedShift }
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div className="space-y-1">
                             <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest pl-1">Period No.</label>
                             <select
@@ -717,7 +793,7 @@ const AdminModal = ({ entry, onClose, onSuccess, onDelete, meta, selectedShift }
                         </select>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div className="space-y-1">
                             <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest pl-1">Subject</label>
                             <input
@@ -812,8 +888,8 @@ const ShiftManager = ({ shifts, onClose }) => {
     };
 
     return (
-        <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-            <div className="bg-white w-full max-w-lg rounded-3xl shadow-2xl p-6">
+        <div className="fixed inset-0 z-[110] flex items-start justify-center overflow-y-auto p-3 sm:p-4 bg-slate-900/60 backdrop-blur-sm">
+            <div className="my-auto bg-white w-full max-w-lg rounded-3xl shadow-2xl p-4 sm:p-6">
                 <div className="flex items-center justify-between mb-6">
                     <h3 className="text-xl font-black text-slate-800 uppercase tracking-tight">Manage Shifts</h3>
                     <button onClick={onClose} className="p-2 hover:bg-slate-50 rounded-xl transition-all">
@@ -822,7 +898,7 @@ const ShiftManager = ({ shifts, onClose }) => {
                 </div>
 
                 <form onSubmit={handleSubmit} className="space-y-4 mb-8 p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div className="col-span-2">
                             <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 block">Shift Name</label>
                             <input

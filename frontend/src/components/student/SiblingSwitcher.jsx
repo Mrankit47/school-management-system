@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 
 const colors = {
     primary: '#2563eb',
@@ -13,8 +13,6 @@ export default function SiblingSwitcher({ siblings, selectedStudentId, onSwitch,
     const [isOpen, setIsOpen] = useState(false);
 
     if (!siblings || siblings.length <= 1) return null;
-
-    const selectedStudent = siblings.find(s => s.id === selectedStudentId) || siblings[0];
 
     const themeStyles = theme === 'dark' ? {
         card: '#1e293b',
@@ -31,21 +29,21 @@ export default function SiblingSwitcher({ siblings, selectedStudentId, onSwitch,
     };
 
     return (
-        <div style={{ position: 'relative', zIndex: 50 }}>
+        <div style={{ position: 'relative', zIndex: 50, flexShrink: 1, minWidth: 0 }}>
             <button
                 onClick={() => setIsOpen(!isOpen)}
                 style={{
                     display: 'flex',
                     alignItems: 'center',
                     gap: '8px',
-                    padding: '10px 16px',
+                    padding: '10px 12px',
                     borderRadius: '12px',
                     border: `1px solid ${themeStyles.border}`,
                     backgroundColor: themeStyles.card,
                     color: themeStyles.text,
                     cursor: 'pointer',
                     fontWeight: '1000',
-                    fontSize: '14px',
+                    fontSize: '13px',
                     transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
                     boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
                     outline: 'none',
@@ -61,7 +59,7 @@ export default function SiblingSwitcher({ siblings, selectedStudentId, onSwitch,
                     e.currentTarget.style.borderColor = themeStyles.border;
                 }}
             >
-                <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
                     <div style={{
                         display: 'flex',
                         alignItems: 'center',
@@ -74,7 +72,9 @@ export default function SiblingSwitcher({ siblings, selectedStudentId, onSwitch,
                     }}>
                         <span style={{ fontSize: '14px' }}>👨‍👩‍👧‍👦</span>
                     </div>
-                    Siblings
+                    <span style={{ display: 'inline-block', maxWidth: '70px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        Siblings
+                    </span>
                 </span>
                 <svg
                     width="14"
@@ -98,7 +98,7 @@ export default function SiblingSwitcher({ siblings, selectedStudentId, onSwitch,
                         top: '100%',
                         right: 0,
                         marginTop: '8px',
-                        width: '240px',
+                        width: 'min(240px, calc(100vw - 24px))',
                         backgroundColor: themeStyles.card,
                         border: `1px solid ${themeStyles.border}`,
                         borderRadius: '16px',
