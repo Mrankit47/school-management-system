@@ -95,6 +95,18 @@ export default function LandingPage() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
 
+  const loginOptions = [
+    { label: 'Administrator', role: 'admin' },
+    { label: 'Teacher / Staff', role: 'teacher' },
+    { label: 'Parent / Student', role: 'student' }
+  ];
+
+  const navLinks = [
+    ['About', 'about'],
+    ['Academics', 'academics'],
+    ['Contact', 'contact']
+  ];
+
   useEffect(() => {
     if (!schoolId || schoolId === 'undefined') {
       navigate('/');
@@ -201,12 +213,7 @@ export default function LandingPage() {
           </div>
 
           <nav className="hidden md:flex items-center gap-10">
-            {[
-              ['About', 'about'],
-              ['Academics', 'academics'],
-
-              ['Contact', 'contact']
-            ].filter(item => !item.toggle || item.toggle).map(item => {
+            {navLinks.filter(item => !item.toggle || item.toggle).map(item => {
               const [label, id] = Array.isArray(item) ? item : [item.label, item.id];
               return (
                 <button 
@@ -226,11 +233,7 @@ export default function LandingPage() {
                   Secure Access
                 </button>
                 <div className="absolute right-0 mt-2 w-48 bg-white rounded-2xl shadow-2xl border border-slate-100 py-3 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all">
-                   {[
-                      { label: 'Administrator', role: 'admin' },
-                      { label: 'Teacher / Staff', role: 'teacher' },
-                      { label: 'Parent / Student', role: 'student' }
-                   ].map(role => (
+                   {loginOptions.map(role => (
                       <button 
                         key={role.role}
                         onClick={() => navigate(`/school/${school.school_id}/login?role=${role.role}`)}
@@ -241,11 +244,48 @@ export default function LandingPage() {
                    ))}
                 </div>
              </div>
-             <button className="md:hidden text-slate-900" onClick={() => setMenuOpen(!menuOpen)}>
+             <button
+                type="button"
+                className="md:hidden flex h-10 w-10 items-center justify-center rounded-xl text-slate-900 hover:bg-slate-100 transition-colors"
+                onClick={() => setMenuOpen(!menuOpen)}
+                aria-label="Toggle mobile menu"
+                aria-expanded={menuOpen}
+             >
                 <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d={menuOpen ? "M6 18L18 6M6 6l12 12" : "M4 6h16M4 12h16M4 18h16"} /></svg>
              </button>
           </div>
         </div>
+
+        {menuOpen && (
+          <div className="md:hidden border-t border-slate-100 bg-white shadow-xl">
+            <div className="px-6 py-4 space-y-2">
+              {navLinks.map(([label, id]) => (
+                <button
+                  key={id}
+                  type="button"
+                  onClick={() => scrollTo(id)}
+                  className="w-full text-left px-4 py-3 rounded-xl text-sm font-bold text-slate-700 hover:bg-slate-50 hover:text-blue-600 transition-colors uppercase tracking-widest"
+                >
+                  {label}
+                </button>
+              ))}
+              <div className="my-3 h-px bg-slate-100" />
+              {loginOptions.map(({ label, role }) => (
+                <button
+                  key={role}
+                  type="button"
+                  onClick={() => {
+                    setMenuOpen(false);
+                    navigate(`/school/${school.school_id}/login?role=${role}`);
+                  }}
+                  className="w-full text-left px-4 py-3 rounded-xl text-sm font-bold text-white bg-slate-900 hover:bg-blue-600 transition-colors"
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
       </header>
 
       {/* ───── HERO SECTION ───── */}
@@ -261,29 +301,29 @@ export default function LandingPage() {
                    <span className="w-2 h-2 rounded-full bg-blue-600 animate-pulse" />
                    Official Academic Portal
                 </div>
-                <h1 className="text-5xl lg:text-7xl font-black text-slate-900 leading-[1.1] mb-6 tracking-tight">
+                <h1 className="text-4xl sm:text-5xl lg:text-7xl font-black text-slate-900 leading-[1.1] mb-6 tracking-tight">
                   {school.name.split(' ').slice(0, 2).join(' ')}<br />
                   <span className="text-blue-600">{school.name.split(' ').slice(2).join(' ') || 'Institution'}</span>
                 </h1>
-                <p className="text-lg lg:text-xl font-bold text-slate-600 mb-4">
+                <p className="text-base sm:text-lg lg:text-xl font-bold text-slate-600 mb-4">
                   {school.tagline || 'Excellence in Education, Leadership in Innovation'}
                 </p>
-                <p className="text-base text-slate-500 leading-relaxed mb-10">
+                <p className="text-base sm:text-lg text-slate-500 leading-relaxed mb-10">
                   {school.about?.substring(0, 200) || `${school.name} is dedicated to fostering a nurturing environment that empowers students to achieve academic excellence and life-long learning skills.`}...
                 </p>
                 
-                <div className="flex flex-wrap gap-4">
-                   <button onClick={() => scrollTo('academics')} className="bg-blue-600 text-white px-10 py-5 rounded-[2rem] text-sm font-bold shadow-2xl shadow-blue-600/30 hover:bg-blue-700 transition-all active:scale-95">
+                <div className="flex flex-col sm:flex-row sm:flex-wrap gap-4">
+                   <button onClick={() => scrollTo('academics')} className="w-full sm:w-auto bg-blue-600 text-white px-8 py-4 sm:px-10 sm:py-5 rounded-[2rem] text-sm font-bold shadow-2xl shadow-blue-600/30 hover:bg-blue-700 transition-all active:scale-95">
                       Explore Programmes
                    </button>
-                   <button onClick={() => scrollTo('contact')} className="bg-white border border-slate-200 text-slate-900 px-10 py-5 rounded-[2rem] text-sm font-bold hover:bg-slate-50 transition-all active:scale-95">
+                   <button onClick={() => scrollTo('contact')} className="w-full sm:w-auto bg-white border border-slate-200 text-slate-900 px-8 py-4 sm:px-10 sm:py-5 rounded-[2rem] text-sm font-bold hover:bg-slate-50 transition-all active:scale-95">
                       Contact Admission
                    </button>
                 </div>
             </div>
 
             <div className="hidden lg:block relative animate-float">
-               <div className="w-[480px] h-[600px] bg-white rounded-[3rem] shadow-2xl p-6 border border-slate-100">
+               <div className="w-full max-w-[480px] aspect-[4/5] bg-white rounded-[3rem] shadow-2xl p-6 border border-slate-100 overflow-hidden">
                   <img src={school.hero_image || defaultHero} alt="" className="w-full h-full object-cover rounded-[2rem]" />
                </div>
                <div className="absolute -bottom-10 -left-10 bg-white rounded-3xl shadow-2xl p-8 border border-slate-50 max-w-[240px]">
@@ -307,8 +347,8 @@ export default function LandingPage() {
                { val: '24/7', label: 'Student Support' }
             ].map((stat, i) => (
                <div key={i} className={`transition-all duration-700 ${statsInView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-5'}`} style={{ transitionDelay: `${i * 100}ms` }}>
-                  <p className="text-4xl lg:text-5xl font-black mb-2">{stat.val}</p>
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-blue-200">{stat.label}</p>
+                  <p className="text-3xl sm:text-4xl lg:text-5xl font-black mb-2">{stat.val}</p>
+                  <p className="text-[10px] sm:text-xs font-bold uppercase tracking-widest text-blue-200">{stat.label}</p>
                </div>
             ))}
          </div>
@@ -318,13 +358,13 @@ export default function LandingPage() {
       <section id="about" className="py-24 bg-white relative overflow-hidden">
          <div className="max-w-7xl mx-auto px-6 lg:px-8 grid lg:grid-cols-2 gap-20 items-center">
              <div ref={aboutRef} className={`relative transition-all duration-1000 ${aboutInView ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-10'}`}>
-                <img src={defaultAbout} alt="" className="w-full h-[540px] object-cover rounded-[3rem] shadow-2xl relative z-10" />
+                <img src={defaultAbout} alt="" className="w-full h-auto max-h-[540px] sm:max-h-[480px] object-cover rounded-[3rem] shadow-2xl relative z-10" />
                 <div className="absolute -top-10 -right-10 w-64 h-64 bg-blue-50 rounded-full blur-3xl -z-0" />
                 <div className="absolute -bottom-10 -left-10 w-48 h-48 bg-indigo-50 rounded-full blur-2xl -z-0" />
              </div>
              <div className={`transition-all duration-1000 delay-300 ${aboutInView ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-10'}`}>
                 <p className="section-label mb-4">Institutional Legacy</p>
-                <h2 className="text-4xl lg:text-5xl font-black text-slate-900 mb-8 tracking-tight leading-tight">
+                 <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black text-slate-900 mb-8 tracking-tight leading-tight">
                    Nurturing Excellence, <br />
                    Inspiring Innovation
                 </h2>
@@ -333,7 +373,7 @@ export default function LandingPage() {
                    <p>Founded in {school.established_year || 'the late 20th century'}, our institution has consistently evolved to integrate modern technology into traditional teaching methodologies, creating a dynamic learning ecosystem.</p>
                 </div>
                 
-                <div className="mt-12 grid grid-cols-2 gap-8">
+                <div className="mt-12 grid grid-cols-1 md:grid-cols-2 gap-6">
                    <div className="p-6 bg-slate-50 rounded-3xl border border-slate-100">
                       <div className="text-3xl mb-3">🎯</div>
                       <p className="font-black text-slate-900 mb-1">Our Mission</p>
@@ -354,11 +394,11 @@ export default function LandingPage() {
           <div className="max-w-7xl mx-auto px-6 lg:px-8">
               <div ref={acadRef} className={`text-center max-w-3xl mx-auto mb-16 transition-all duration-1000 ${acadInView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
                  <p className="section-label mb-4">Academic Standards</p>
-                 <h2 className="text-4xl lg:text-5xl font-black text-slate-900 mb-6 tracking-tight">Standardized Excellence</h2>
-                 <p className="text-slate-500 font-medium leading-relaxed">We follow a globally recognized curriculum structure that ensures our students are competitive on both national and international platforms.</p>
+                 <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black text-slate-900 mb-6 tracking-tight">Standardized Excellence</h2>
+                 <p className="text-base sm:text-lg text-slate-500 font-medium leading-relaxed">We follow a globally recognized curriculum structure that ensures our students are competitive on both national and international platforms.</p>
               </div>
 
-              <div className="grid md:grid-cols-3 gap-8">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                   {[
                     { title: 'Affiliated Board', val: school.board || 'CBSE / ICSE', icon: '🏛️' },
                     { title: 'Grade Spectrum', val: school.classes_offered || 'Nursery - Grade 12', icon: '🎓' },
@@ -385,14 +425,14 @@ export default function LandingPage() {
                   <h2 className="text-4xl lg:text-5xl font-black text-slate-900 mb-8 tracking-tight">Connect With Us</h2>
                   
                   <div className="space-y-8">
-                      <div className="flex gap-6 items-start">
+                      <div className="flex flex-col sm:flex-row gap-6 items-start">
                          <div className="w-14 h-14 bg-white rounded-2xl flex items-center justify-center shadow-lg text-2xl flex-shrink-0">📍</div>
                          <div>
                             <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-1">Campus Address</p>
                             <p className="text-lg font-bold text-slate-700 leading-relaxed">{school.address || "Main Campus Road, Academic District, India"}</p>
                          </div>
                       </div>
-                      <div className="flex gap-6 items-start">
+                      <div className="flex flex-col sm:flex-row gap-6 items-start">
                          <div className="w-14 h-14 bg-white rounded-2xl flex items-center justify-center shadow-lg text-2xl flex-shrink-0">📧</div>
                          <div>
                             <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-1">Communication</p>
@@ -400,7 +440,7 @@ export default function LandingPage() {
                             <p className="text-lg font-bold text-slate-700 mt-1">{school.phone || "+91 00000 00000"}</p>
                          </div>
                       </div>
-                      <div className="flex gap-6 items-start">
+                      <div className="flex flex-col sm:flex-row gap-6 items-start">
                          <div className="w-14 h-14 bg-white rounded-2xl flex items-center justify-center shadow-lg text-2xl flex-shrink-0">⏰</div>
                          <div>
                             <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-1">Visiting Hours</p>
@@ -412,12 +452,12 @@ export default function LandingPage() {
 
               <div className={`bg-white p-10 lg:p-14 rounded-[3rem] shadow-2xl border border-slate-100 transition-all duration-1000 delay-300 ${contInView ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-10'}`}>
                   {school.google_map_link ? (
-                    <div className="w-full h-full min-h-[400px] rounded-[2rem] overflow-hidden border border-slate-200">
+                    <div className="w-full h-full min-h-[320px] lg:min-h-[400px] rounded-[2rem] overflow-hidden border border-slate-200">
                         <iframe 
                             src={school.google_map_link} 
                             width="100%" 
                             height="100%" 
-                            style={{ border: 0, minHeight: '400px' }} 
+                            style={{ border: 0, minHeight: '320px' }} 
                             allowFullScreen="" 
                             loading="lazy"
                         ></iframe>
@@ -426,7 +466,7 @@ export default function LandingPage() {
                     <form className="space-y-6">
                         <h3 className="text-2xl font-black text-slate-900 mb-2">Admission Enquiry</h3>
                         <p className="text-slate-500 font-medium text-sm mb-8">Submit your details and our admission counselor will reach out shortly.</p>
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <input type="text" placeholder="Full Name" className="w-full bg-slate-50 border-none rounded-2xl px-6 py-4 text-sm focus:ring-2 focus:ring-blue-600 transition-all font-medium" />
                             <input type="email" placeholder="Email Address" className="w-full bg-slate-50 border-none rounded-2xl px-6 py-4 text-sm focus:ring-2 focus:ring-blue-600 transition-all font-medium" />
                         </div>
@@ -441,18 +481,18 @@ export default function LandingPage() {
 
       {/* ───── FOOTER ───── */}
       <footer className="bg-white border-t border-slate-100 py-16">
-          <div className="max-w-7xl mx-auto px-6 lg:px-8 grid md:grid-cols-4 gap-12">
+          <div className="max-w-7xl mx-auto px-6 lg:px-8 grid grid-cols-1 md:grid-cols-4 gap-12">
               <div className="md:col-span-2">
-                  <div className="flex items-center gap-3 mb-6">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:gap-3 mb-6">
                       <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center text-white font-black text-xl">
                          {school.name[0]}
                       </div>
-                      <p className="text-xl font-black text-slate-900 tracking-tight">{school.name}</p>
+                      <p className="text-xl font-black text-slate-900 tracking-tight mt-3 sm:mt-0">{school.name}</p>
                   </div>
                   <p className="text-slate-500 font-medium leading-relaxed max-w-sm mb-8">
                      A premier educational institute committed to nurturing global leaders through academic excellence and holistic development.
                   </p>
-                  <div className="flex gap-4">
+                  <div className="flex flex-wrap gap-4">
                       {['TW', 'FB', 'IG', 'LI'].map(soc => (
                         <div key={soc} className="w-10 h-10 bg-slate-50 rounded-full flex items-center justify-center text-[10px] font-black text-slate-400 border border-slate-100 cursor-pointer hover:bg-blue-600 hover:text-white transition-all">{soc}</div>
                       ))}

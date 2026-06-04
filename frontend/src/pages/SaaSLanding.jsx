@@ -155,7 +155,7 @@ export default function SaaSLanding() {
 
       {/* ─── Header ─── */}
       <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled ? 'glass-nav py-4' : 'bg-transparent py-6'}`}>
-        <div className="max-w-7xl mx-auto px-6 flex items-center justify-between">
+        <div className="max-w-7xl mx-auto px-6 flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-3 cursor-pointer" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
             <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center overflow-hidden shadow-lg shadow-blue-900/10 border border-slate-100">
               <img 
@@ -170,7 +170,7 @@ export default function SaaSLanding() {
             </div>
           </div>
 
-          <div className="flex items-center gap-4">
+          <div className="flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto">
             {/* Platform Login Dropdown */}
             <div className="relative group hidden md:block">
               <button className="text-sm font-bold text-slate-600 group-hover:text-school-navy transition-colors px-4 flex items-center gap-2">
@@ -197,13 +197,13 @@ export default function SaaSLanding() {
                 </div>
               </div>
             </div>
-            <form onSubmit={handleSchoolSearch} className="relative group">
+            <form onSubmit={handleSchoolSearch} className="relative group w-full max-w-[320px] sm:max-w-[400px]">
               <input
                 type="text"
                 placeholder="Enter School ID..."
                 value={schoolIdSearch}
                 onChange={(e) => setSchoolIdSearch(e.target.value)}
-                className="bg-slate-100 hover:bg-slate-200 focus:bg-white border-none rounded-full py-2.5 px-6 text-sm font-medium focus:ring-2 focus:ring-school-navy/10 transition-all w-48 md:w-64"
+                className="bg-slate-100 hover:bg-slate-200 focus:bg-white border-none rounded-full py-2.5 px-6 text-sm font-medium focus:ring-2 focus:ring-school-navy/10 transition-all w-full"
               />
               <button
                 type="submit"
@@ -225,12 +225,12 @@ export default function SaaSLanding() {
               <span className="text-[10px] font-extrabold text-blue-600 uppercase tracking-widest">v4.0 Enterprise Live</span>
             </div>
 
-            <h1 className="font-outfit text-6xl lg:text-7xl font-bold text-slate-900 leading-[1.1] mb-8 tracking-tight">
+            <h1 className="font-outfit text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold text-slate-900 leading-[1.1] mb-8 tracking-tight">
               SCHOOL ERP <br />
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-school-navy to-school-azure">SYSTEM.</span>
             </h1>
 
-            <p className="text-xl text-slate-500 mb-12 max-w-lg leading-relaxed">
+            <p className="text-base sm:text-lg md:text-xl text-slate-500 mb-12 max-w-xl sm:max-w-lg leading-relaxed">
               Professional multi-tenant infrastructure designed for modern institutions. Secure, scalable, and completely branded for every tenant.
             </p>
 
@@ -247,20 +247,20 @@ export default function SaaSLanding() {
               </div>
             </div>
 
-            <div className="mt-16 flex items-center gap-10">
+            <div className="mt-16 flex flex-col sm:flex-row sm:flex-wrap items-start sm:items-center gap-6">
               <div>
-                <p className="text-3xl font-bold text-slate-900 font-outfit">100+</p>
-                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mt-1">Institutions</p>
+                <p className="text-3xl sm:text-4xl font-bold text-slate-900 font-outfit">100+</p>
+                <p className="text-xs sm:text-[11px] font-bold text-slate-400 uppercase tracking-wider mt-1">Institutions</p>
               </div>
-              <div className="w-px h-10 bg-slate-200"></div>
+              <div className="hidden sm:block w-px h-10 bg-slate-200"></div>
               <div>
-                <p className="text-3xl font-bold text-slate-900 font-outfit">50k+</p>
-                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mt-1">Daily Users</p>
+                <p className="text-3xl sm:text-4xl font-bold text-slate-900 font-outfit">50k+</p>
+                <p className="text-xs sm:text-[11px] font-bold text-slate-400 uppercase tracking-wider mt-1">Daily Users</p>
               </div>
-              <div className="w-px h-10 bg-slate-200"></div>
+              <div className="hidden sm:block w-px h-10 bg-slate-200"></div>
               <div>
-                <p className="text-3xl font-bold text-slate-900 font-outfit">99.9%</p>
-                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mt-1">Uptime</p>
+                <p className="text-3xl sm:text-4xl font-bold text-slate-900 font-outfit">99.9%</p>
+                <p className="text-xs sm:text-[11px] font-bold text-slate-400 uppercase tracking-wider mt-1">Uptime</p>
               </div>
             </div>
           </div>
@@ -310,11 +310,11 @@ export default function SaaSLanding() {
             </p>
           </div>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {features.map((f, i) => (
-              <div key={i} className="feature-card p-10 rounded-[2rem]">
-                <div className="text-4xl mb-8">{f.icon}</div>
-                <h3 className="font-outfit text-xl font-bold text-slate-900 mb-4">{f.title}</h3>
+              <div key={i} className="feature-card p-8 md:p-10 rounded-[2rem]">
+                <div className="text-4xl mb-6">{f.icon}</div>
+                <h3 className="font-outfit text-xl font-bold text-slate-900 mb-3">{f.title}</h3>
                 <p className="text-sm text-slate-500 leading-relaxed">{f.desc}</p>
               </div>
             ))}
