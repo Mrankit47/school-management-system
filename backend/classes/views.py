@@ -1,6 +1,6 @@
 from rest_framework import views, permissions, status
 from rest_framework.response import Response
-from django.db import transaction
+from django.db import IntegrityError, transaction
 
 from core.permissions import IsAdmin, IsTeacher
 from .teacher_access import teacher_accessible_class_sections_queryset
@@ -350,7 +350,10 @@ class AdminAssignStudentSectionView(views.APIView):
         if not student_id or not class_section_id:
             return Response({"error": "student_id and class_section_id are required"}, status=status.HTTP_400_BAD_REQUEST)
 
-        student = StudentProfile.objects.select_related('user').filter(user__school=school, id=student_id).first()
+        student = StudentProfile.objects.select_related('user').filter(
+            Q(school=school) | Q(user__school=school),
+            id=student_id,
+        ).first()
         if not student:
             return Response({"error": "Student not found"}, status=status.HTTP_404_NOT_FOUND)
 
@@ -358,6 +361,33 @@ class AdminAssignStudentSectionView(views.APIView):
         if not class_section:
             return Response({"error": "ClassSection not found"}, status=status.HTTP_404_NOT_FOUND)
 
+        if student.class_section_id == class_section.id:
+            return Response({"message": "Student is already assigned to this section"}, status=status.HTTP_200_OK)
+
+        if student.roll_number:
+            conflict = StudentProfile.objects.select_related('user').filter(
+                class_section=class_section,
+                roll_number=student.roll_number,
+            ).exclude(id=student.id).first()
+            if conflict:
+                conflict_name = conflict.user.name or conflict.user.username
+                return Response(
+                    {
+                        "error": (
+                            f"Roll number {student.roll_number} is already used by "
+                            f"{conflict_name} in {class_section.class_ref.name} - "
+                            f"{class_section.section_ref.name}. Update the roll number before assigning."
+                        )
+                    },
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
         student.class_section = class_section
-        student.save(update_fields=['class_section'])
+        try:
+            student.save(update_fields=['class_section'])
+        except IntegrityError:
+            return Response(
+                {"error": "Another student in this section already has the same roll number."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         return Response({"message": "Student assigned successfully"}, status=status.HTTP_200_OK)
