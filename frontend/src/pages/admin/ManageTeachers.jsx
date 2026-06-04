@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { useConfirm } from '../../context/ConfirmContext';
 import api from '../../services/api';
 
 const PAGE_SIZE = 8;
@@ -27,6 +28,7 @@ const csvValue = (value) => {
 };
 
 const ManageTeachers = () => {
+    const confirm = useConfirm();
     const [teachers, setTeachers] = useState([]);
     const [loading, setLoading] = useState(true);
     const [busyDeleteId, setBusyDeleteId] = useState(null);
@@ -175,7 +177,7 @@ const ManageTeachers = () => {
     };
 
     const handleDelete = async (row) => {
-        const ok = window.confirm(`Delete teacher "${row?.name}"?`);
+        const ok = await confirm(`Delete teacher "${row?.name}"?`);
         if (!ok) return;
         setBusyDeleteId(row.id);
         try {

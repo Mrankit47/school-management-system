@@ -1,7 +1,9 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { useConfirm } from '../../context/ConfirmContext';
 import api from '../../services/api';
 
 const AssignTeacher = () => {
+    const confirm = useConfirm();
     const [classes, setClasses] = useState([]);
     const [subjects, setSubjects] = useState([]);
     const [sections, setSections] = useState([]);
@@ -218,7 +220,7 @@ const AssignTeacher = () => {
     };
 
     const deleteAssignment = async (id) => {
-        const ok = window.confirm('Delete this assignment?');
+        const ok = await confirm('Delete this assignment?');
         if (!ok) return;
         try {
             await api.delete(`subjects/teacher-assignments/${id}/`);

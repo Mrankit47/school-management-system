@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useConfirm } from '../../context/ConfirmContext';
 import api from '../../services/api';
 
 const getInitials = (name) => {
@@ -10,6 +11,7 @@ const getInitials = (name) => {
 };
 
 const TeacherCards = ({ teachers, refreshTeachers }) => {
+    const confirm = useConfirm();
     const [viewTeacher, setViewTeacher] = useState(null);
     const [editTeacher, setEditTeacher] = useState(null);
     const [editForm, setEditForm] = useState(null);
@@ -22,7 +24,7 @@ const TeacherCards = ({ teachers, refreshTeachers }) => {
     };
 
     const handleDelete = async (id) => {
-        if (!window.confirm('Are you sure you want to delete this teacher record?')) return;
+        if (!(await confirm('Are you sure you want to delete this teacher record?'))) return;
         setBusy(true);
         try {
             await api.delete(`teachers/delete/${id}/`);

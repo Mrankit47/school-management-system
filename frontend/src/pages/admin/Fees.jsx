@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { useConfirm } from '../../context/ConfirmContext';
 import api from '../../services/api';
 
 const card = {
@@ -30,6 +31,7 @@ const labelStyle = {
 };
 
 const AdminFees = () => {
+    const confirm = useConfirm();
     const [dashboard, setDashboard] = useState(null);
     const [structures, setStructures] = useState([]);
     const [mainClasses, setMainClasses] = useState([]);
@@ -195,7 +197,7 @@ const AdminFees = () => {
     };
 
     const deleteStructure = async (id) => {
-        if (!window.confirm('Delete this fee structure? This will also remove linked student fee records for this class.')) return;
+        if (!(await confirm('Delete this fee structure? This will also remove linked student fee records for this class.'))) return;
         try {
             await api.delete(`fees/admin/structures/${id}/?force=1`);
             showMsg('Deleted');

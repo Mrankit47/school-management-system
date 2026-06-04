@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from 'react';
+import { useConfirm } from '../../context/ConfirmContext';
 import api from '../../services/api';
 import { toast } from 'react-hot-toast';
 
 const ShopLocations = () => {
+    const confirm = useConfirm();
     const [shops, setShops] = useState([]);
     const [loading, setLoading] = useState(false);
     const [showForm, setShowForm] = useState(false);
@@ -72,7 +74,7 @@ const ShopLocations = () => {
     };
 
     const handleDelete = async (id) => {
-        if (!window.confirm('Are you sure you want to delete this shop?')) return;
+        if (!(await confirm('Are you sure you want to delete this shop?'))) return;
         try {
             await api.delete(`shops/${id}/`);
             toast.success('Shop deleted successfully');

@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { useConfirm } from '../../context/ConfirmContext';
 import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 
@@ -11,6 +12,7 @@ const getInitials = (name) => {
 };
 
 const AdminSubjects = () => {
+    const confirm = useConfirm();
     const navigate = useNavigate();
 
     const [subjects, setSubjects] = useState([]);
@@ -156,7 +158,7 @@ const AdminSubjects = () => {
     };
 
     const deleteSubject = async (subjectId) => {
-        const ok = window.confirm('Delete this subject?');
+        const ok = await confirm('Delete this subject?');
         if (!ok) return;
         try {
             await api.delete(`subjects/${subjectId}/`);

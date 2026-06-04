@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
+import { useConfirm } from '../../context/ConfirmContext';
 import api from '../../services/api';
 
 const emptyForm = () => ({
@@ -26,6 +27,7 @@ function audienceLabel(a) {
 }
 
 const AdminAnnouncements = () => {
+    const confirm = useConfirm();
     const [list, setList] = useState([]);
     const [classes, setClasses] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -183,7 +185,7 @@ const AdminAnnouncements = () => {
     };
 
     const remove = async (id) => {
-        if (!window.confirm('Delete this announcement?')) return;
+        if (!(await confirm('Delete this announcement?'))) return;
         try {
             await api.delete(`announcements/${id}/`);
             load();

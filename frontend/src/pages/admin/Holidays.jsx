@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { useConfirm } from '../../context/ConfirmContext';
 import api from '../../services/api';
 
 const inputStyle = {
@@ -75,6 +76,7 @@ function toDateKey(date) {
 }
 
 const AdminHolidays = () => {
+    const confirm = useConfirm();
     const [tab, setTab] = useState('list'); // 'list' | 'calendar'
 
     const [holidays, setHolidays] = useState([]);
@@ -287,7 +289,7 @@ const AdminHolidays = () => {
     };
 
     const deleteHoliday = async (id) => {
-        const ok = window.confirm('Delete this holiday?');
+        const ok = await confirm('Delete this holiday?');
         if (!ok) return;
         try {
             await api.delete(`holidays/${id}/`);

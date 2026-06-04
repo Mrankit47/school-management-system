@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import { useConfirm } from '../../context/ConfirmContext';
 import api from '../../services/api';
 
 const getInitials = (name) => {
@@ -10,6 +11,7 @@ const getInitials = (name) => {
 };
 
 const StudentCards = ({ students, refreshStudents }) => {
+    const confirm = useConfirm();
     const [viewStudent, setViewStudent] = useState(null);
     const [editStudent, setEditStudent] = useState(null);
     const [editForm, setEditForm] = useState(null);
@@ -22,7 +24,7 @@ const StudentCards = ({ students, refreshStudents }) => {
     };
 
     const handleDelete = async (id) => {
-        if (!window.confirm('Are you sure you want to delete this student record?')) return;
+        if (!(await confirm('Are you sure you want to delete this student record?'))) return;
         setBusy(true);
         try {
             await api.delete(`students/delete/${id}/`);

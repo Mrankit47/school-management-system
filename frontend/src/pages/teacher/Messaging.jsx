@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState, useRef } from 'react';
+import { useConfirm } from '../../context/ConfirmContext';
 import api from '../../services/api';
 
 const cardStyle = {
@@ -31,6 +32,7 @@ function isImageAttachment(url) {
 }
 
 const Messaging = () => {
+    const confirm = useConfirm();
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [classes, setClasses] = useState([]);
@@ -63,7 +65,7 @@ const Messaging = () => {
             const res = await api.get('communication/doubts/', { params });
             const data = res.data || [];
             setConversations(data);
-            
+
             // Reset active selection if filters changed or list is empty
             if (data.length > 0) {
                 setActiveConvId(data[0].id);
@@ -120,7 +122,7 @@ const Messaging = () => {
     };
 
     const handleDelete = async (msgId) => {
-        if (!window.confirm('Delete this message?')) return;
+        if (!(await confirm('Delete this message?'))) return;
         try {
             await api.delete(`communication/doubts/message/${msgId}/`);
             setMessages(messages.filter(m => m.id !== msgId));
@@ -136,7 +138,7 @@ const Messaging = () => {
             const form = new FormData();
             form.append('content', messageText.trim());
             if (attachment) form.append('attachment', attachment);
-            
+
             const res = await api.post(`communication/doubts/${activeConvId}/`, form, {
                 headers: { 'Content-Type': 'multipart/form-data' },
             });
@@ -153,7 +155,7 @@ const Messaging = () => {
     };
 
     const handleResolve = async () => {
-        if (!activeConvId || !window.confirm('Mark this doubt as resolved?')) return;
+        if (!activeConvId || !(await confirm('Mark this doubt as resolved?'))) return;
         setResolving(true);
         try {
             await api.post(`communication/doubts/${activeConvId}/resolve/`);
@@ -169,8 +171,8 @@ const Messaging = () => {
     const filteredConversations = useMemo(() => {
         const q = search.trim().toLowerCase();
         if (!q) return conversations;
-        return conversations.filter(c => 
-            c.student_name.toLowerCase().includes(q) || 
+        return conversations.filter(c =>
+            c.student_name.toLowerCase().includes(q) ||
             (c.subject || '').toLowerCase().includes(q)
         );
     }, [conversations, search]);
@@ -186,7 +188,7 @@ const Messaging = () => {
                         <p style={{ margin: '4px 0 0', color: '#6b7280', fontSize: 14, fontWeight: 900 }}>Resolve student questions and doubts.</p>
                     </div>
                     <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-                        <select 
+                        <select
                             value={selectedClassId}
                             onChange={e => {
                                 setSelectedClassId(e.target.value);
@@ -197,7 +199,7 @@ const Messaging = () => {
                             <option value="">All My Classes</option>
                             {classes.map(c => <option key={c.id} value={c.id}>{c.class_name} - {c.section_name}</option>)}
                         </select>
-                        <select 
+                        <select
                             value={statusFilter}
                             onChange={e => {
                                 setStatusFilter(e.target.value);
@@ -216,7 +218,7 @@ const Messaging = () => {
                 {/* Inbox */}
                 <div style={{ ...cardStyle, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
                     <div style={{ padding: 16, borderBottom: '1px solid #e5e7eb' }}>
-                        <input 
+                        <input
                             value={search}
                             onChange={e => setSearch(e.target.value)}
                             placeholder="Search student or subject..."
@@ -225,7 +227,7 @@ const Messaging = () => {
                     </div>
                     <div style={{ flex: 1, overflowY: 'auto', padding: 10 }}>
                         {filteredConversations.map(c => (
-                            <div 
+                            <div
                                 key={c.id}
                                 onClick={() => setActiveConvId(c.id)}
                                 style={{
@@ -269,7 +271,7 @@ const Messaging = () => {
                                     <div style={{ fontSize: 12, color: '#6b7280', fontWeight: 900 }}>Doubt: {activeConv.subject || 'General'}</div>
                                 </div>
                                 {activeConv.is_active ? (
-                                    <button 
+                                    <button
                                         disabled={resolving}
                                         onClick={handleResolve}
                                         style={{ border: 'none', background: '#10b981', color: '#fff', padding: '8px 16px', borderRadius: 8, fontWeight: 1000, cursor: 'pointer' }}
@@ -287,8 +289,8 @@ const Messaging = () => {
                                     const isEditing = editingId === m.id;
                                     return (
                                         <div key={m.id} style={{ alignSelf: isMe ? 'flex-end' : 'flex-start', maxWidth: '75%' }}>
-                                            <div style={{ 
-                                                padding: '12px 16px', 
+                                            <div style={{
+                                                padding: '12px 16px',
                                                 borderRadius: isMe ? '16px 16px 2px 16px' : '16px 16px 16px 2px',
                                                 background: isMe ? '#2563eb' : '#fff',
                                                 color: isMe ? '#fff' : '#1e293b',
@@ -298,7 +300,7 @@ const Messaging = () => {
                                             }}>
                                                 {isEditing ? (
                                                     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                                                        <textarea 
+                                                        <textarea
                                                             value={editContent}
                                                             onChange={e => setEditContent(e.target.value)}
                                                             style={{ ...inputStyle, background: '#fff', color: '#000', minHeight: 60 }}
@@ -328,13 +330,13 @@ const Messaging = () => {
                                                             <div style={{ fontSize: 10, opacity: 0.8 }}>{fmtTime(m.created_at)}</div>
                                                             {isMe && (
                                                                 <div style={{ display: 'flex', gap: 8 }}>
-                                                                    <button 
+                                                                    <button
                                                                         onClick={() => { setEditingId(m.id); setEditContent(m.content); }}
                                                                         style={{ border: 'none', background: 'none', color: '#fff', fontSize: 10, cursor: 'pointer', padding: 0, opacity: 0.7 }}
                                                                     >
                                                                         Edit
                                                                     </button>
-                                                                    <button 
+                                                                    <button
                                                                         onClick={() => handleDelete(m.id)}
                                                                         style={{ border: 'none', background: 'none', color: '#fff', fontSize: 10, cursor: 'pointer', padding: 0, opacity: 0.7 }}
                                                                     >
@@ -357,7 +359,7 @@ const Messaging = () => {
                                 <div style={{ padding: 20, borderTop: '1px solid #e5e7eb', background: '#fff' }}>
                                     <div style={{ display: 'flex', gap: 12, alignItems: 'flex-end' }}>
                                         <div style={{ flex: 1 }}>
-                                            <textarea 
+                                            <textarea
                                                 value={messageText}
                                                 onChange={e => setMessageText(e.target.value)}
                                                 placeholder="Type your explanation..."
@@ -366,14 +368,14 @@ const Messaging = () => {
                                             {attachment && <div style={{ fontSize: 12, color: '#2563eb', marginTop: 4, fontWeight: 900 }}>📎 {attachment.name} <button onClick={() => setAttachment(null)} style={{ border: 'none', background: 'none', color: '#ef4444', cursor: 'pointer' }}>✖</button></div>}
                                         </div>
                                         <div style={{ display: 'flex', gap: 8 }}>
-                                            <input 
-                                                type="file" 
-                                                id="file-up" 
-                                                hidden 
-                                                onChange={e => setAttachment(e.target.files[0])} 
+                                            <input
+                                                type="file"
+                                                id="file-up"
+                                                hidden
+                                                onChange={e => setAttachment(e.target.files[0])}
                                             />
                                             <label htmlFor="file-up" style={{ padding: 12, background: '#f3f4f6', borderRadius: 12, cursor: 'pointer' }}>📎</label>
-                                            <button 
+                                            <button
                                                 disabled={sending || (!messageText.trim() && !attachment)}
                                                 onClick={sendMessage}
                                                 style={{ border: 'none', background: '#2563eb', color: '#fff', padding: '0 20px', borderRadius: 12, fontWeight: 1000, height: 46, cursor: 'pointer' }}
@@ -396,4 +398,4 @@ const Messaging = () => {
     );
 };
 
-export default Messaging;
+export default Messaging;

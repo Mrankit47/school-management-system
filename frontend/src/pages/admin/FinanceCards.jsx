@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { useConfirm } from '../../context/ConfirmContext';
 import api from '../../services/api';
 
 const CLASS_NAMES = ['Nursery', 'LKG', 'UKG', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12'];
@@ -31,6 +32,7 @@ const fieldStyle = {
 const toNum = (value) => Number(value || 0);
 
 const FinanceCards = () => {
+    const confirm = useConfirm();
     const [cards, setCards] = useState([]);
     const [form, setForm] = useState(EMPTY_FORM);
     const [bulkRows, setBulkRows] = useState('');
@@ -157,7 +159,7 @@ const FinanceCards = () => {
     };
 
     const rollbackLastChange = async () => {
-        if (!window.confirm('Rollback last finance card change?')) return;
+        if (!(await confirm('Rollback last finance card change?'))) return;
         try {
             const res = await api.post('fees/admin/class-fee-cards/rollback/');
             showMsg(`${res.data.message}. Restored ${res.data.restored_count} card(s).`);
@@ -168,7 +170,7 @@ const FinanceCards = () => {
     };
 
     const deleteAllCards = async () => {
-        if (!window.confirm('Delete all fee cards? You can restore using Rollback Last Change.')) return;
+        if (!(await confirm('Delete all fee cards? You can restore using Rollback Last Change.'))) return;
         try {
             const res = await api.delete('fees/admin/class-fee-cards/delete-all/');
             showMsg(`${res.data.message}. Deleted ${res.data.deleted_count} row(s).`);

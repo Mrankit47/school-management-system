@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
+import { useConfirm } from '../../context/ConfirmContext';
 import api from '../../services/api';
 import authService from '../../services/authService';
 import { toast } from 'react-hot-toast';
@@ -89,6 +90,7 @@ const GalleryCarousel = ({ images, token }) => {
 };
 
 const GalleryPage = () => {
+    const confirm = useConfirm();
     const { role } = authService.getCurrentUser();
     const isAdmin = role === 'admin';
     const [images, setImages] = useState([]);
@@ -195,7 +197,7 @@ const GalleryPage = () => {
 
     const handleDelete = async (id) => {
         if (!isAdmin) return;
-        const ok = window.confirm('Delete this image?');
+        const ok = await confirm('Delete this image?');
         if (!ok) return;
         try {
             await api.delete(`gallery/${id}/`);

@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { useConfirm } from '../../context/ConfirmContext';
 import api from '../../services/api';
 
 /** Backend fallback helper */
@@ -17,6 +18,7 @@ const EXAM_TYPES = [
 ];
 
 const UploadResult = () => {
+    const confirm = useConfirm();
     // UI View State
     const [view, setView] = useState('form'); // 'form' or 'list'
 
@@ -222,7 +224,7 @@ const UploadResult = () => {
 
     const handlePublish = async () => {
         if (!examId) return;
-        const ok = window.confirm("Are you sure you want to publish these results? This will make them visible to students and lock further edits.");
+        const ok = await confirm("Are you sure you want to publish these results? This will make them visible to students and lock further edits.");
         if (!ok) return;
         
         setSubmitting(true);
