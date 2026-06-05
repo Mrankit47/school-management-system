@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 import React, { useState, useEffect } from "react";
+=======
+import React, { useState } from 'react';
+>>>>>>> 92f67f0882aee1dc0c8b0ac2cf8decd6c701d545
 
 const colors = {
   primary: "#2563eb",
@@ -20,6 +24,7 @@ export default function SiblingSwitcher({
 
   if (!siblings || siblings.length <= 1) return null;
 
+<<<<<<< HEAD
   const selectedStudent =
     siblings.find((s) => s.id === selectedStudentId) || siblings[0];
 
@@ -210,6 +215,99 @@ export default function SiblingSwitcher({
                       height: "100%",
                       borderRadius: "10px",
                       objectFit: "cover",
+=======
+    const themeStyles = theme === 'dark' ? {
+        card: '#1e293b',
+        text: '#e5e7eb',
+        muted: '#9ca3af',
+        border: '#334155',
+        hover: '#334155',
+    } : {
+        card: '#ffffff',
+        text: '#111827',
+        muted: '#6b7280',
+        border: '#e5e7eb',
+        hover: '#f8fafc',
+    };
+
+    return (
+        <div style={{ position: 'relative', zIndex: 50, flexShrink: 1, minWidth: 0 }}>
+            <button
+                onClick={() => setIsOpen(!isOpen)}
+                style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    padding: '10px 12px',
+                    borderRadius: '12px',
+                    border: `1px solid ${themeStyles.border}`,
+                    backgroundColor: themeStyles.card,
+                    color: themeStyles.text,
+                    cursor: 'pointer',
+                    fontWeight: '1000',
+                    fontSize: '13px',
+                    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+                    outline: 'none',
+                }}
+                onMouseOver={(e) => {
+                    e.currentTarget.style.transform = 'translateY(-1px)';
+                    e.currentTarget.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.1)';
+                    e.currentTarget.style.borderColor = colors.primary;
+                }}
+                onMouseOut={(e) => {
+                    e.currentTarget.style.transform = 'translateY(0)';
+                    e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.1)';
+                    e.currentTarget.style.borderColor = themeStyles.border;
+                }}
+            >
+                <span style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
+                    <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        width: '24px',
+                        height: '24px',
+                        borderRadius: '6px',
+                        backgroundColor: '#eff6ff',
+                        color: colors.primary
+                    }}>
+                        <span style={{ fontSize: '14px' }}>👨‍👩‍👧‍👦</span>
+                    </div>
+                    <span style={{ display: 'inline-block', maxWidth: '70px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        Siblings
+                    </span>
+                </span>
+                <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    style={{ transform: isOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}
+                >
+                    <polyline points="6 9 12 15 18 9" />
+                </svg>
+            </button>
+
+            {isOpen && (
+                <div
+                    style={{
+                        position: 'absolute',
+                        top: '100%',
+                        right: 0,
+                        marginTop: '8px',
+                        width: 'min(240px, calc(100vw - 24px))',
+                        backgroundColor: themeStyles.card,
+                        border: `1px solid ${themeStyles.border}`,
+                        borderRadius: '16px',
+                        boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+                        overflow: 'hidden',
+                        padding: '6px',
+>>>>>>> 92f67f0882aee1dc0c8b0ac2cf8decd6c701d545
                     }}
                   />
                 ) : (

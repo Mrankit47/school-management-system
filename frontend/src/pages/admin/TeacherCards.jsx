@@ -1,5 +1,11 @@
+<<<<<<< HEAD
 import React, { useState } from "react";
 import api from "../../services/api";
+=======
+import React, { useState } from 'react';
+import { useConfirm } from '../../context/ConfirmContext';
+import api from '../../services/api';
+>>>>>>> 92f67f0882aee1dc0c8b0ac2cf8decd6c701d545
 
 const getInitials = (name) => {
   const parts = (name || "").trim().split(/\s+/).filter(Boolean);
@@ -10,10 +16,18 @@ const getInitials = (name) => {
 };
 
 const TeacherCards = ({ teachers, refreshTeachers }) => {
+<<<<<<< HEAD
   const [viewTeacher, setViewTeacher] = useState(null);
   const [editTeacher, setEditTeacher] = useState(null);
   const [editForm, setEditForm] = useState(null);
   const [busy, setBusy] = useState(false);
+=======
+    const confirm = useConfirm();
+    const [viewTeacher, setViewTeacher] = useState(null);
+    const [editTeacher, setEditTeacher] = useState(null);
+    const [editForm, setEditForm] = useState(null);
+    const [busy, setBusy] = useState(false);
+>>>>>>> 92f67f0882aee1dc0c8b0ac2cf8decd6c701d545
 
   const closeModal = () => {
     setViewTeacher(null);
@@ -21,6 +35,7 @@ const TeacherCards = ({ teachers, refreshTeachers }) => {
     setEditForm(null);
   };
 
+<<<<<<< HEAD
   const handleDelete = async (id) => {
     if (!window.confirm("Are you sure you want to delete this teacher record?"))
       return;
@@ -34,6 +49,20 @@ const TeacherCards = ({ teachers, refreshTeachers }) => {
       setBusy(false);
     }
   };
+=======
+    const handleDelete = async (id) => {
+        if (!(await confirm('Are you sure you want to delete this teacher record?'))) return;
+        setBusy(true);
+        try {
+            await api.delete(`teachers/delete/${id}/`);
+            await refreshTeachers();
+        } catch (e) {
+            alert(e?.response?.data?.error || 'Error deleting teacher');
+        } finally {
+            setBusy(false);
+        }
+    };
+>>>>>>> 92f67f0882aee1dc0c8b0ac2cf8decd6c701d545
 
   const openEdit = (t) => {
     setEditTeacher(t);

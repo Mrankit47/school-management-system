@@ -67,6 +67,7 @@ const csvValue = (value) => {
 };
 
 const ManageStudents = () => {
+<<<<<<< HEAD
   const [students, setStudents] = useState([]);
   const [classes, setClasses] = useState([]);
   const [sections, setSections] = useState([]);
@@ -76,6 +77,18 @@ const ManageStudents = () => {
   const [viewRow, setViewRow] = useState(null);
   const [editRow, setEditRow] = useState(null);
   const [savingEdit, setSavingEdit] = useState(false);
+=======
+    const [students, setStudents] = useState([]);
+    const [classes, setClasses] = useState([]);
+    const [sections, setSections] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [busyDeleteId, setBusyDeleteId] = useState(null);
+    const [page, setPage] = useState(1);
+    const [viewRow, setViewRow] = useState(null);
+    const [editRow, setEditRow] = useState(null);
+    const [deleteRow, setDeleteRow] = useState(null);
+    const [savingEdit, setSavingEdit] = useState(false);
+>>>>>>> 92f67f0882aee1dc0c8b0ac2cf8decd6c701d545
 
   const defaultFilters = {
     activity: "",
@@ -201,10 +214,31 @@ const ManageStudents = () => {
     });
   }, [studentsWithMeta, appliedFilters]);
 
+<<<<<<< HEAD
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const currentPage = Math.min(page, totalPages);
   const start = (currentPage - 1) * PAGE_SIZE;
   const pagedRows = filtered.slice(start, start + PAGE_SIZE);
+=======
+    const handleDelete = (row) => {
+        setDeleteRow(row);
+    };
+
+    const confirmDelete = async () => {
+        if (!deleteRow) return;
+        const row = deleteRow;
+        setBusyDeleteId(row.id);
+        try {
+            await api.delete(`students/delete/${row.id}/`);
+            setDeleteRow(null);
+            await loadData();
+        } catch (e) {
+            window.alert(e?.response?.data?.error || 'Failed to delete student.');
+        } finally {
+            setBusyDeleteId(null);
+        }
+    };
+>>>>>>> 92f67f0882aee1dc0c8b0ac2cf8decd6c701d545
 
   const pageNumbers = useMemo(() => {
     const nums = [];
@@ -397,6 +431,7 @@ const ManageStudents = () => {
             </select>
           ))}
 
+<<<<<<< HEAD
           <button
             type="button"
             onClick={applySearch}
@@ -440,6 +475,155 @@ const ManageStudents = () => {
           >
             Download CSV
           </button>
+=======
+                                        <td style={td}>{s.sessionName}</td>
+                                        <td style={td}>{s.gender || 'Unknown'}</td>
+                                        <td style={td}>{formatDate(s.dob)}</td>
+                                        <td style={td}>{s.classLabel}</td>
+                                        <td style={td}>{s.sectionLabel}</td>
+                                        <td style={td}>{s.father_name || '—'}</td>
+                                        <td style={td}>{s.father_contact || '—'}</td>
+                                        <td style={td}>
+                                            <span
+                                                style={{
+                                                    padding: '4px 10px',
+                                                    borderRadius: 999,
+                                                    fontWeight: 700,
+                                                    fontSize: 11,
+                                                    color: s.activity === 'Active' ? '#166534' : '#991b1b',
+                                                    backgroundColor: s.activity === 'Active' ? '#dcfce7' : '#fee2e2',
+                                                    border: `1px solid ${s.activity === 'Active' ? '#86efac' : '#fecaca'}`,
+                                                }}
+                                            >
+                                                {s.activity}
+                                            </span>
+                                        </td>
+                                        <td style={td}>
+                                            <div style={{ display: 'flex', gap: 8 }}>
+                                                <button type="button" title="View" onClick={() => setViewRow(s)} style={{ border: '1px solid #dbeafe', background: '#eff6ff', borderRadius: 8, cursor: 'pointer', padding: '6px 9px' }}>👁️</button>
+                                                <button type="button" title="Edit" onClick={() => setEditRow({ ...s })} style={{ border: '1px solid #d1fae5', background: '#ecfdf5', borderRadius: 8, cursor: 'pointer', padding: '6px 9px' }}>✏️</button>
+                                                <button type="button" title="Delete" disabled={busyDeleteId === s.id} onClick={() => handleDelete(s)} style={{ border: '1px solid #fecaca', background: '#fff1f2', borderRadius: 8, cursor: 'pointer', padding: '6px 9px', opacity: busyDeleteId === s.id ? 0.6 : 1 }}>🗑️</button>
+                                            </div>
+                                        </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                    </div>
+                )}
+
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: 14, borderTop: '1px solid #e2e8f0', background: '#fff' }}>
+                    <button type="button" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={currentPage === 1} style={{ ...selectStyle, minWidth: 95, cursor: 'pointer', opacity: currentPage === 1 ? 0.5 : 1 }}>Previous</button>
+                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'center' }}>
+                        {pageNumbers.map((n) => (
+                            <button
+                                key={n}
+                                type="button"
+                                onClick={() => setPage(n)}
+                                style={{
+                                    width: 34,
+                                    height: 34,
+                                    borderRadius: 8,
+                                    border: n === currentPage ? '1px solid #2563eb' : '1px solid #d1d5db',
+                                    background: n === currentPage ? '#2563eb' : '#fff',
+                                    color: n === currentPage ? '#fff' : '#334155',
+                                    fontWeight: 700,
+                                    cursor: 'pointer',
+                                }}
+                            >
+                                {n}
+                            </button>
+                        ))}
+                    </div>
+                    <button type="button" onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages} style={{ ...selectStyle, minWidth: 95, cursor: 'pointer', opacity: currentPage === totalPages ? 0.5 : 1 }}>Next</button>
+                </div>
+            </div>
+
+            {viewRow && (
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16, zIndex: 50 }}>
+                    <div style={{ width: '100%', maxWidth: 540, borderRadius: 16, background: '#fff', border: '1px solid #e2e8f0', boxShadow: '0 16px 40px rgba(2,6,23,0.2)', padding: 18 }}>
+                        <h3 style={{ marginTop: 0, marginBottom: 12 }}>Student Details</h3>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, fontSize: 13 }}>
+                            <div><b>Name:</b> {viewRow.name || '—'}</div>
+                            <div><b>Admission:</b> {viewRow.admission_number || '—'}</div>
+                            <div><b>Session:</b> {viewRow.sessionName}</div>
+                            <div><b>Gender:</b> {viewRow.gender || 'Unknown'}</div>
+                            <div><b>Class:</b> {viewRow.classLabel}</div>
+                            <div><b>Section:</b> {viewRow.sectionLabel}</div>
+                            <div><b>Bus No:</b> {viewRow.bus_no || 'N/A'}</div>
+                            <div><b>Father's Name:</b> {viewRow.father_name || '—'}</div>
+                            <div><b>Mother's Name:</b> {viewRow.mother_name || '—'}</div>
+                            <div><b>Father's Contact:</b> {viewRow.father_contact || '—'}</div>
+                            <div><b>Mother's Contact:</b> {viewRow.mother_contact || '—'}</div>
+                        </div>
+                        <div style={{ marginTop: 16, textAlign: 'right' }}>
+                            <button type="button" onClick={() => setViewRow(null)} style={{ ...selectStyle, minWidth: 90, cursor: 'pointer' }}>Close</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {editRow && (
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16, zIndex: 55 }}>
+                    <form onSubmit={saveEdit} style={{ width: '100%', maxWidth: 640, borderRadius: 16, background: '#fff', border: '1px solid #e2e8f0', boxShadow: '0 16px 40px rgba(2,6,23,0.2)', padding: 18 }}>
+                        <h3 style={{ marginTop: 0, marginBottom: 12 }}>Edit Student</h3>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                            <input value={editRow.first_name || ''} onChange={(e) => setEditRow((p) => ({ ...p, first_name: e.target.value }))} placeholder="First name" style={selectStyle} />
+                            <input value={editRow.last_name || ''} onChange={(e) => setEditRow((p) => ({ ...p, last_name: e.target.value }))} placeholder="Last name" style={selectStyle} />
+                            <input value={editRow.email || ''} onChange={(e) => setEditRow((p) => ({ ...p, email: e.target.value }))} placeholder="Email" style={selectStyle} />
+                            <input value={editRow.admission_number || ''} onChange={(e) => setEditRow((p) => ({ ...p, admission_number: e.target.value }))} placeholder="Admission number" style={selectStyle} />
+                            <input value={editRow.bus_no || ''} onChange={(e) => setEditRow((p) => ({ ...p, bus_no: e.target.value }))} placeholder="Bus No." style={selectStyle} />
+                            <select value={editRow.gender || ''} onChange={(e) => setEditRow((p) => ({ ...p, gender: e.target.value }))} style={selectStyle}>
+                                <option value="">Gender</option>
+                                <option value="Male">Male</option>
+                                <option value="Female">Female</option>
+                                <option value="Other">Other</option>
+                            </select>
+                            <input value={editRow.father_name || ''} onChange={(e) => setEditRow((p) => ({ ...p, father_name: e.target.value }))} placeholder="Father's name" style={selectStyle} />
+                            <input value={editRow.mother_name || ''} onChange={(e) => setEditRow((p) => ({ ...p, mother_name: e.target.value }))} placeholder="Mother's name" style={selectStyle} />
+                            <input value={editRow.father_contact || ''} onChange={(e) => setEditRow((p) => ({ ...p, father_contact: e.target.value }))} placeholder="Father's contact" style={selectStyle} />
+                            <input value={editRow.mother_contact || ''} onChange={(e) => setEditRow((p) => ({ ...p, mother_contact: e.target.value }))} placeholder="Mother's contact" style={selectStyle} />
+                        </div>
+                        <div style={{ marginTop: 14, display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+                            <button type="button" onClick={() => setEditRow(null)} style={{ ...selectStyle, minWidth: 90, cursor: 'pointer' }}>Cancel</button>
+                            <button type="submit" disabled={savingEdit} style={{ ...selectStyle, minWidth: 90, cursor: 'pointer', background: '#1d4ed8', color: '#fff', borderColor: '#1d4ed8', opacity: savingEdit ? 0.7 : 1 }}>{savingEdit ? 'Saving...' : 'Save'}</button>
+                        </div>
+                    </form>
+                </div>
+            )}
+
+            {deleteRow && (
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16, zIndex: 60 }}>
+                    <div role="dialog" aria-modal="true" aria-labelledby="delete-student-title" style={{ width: '100%', maxWidth: 420, borderRadius: 14, background: '#fff', border: '1px solid #fee2e2', boxShadow: '0 18px 45px rgba(2,6,23,0.22)', padding: 20 }}>
+                        <div style={{ width: 42, height: 42, borderRadius: 12, background: '#fee2e2', color: '#b91c1c', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, marginBottom: 12 }}>
+                            !
+                        </div>
+                        <h3 id="delete-student-title" style={{ margin: 0, fontSize: 20, color: '#0f172a' }}>Delete student?</h3>
+                        <p style={{ margin: '8px 0 0', color: '#475569', lineHeight: 1.5 }}>
+                            This will permanently delete <strong>{deleteRow?.name || 'this student'}</strong> from student records.
+                        </p>
+                        <div style={{ marginTop: 18, display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+                            <button
+                                type="button"
+                                onClick={() => setDeleteRow(null)}
+                                disabled={busyDeleteId === deleteRow.id}
+                                style={{ ...selectStyle, minWidth: 90, cursor: 'pointer', background: '#fff', color: '#334155' }}
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                type="button"
+                                onClick={confirmDelete}
+                                disabled={busyDeleteId === deleteRow.id}
+                                style={{ ...selectStyle, minWidth: 100, cursor: 'pointer', background: '#dc2626', color: '#fff', borderColor: '#dc2626', opacity: busyDeleteId === deleteRow.id ? 0.7 : 1 }}
+                            >
+                                {busyDeleteId === deleteRow.id ? 'Deleting...' : 'Delete'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+>>>>>>> 92f67f0882aee1dc0c8b0ac2cf8decd6c701d545
         </div>
 
         <div style={{ marginTop: 14, position: "relative", maxWidth: 420 }}>

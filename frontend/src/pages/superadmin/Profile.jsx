@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import React, { useState, useEffect, useRef } from "react";
 import api from "../../services/api";
 import authService from "../../services/authService";
@@ -15,10 +16,31 @@ import {
   Loader2,
   Edit2,
 } from "lucide-react";
+=======
+import React, { useState, useEffect, useRef } from 'react';
+import { useConfirm } from '../../context/ConfirmContext';
+import api from '../../services/api';
+import authService from '../../services/authService';
+import { 
+    Camera, 
+    Trash2, 
+    Maximize2, 
+    Shield, 
+    User, 
+    Mail, 
+    Phone, 
+    Globe, 
+    CheckCircle,
+    X,
+    Loader2,
+    Edit2
+} from 'lucide-react';
+>>>>>>> 92f67f0882aee1dc0c8b0ac2cf8decd6c701d545
 
 import toast from "react-hot-toast";
 
 const SuperAdminProfile = () => {
+<<<<<<< HEAD
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
@@ -41,6 +63,104 @@ const SuperAdminProfile = () => {
       toast.error("Failed to load profile");
     } finally {
       setLoading(false);
+=======
+    const confirm = useConfirm();
+    const [profile, setProfile] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [updating, setUpdating] = useState(false);
+    const [showFullPhoto, setShowFullPhoto] = useState(false);
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+    const [editForm, setEditForm] = useState({ name: '', email: '', phone: '' });
+    const fileInputRef = useRef(null);
+
+    const fetchProfile = async () => {
+        try {
+            const res = await api.get('auth/profile/');
+            setProfile(res.data);
+            setEditForm({
+                name: res.data.name || '',
+                email: res.data.email || '',
+                phone: res.data.phone || ''
+            });
+        } catch (err) {
+            console.error('Error fetching profile:', err);
+            toast.error('Failed to load profile');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchProfile();
+    }, []);
+
+    const handlePhotoUpload = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const formData = new FormData();
+        formData.append('profile_photo', file);
+
+        setUpdating(true);
+        try {
+            await api.patch('auth/update-profile/', formData, {
+                headers: { 'Content-Type': 'multipart/form-data' }
+            });
+            toast.success('Profile photo updated');
+            fetchProfile();
+        } catch (err) {
+            console.error('Upload error:', err);
+            toast.error('Failed to upload photo');
+        } finally {
+            setUpdating(false);
+        }
+    };
+
+    const handleDeletePhoto = async () => {
+        if (!(await confirm('Delete your profile photo?'))) return;
+
+        setUpdating(true);
+        try {
+            const formData = new FormData();
+            formData.append('delete_photo', 'true');
+            await api.patch('auth/update-profile/', formData);
+            toast.success('Photo removed');
+            fetchProfile();
+        } catch (err) {
+            toast.error('Failed to remove photo');
+        } finally {
+            setUpdating(false);
+        }
+    };
+
+    const handleUpdateProfile = async (e) => {
+        e.preventDefault();
+        setUpdating(true);
+        try {
+            await api.patch('auth/update-profile/', editForm);
+            toast.success('Profile updated successfully');
+            setIsEditModalOpen(false);
+            fetchProfile();
+        } catch (err) {
+            console.error('Update error:', err);
+            toast.error(err.response?.data?.email?.[0] || 'Failed to update profile');
+        } finally {
+            setUpdating(false);
+        }
+    };
+
+    const getInitials = (name) => {
+        return (name || 'S').split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
+    };
+
+    if (loading) {
+        return (
+            <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
+                <Loader2 className="w-10 h-10 text-blue-600 animate-spin" />
+                <p className="text-slate-500 font-medium">Synchronizing Secure Profile...</p>
+            </div>
+        );
+>>>>>>> 92f67f0882aee1dc0c8b0ac2cf8decd6c701d545
     }
   };
 

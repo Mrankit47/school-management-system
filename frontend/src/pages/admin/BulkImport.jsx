@@ -1,7 +1,14 @@
+<<<<<<< HEAD
 import React, { useState, useEffect } from "react";
 import api from "../../services/api";
+=======
+import React, { useState, useEffect } from 'react';
+import { useConfirm } from '../../context/ConfirmContext';
+import api from '../../services/api';
+>>>>>>> 92f67f0882aee1dc0c8b0ac2cf8decd6c701d545
 
 const BulkImport = () => {
+    const confirm = useConfirm();
   const [file, setFile] = useState(null);
   const [importType, setImportType] = useState("student");
   const [validRows, setValidRows] = useState([]);
@@ -29,11 +36,15 @@ const BulkImport = () => {
   }, []);
 
   const handleDeleteHistory = async (logId) => {
+<<<<<<< HEAD
     if (
       !window.confirm(
         "Are you sure you want to rollback and DELETE this specific batch of imported users? This cannot be undone.",
       )
     ) {
+=======
+    if (!(await confirm("Are you sure you want to rollback and DELETE this specific batch of imported users? This cannot be undone."))) {
+>>>>>>> 92f67f0882aee1dc0c8b0ac2cf8decd6c701d545
       return;
     }
 

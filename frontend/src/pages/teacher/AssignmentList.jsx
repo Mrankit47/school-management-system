@@ -1,6 +1,13 @@
+<<<<<<< HEAD
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../../services/api";
+=======
+import React, { useEffect, useMemo, useState } from 'react';
+import { useConfirm } from '../../context/ConfirmContext';
+import { useNavigate } from 'react-router-dom';
+import api from '../../services/api';
+>>>>>>> 92f67f0882aee1dc0c8b0ac2cf8decd6c701d545
 
 const palette = {
   bg: "#f8fafc",
@@ -55,6 +62,7 @@ function getStatus(a) {
 }
 
 export default function TeacherAssignmentList() {
+<<<<<<< HEAD
   const navigate = useNavigate();
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -71,6 +79,25 @@ export default function TeacherAssignmentList() {
   const [saving, setSaving] = useState(false);
   const [viewSubmissions, setViewSubmissions] = useState([]);
   const [loadingSubmissions, setLoadingSubmissions] = useState(false);
+=======
+    const confirm = useConfirm();
+    const navigate = useNavigate();
+    const [rows, setRows] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState('');
+    const [q, setQ] = useState('');
+    const [classFilter, setClassFilter] = useState('');
+    const [subjectFilter, setSubjectFilter] = useState('');
+    const [statusFilter, setStatusFilter] = useState('');
+    const [fromDate, setFromDate] = useState('');
+    const [toDate, setToDate] = useState('');
+    const [page, setPage] = useState(1);
+    const [viewRow, setViewRow] = useState(null);
+    const [editRow, setEditRow] = useState(null);
+    const [saving, setSaving] = useState(false);
+    const [viewSubmissions, setViewSubmissions] = useState([]);
+    const [loadingSubmissions, setLoadingSubmissions] = useState(false);
+>>>>>>> 92f67f0882aee1dc0c8b0ac2cf8decd6c701d545
 
   const load = async () => {
     setLoading(true);
@@ -138,8 +165,20 @@ export default function TeacherAssignmentList() {
     setPage(1);
   }, [q, classFilter, subjectFilter, statusFilter, fromDate, toDate]);
 
+<<<<<<< HEAD
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
   const paged = filtered.slice((page - 1) * pageSize, page * pageSize);
+=======
+    const onDelete = async (id) => {
+        if (!(await confirm('Delete this assignment?'))) return;
+        try {
+            await api.delete(`assignments/${id}/`);
+            await load();
+        } catch (e) {
+            alert(e?.response?.data?.error || 'Delete failed');
+        }
+    };
+>>>>>>> 92f67f0882aee1dc0c8b0ac2cf8decd6c701d545
 
   const onDelete = async (id) => {
     if (!window.confirm("Delete this assignment?")) return;

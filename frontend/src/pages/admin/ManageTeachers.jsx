@@ -1,5 +1,11 @@
+<<<<<<< HEAD
 import React, { useEffect, useMemo, useState } from "react";
 import api from "../../services/api";
+=======
+import React, { useEffect, useMemo, useState } from 'react';
+import { useConfirm } from '../../context/ConfirmContext';
+import api from '../../services/api';
+>>>>>>> 92f67f0882aee1dc0c8b0ac2cf8decd6c701d545
 
 const PAGE_SIZE = 8;
 
@@ -27,6 +33,7 @@ const csvValue = (value) => {
 };
 
 const ManageTeachers = () => {
+<<<<<<< HEAD
   const [teachers, setTeachers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [busyDeleteId, setBusyDeleteId] = useState(null);
@@ -34,6 +41,16 @@ const ManageTeachers = () => {
   const [viewRow, setViewRow] = useState(null);
   const [editRow, setEditRow] = useState(null);
   const [savingEdit, setSavingEdit] = useState(false);
+=======
+    const confirm = useConfirm();
+    const [teachers, setTeachers] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [busyDeleteId, setBusyDeleteId] = useState(null);
+    const [page, setPage] = useState(1);
+    const [viewRow, setViewRow] = useState(null);
+    const [editRow, setEditRow] = useState(null);
+    const [savingEdit, setSavingEdit] = useState(false);
+>>>>>>> 92f67f0882aee1dc0c8b0ac2cf8decd6c701d545
 
   const defaultFilters = {
     status: "",
@@ -260,6 +277,7 @@ const ManageTeachers = () => {
     background: "#f1f5f9",
   };
 
+<<<<<<< HEAD
   const td = {
     fontSize: 14,
     color: "#0f172a",
@@ -267,6 +285,21 @@ const ManageTeachers = () => {
     borderTop: "1px solid #e2e8f0",
     whiteSpace: "nowrap",
   };
+=======
+    const handleDelete = async (row) => {
+        const ok = await confirm(`Delete teacher "${row?.name}"?`);
+        if (!ok) return;
+        setBusyDeleteId(row.id);
+        try {
+            await api.delete(`teachers/delete/${row.id}/`);
+            await loadTeachers();
+        } catch (e) {
+            window.alert(e?.response?.data?.error || 'Failed to delete teacher.');
+        } finally {
+            setBusyDeleteId(null);
+        }
+    };
+>>>>>>> 92f67f0882aee1dc0c8b0ac2cf8decd6c701d545
 
   const selectStyle = {
     minWidth: 140,

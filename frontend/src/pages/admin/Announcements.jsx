@@ -1,5 +1,11 @@
+<<<<<<< HEAD
 import React, { useCallback, useEffect, useState } from "react";
 import api from "../../services/api";
+=======
+import React, { useCallback, useEffect, useState } from 'react';
+import { useConfirm } from '../../context/ConfirmContext';
+import api from '../../services/api';
+>>>>>>> 92f67f0882aee1dc0c8b0ac2cf8decd6c701d545
 
 const emptyForm = () => ({
   title: "",
@@ -26,6 +32,7 @@ function audienceLabel(a) {
 }
 
 const AdminAnnouncements = () => {
+<<<<<<< HEAD
   const [list, setList] = useState([]);
   const [classes, setClasses] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -41,6 +48,24 @@ const AdminAnnouncements = () => {
   const [error, setError] = useState("");
   const [banner, setBanner] = useState("");
   const [notifyBusyId, setNotifyBusyId] = useState(null);
+=======
+    const confirm = useConfirm();
+    const [list, setList] = useState([]);
+    const [classes, setClasses] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [saving, setSaving] = useState(false);
+    const [editingId, setEditingId] = useState(null);
+    const [showForm, setShowForm] = useState(false);
+    const [viewRow, setViewRow] = useState(null);
+    const [form, setForm] = useState(emptyForm);
+    const [file, setFile] = useState(null);
+    const [search, setSearch] = useState('');
+    const [filterType, setFilterType] = useState('all');
+    const [activeOnly, setActiveOnly] = useState(false);
+    const [error, setError] = useState('');
+    const [banner, setBanner] = useState('');
+    const [notifyBusyId, setNotifyBusyId] = useState(null);
+>>>>>>> 92f67f0882aee1dc0c8b0ac2cf8decd6c701d545
 
   const load = useCallback(() => {
     setLoading(true);
@@ -193,6 +218,7 @@ const AdminAnnouncements = () => {
     }
   };
 
+<<<<<<< HEAD
   const remove = async (id) => {
     if (!window.confirm("Delete this announcement?")) return;
     try {
@@ -208,6 +234,19 @@ const AdminAnnouncements = () => {
       );
     }
   };
+=======
+    const remove = async (id) => {
+        if (!(await confirm('Delete this announcement?'))) return;
+        try {
+            await api.delete(`announcements/${id}/`);
+            load();
+            if (editingId === id) closeForm();
+            if (viewRow?.id === id) setViewRow(null);
+        } catch (err) {
+            setError(err.response?.data?.error || err.response?.data?.detail || 'Delete failed');
+        }
+    };
+>>>>>>> 92f67f0882aee1dc0c8b0ac2cf8decd6c701d545
 
   const resendNotifications = async (id) => {
     setError("");

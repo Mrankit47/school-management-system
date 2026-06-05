@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import React, { useEffect, useMemo, useState } from "react";
 import api from "../../services/api";
 
@@ -8,6 +9,20 @@ const AssignTeacher = () => {
   const [teachers, setTeachers] = useState([]);
   const [assignments, setAssignments] = useState([]);
   const [allSections, setAllSections] = useState([]); // Added for filtering
+=======
+import React, { useEffect, useMemo, useState } from 'react';
+import { useConfirm } from '../../context/ConfirmContext';
+import api from '../../services/api';
+
+const AssignTeacher = () => {
+    const confirm = useConfirm();
+    const [classes, setClasses] = useState([]);
+    const [subjects, setSubjects] = useState([]);
+    const [sections, setSections] = useState([]);
+    const [teachers, setTeachers] = useState([]);
+    const [assignments, setAssignments] = useState([]);
+    const [allSections, setAllSections] = useState([]); // Added for filtering
+>>>>>>> 92f67f0882aee1dc0c8b0ac2cf8decd6c701d545
 
   const [classFilter, setClassFilter] = useState("all");
   const [sectionFilter, setSectionFilter] = useState("all"); // Added for granular filtering
@@ -165,8 +180,22 @@ const AssignTeacher = () => {
       }
     }
 
+<<<<<<< HEAD
     return list;
   }, [teachers, teacherSearch, formData.subject_id, subjects]);
+=======
+    const deleteAssignment = async (id) => {
+        const ok = await confirm('Delete this assignment?');
+        if (!ok) return;
+        try {
+            await api.delete(`subjects/teacher-assignments/${id}/`);
+            setMessage('Assignment deleted successfully.');
+            await fetchAssignments();
+        } catch (err) {
+            setMessage(`Error: ${err?.response?.data?.error || 'Unable to delete assignment.'}`);
+        }
+    };
+>>>>>>> 92f67f0882aee1dc0c8b0ac2cf8decd6c701d545
 
   const resetForm = () => {
     setFormData({

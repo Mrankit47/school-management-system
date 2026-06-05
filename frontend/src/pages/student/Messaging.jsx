@@ -1,6 +1,13 @@
+<<<<<<< HEAD
 import React, { useEffect, useState, useRef } from "react";
 import api from "../../services/api";
 import { useStudent } from "../../context/StudentContext";
+=======
+import React, { useEffect, useState, useRef } from 'react';
+import { useConfirm } from '../../context/ConfirmContext';
+import api from '../../services/api';
+import { useStudent } from '../../context/StudentContext';
+>>>>>>> 92f67f0882aee1dc0c8b0ac2cf8decd6c701d545
 
 const cardStyle = {
   backgroundColor: "#fff",
@@ -43,6 +50,7 @@ function isImageAttachment(url) {
 }
 
 const StudentMessaging = () => {
+<<<<<<< HEAD
   const { selectedStudentId } = useStudent();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -50,6 +58,26 @@ const StudentMessaging = () => {
   const [activeConvId, setActiveConvId] = useState(null);
   const [activeConv, setActiveConv] = useState(null);
   const [messages, setMessages] = useState([]);
+=======
+    const confirm = useConfirm();
+    const { selectedStudentId } = useStudent();
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState('');
+    const [conversations, setConversations] = useState([]);
+    const [activeConvId, setActiveConvId] = useState(null);
+    const [activeConv, setActiveConv] = useState(null);
+    const [messages, setMessages] = useState([]);
+    
+    const [messageText, setMessageText] = useState('');
+    const [attachment, setAttachment] = useState(null);
+    const [sending, setSending] = useState(false);
+    
+    const [showNewDoubt, setShowNewDoubt] = useState(false);
+    const [teachers, setTeachers] = useState([]);
+    const [newDoubt, setNewDoubt] = useState({ teacher_id: '', subject: '', message: '' });
+    
+    const chatEndRef = useRef(null);
+>>>>>>> 92f67f0882aee1dc0c8b0ac2cf8decd6c701d545
 
   const [messageText, setMessageText] = useState("");
   const [attachment, setAttachment] = useState(null);
@@ -178,6 +206,7 @@ const StudentMessaging = () => {
       form.append("message", newDoubt.message);
       if (attachment) form.append("attachment", attachment);
 
+<<<<<<< HEAD
       const res = await api.post("communication/doubts/", form, {
         headers: { "Content-Type": "multipart/form-data" },
       });
@@ -192,6 +221,56 @@ const StudentMessaging = () => {
       setSending(false);
     }
   };
+=======
+    const handleEdit = async (msgId) => {
+        if (!editContent.trim()) return;
+        try {
+            const res = await api.patch(`communication/doubts/message/${msgId}/`, { content: editContent.trim() });
+            setMessages(messages.map(m => m.id === msgId ? res.data : m));
+            setEditingId(null);
+            setEditContent('');
+        } catch (e) {
+            alert('Failed to edit message');
+        }
+    };
+
+    const handleDelete = async (msgId) => {
+        if (!(await confirm('Delete this message?'))) return;
+        try {
+            await api.delete(`communication/doubts/message/${msgId}/`);
+            setMessages(messages.filter(m => m.id !== msgId));
+        } catch (e) {
+            alert('Failed to delete message');
+        }
+    };
+
+    const handleCreateDoubt = async () => {
+        if (!newDoubt.teacher_id || !newDoubt.message) return;
+        setSending(true);
+        try {
+            const form = new FormData();
+            form.append('teacher_id', newDoubt.teacher_id);
+            form.append('subject', newDoubt.subject);
+            form.append('message', newDoubt.message);
+            if (attachment) form.append('attachment', attachment);
+
+            const res = await api.post('communication/doubts/', form, {
+                headers: { 'Content-Type': 'multipart/form-data' },
+            });
+            setConversations([res.data, ...conversations]);
+            setActiveConvId(res.data.id);
+            setShowNewDoubt(false);
+            setNewDoubt({ teacher_id: '', subject: '', message: '' });
+            setAttachment(null);
+        } catch (e) {
+            setError('Failed to create doubt');
+        } finally {
+            setSending(false);
+        }
+    };
+
+    if (loading) return <div style={{ padding: 20, fontWeight: 900, color: '#6b7280' }}>Loading Messaging System...</div>;
+>>>>>>> 92f67f0882aee1dc0c8b0ac2cf8decd6c701d545
 
   if (loading)
     return (

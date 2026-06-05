@@ -1,5 +1,11 @@
+<<<<<<< HEAD
 import React, { useMemo, useState } from "react";
 import api from "../../services/api";
+=======
+import React, { useMemo, useState } from 'react';
+import { useConfirm } from '../../context/ConfirmContext';
+import api from '../../services/api';
+>>>>>>> 92f67f0882aee1dc0c8b0ac2cf8decd6c701d545
 
 const getInitials = (name) => {
   const parts = (name || "").trim().split(/\s+/).filter(Boolean);
@@ -10,10 +16,18 @@ const getInitials = (name) => {
 };
 
 const StudentCards = ({ students, refreshStudents }) => {
+<<<<<<< HEAD
   const [viewStudent, setViewStudent] = useState(null);
   const [editStudent, setEditStudent] = useState(null);
   const [editForm, setEditForm] = useState(null);
   const [busy, setBusy] = useState(false);
+=======
+    const confirm = useConfirm();
+    const [viewStudent, setViewStudent] = useState(null);
+    const [editStudent, setEditStudent] = useState(null);
+    const [editForm, setEditForm] = useState(null);
+    const [busy, setBusy] = useState(false);
+>>>>>>> 92f67f0882aee1dc0c8b0ac2cf8decd6c701d545
 
   const closeModal = () => {
     setViewStudent(null);
@@ -21,6 +35,7 @@ const StudentCards = ({ students, refreshStudents }) => {
     setEditForm(null);
   };
 
+<<<<<<< HEAD
   const handleDelete = async (id) => {
     if (!window.confirm("Are you sure you want to delete this student record?"))
       return;
@@ -34,6 +49,20 @@ const StudentCards = ({ students, refreshStudents }) => {
       setBusy(false);
     }
   };
+=======
+    const handleDelete = async (id) => {
+        if (!(await confirm('Are you sure you want to delete this student record?'))) return;
+        setBusy(true);
+        try {
+            await api.delete(`students/delete/${id}/`);
+            await refreshStudents();
+        } catch (e) {
+            alert('Error deleting student');
+        } finally {
+            setBusy(false);
+        }
+    };
+>>>>>>> 92f67f0882aee1dc0c8b0ac2cf8decd6c701d545
 
   const openEdit = (s) => {
     setEditStudent(s);

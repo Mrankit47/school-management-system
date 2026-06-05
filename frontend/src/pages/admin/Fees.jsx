@@ -1,5 +1,11 @@
+<<<<<<< HEAD
 import React, { useEffect, useMemo, useState } from "react";
 import api from "../../services/api";
+=======
+import React, { useEffect, useMemo, useState } from 'react';
+import { useConfirm } from '../../context/ConfirmContext';
+import api from '../../services/api';
+>>>>>>> 92f67f0882aee1dc0c8b0ac2cf8decd6c701d545
 
 const card = {
   backgroundColor: "#fff",
@@ -30,6 +36,7 @@ const labelStyle = {
 };
 
 const AdminFees = () => {
+<<<<<<< HEAD
   const [dashboard, setDashboard] = useState(null);
   const [structures, setStructures] = useState([]);
   const [mainClasses, setMainClasses] = useState([]);
@@ -40,6 +47,19 @@ const AdminFees = () => {
   const [searchStudent, setSearchStudent] = useState("");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
+=======
+    const confirm = useConfirm();
+    const [dashboard, setDashboard] = useState(null);
+    const [structures, setStructures] = useState([]);
+    const [mainClasses, setMainClasses] = useState([]);
+    const [students, setStudents] = useState([]);
+    const [studentFees, setStudentFees] = useState([]);
+    const [classFilter, setClassFilter] = useState('');
+    const [studentFilter, setStudentFilter] = useState('');
+    const [searchStudent, setSearchStudent] = useState('');
+    const [loading, setLoading] = useState(false);
+    const [message, setMessage] = useState('');
+>>>>>>> 92f67f0882aee1dc0c8b0ac2cf8decd6c701d545
 
   const [structureForm, setStructureForm] = useState({
     class_ref: "",
@@ -252,6 +272,7 @@ const AdminFees = () => {
     }
   };
 
+<<<<<<< HEAD
   const downloadReceipt = async (paymentId) => {
     try {
       const res = await api.get(`fees/admin/receipt/${paymentId}/`, {
@@ -267,6 +288,18 @@ const AdminFees = () => {
       showMsg("Receipt download failed", true);
     }
   };
+=======
+    const deleteStructure = async (id) => {
+        if (!(await confirm('Delete this fee structure? This will also remove linked student fee records for this class.'))) return;
+        try {
+            await api.delete(`fees/admin/structures/${id}/?force=1`);
+            showMsg('Deleted');
+            await loadAll();
+        } catch (err) {
+            showMsg(err.response?.data?.error || 'Delete failed', true);
+        }
+    };
+>>>>>>> 92f67f0882aee1dc0c8b0ac2cf8decd6c701d545
 
   const exportCsv = async () => {
     try {

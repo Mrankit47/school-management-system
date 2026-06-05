@@ -1,5 +1,11 @@
+<<<<<<< HEAD
 import React, { useEffect, useMemo, useState } from "react";
 import api from "../../services/api";
+=======
+import React, { useEffect, useMemo, useState } from 'react';
+import { useConfirm } from '../../context/ConfirmContext';
+import api from '../../services/api';
+>>>>>>> 92f67f0882aee1dc0c8b0ac2cf8decd6c701d545
 
 const CLASS_NAMES = [
   "Nursery",
@@ -47,6 +53,7 @@ const fieldStyle = {
 const toNum = (value) => Number(value || 0);
 
 const FinanceCards = () => {
+<<<<<<< HEAD
   const [cards, setCards] = useState([]);
   const [form, setForm] = useState(EMPTY_FORM);
   const [bulkRows, setBulkRows] = useState("");
@@ -54,6 +61,16 @@ const FinanceCards = () => {
   const [msg, setMsg] = useState("");
   const [error, setError] = useState("");
   const [uploadFile, setUploadFile] = useState(null);
+=======
+    const confirm = useConfirm();
+    const [cards, setCards] = useState([]);
+    const [form, setForm] = useState(EMPTY_FORM);
+    const [bulkRows, setBulkRows] = useState('');
+    const [loading, setLoading] = useState(false);
+    const [msg, setMsg] = useState('');
+    const [error, setError] = useState('');
+    const [uploadFile, setUploadFile] = useState(null);
+>>>>>>> 92f67f0882aee1dc0c8b0ac2cf8decd6c701d545
 
   const showMsg = (text, isError = false) => {
     if (isError) {
@@ -190,6 +207,7 @@ const FinanceCards = () => {
     }
   };
 
+<<<<<<< HEAD
   const rollbackLastChange = async () => {
     if (!window.confirm("Rollback last finance card change?")) return;
     try {
@@ -218,6 +236,29 @@ const FinanceCards = () => {
       showMsg(e?.response?.data?.error || "Delete all failed", true);
     }
   };
+=======
+    const rollbackLastChange = async () => {
+        if (!(await confirm('Rollback last finance card change?'))) return;
+        try {
+            const res = await api.post('fees/admin/class-fee-cards/rollback/');
+            showMsg(`${res.data.message}. Restored ${res.data.restored_count} card(s).`);
+            await loadCards();
+        } catch (e) {
+            showMsg(e?.response?.data?.error || 'Rollback failed', true);
+        }
+    };
+
+    const deleteAllCards = async () => {
+        if (!(await confirm('Delete all fee cards? You can restore using Rollback Last Change.'))) return;
+        try {
+            const res = await api.delete('fees/admin/class-fee-cards/delete-all/');
+            showMsg(`${res.data.message}. Deleted ${res.data.deleted_count} row(s).`);
+            await loadCards();
+        } catch (e) {
+            showMsg(e?.response?.data?.error || 'Delete all failed', true);
+        }
+    };
+>>>>>>> 92f67f0882aee1dc0c8b0ac2cf8decd6c701d545
 
   return (
     <div

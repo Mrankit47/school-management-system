@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import React, { useEffect, useState, useRef, useCallback } from "react";
 import api from "../../services/api";
 import authService from "../../services/authService";
@@ -10,6 +11,14 @@ import {
   Trash2,
   Maximize2,
 } from "lucide-react";
+=======
+import React, { useEffect, useState, useRef, useCallback } from 'react';
+import { useConfirm } from '../../context/ConfirmContext';
+import api from '../../services/api';
+import authService from '../../services/authService';
+import { toast } from 'react-hot-toast';
+import { ChevronLeft, ChevronRight, X, Image as ImageIcon, Trash2, Maximize2 } from 'lucide-react';
+>>>>>>> 92f67f0882aee1dc0c8b0ac2cf8decd6c701d545
 
 const GalleryCarousel = ({ images, token }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -103,6 +112,7 @@ const GalleryCarousel = ({ images, token }) => {
 };
 
 const GalleryPage = () => {
+<<<<<<< HEAD
   const { role } = authService.getCurrentUser();
   const isAdmin = role === "admin";
   const [images, setImages] = useState([]);
@@ -113,6 +123,19 @@ const GalleryPage = () => {
   const [previews, setPreviews] = useState([]);
   const [fileInputKey, setFileInputKey] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
+=======
+    const confirm = useConfirm();
+    const { role } = authService.getCurrentUser();
+    const isAdmin = role === 'admin';
+    const [images, setImages] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [uploading, setUploading] = useState(false);
+    const [error, setError] = useState('');
+    const [uploadForm, setUploadForm] = useState({ title: '', files: [] });
+    const [previews, setPreviews] = useState([]);
+    const [fileInputKey, setFileInputKey] = useState(0);
+    const [isDragging, setIsDragging] = useState(false);
+>>>>>>> 92f67f0882aee1dc0c8b0ac2cf8decd6c701d545
 
   const token = localStorage.getItem("access_token");
 
@@ -194,6 +217,7 @@ const GalleryPage = () => {
 
       toast.success(`Gallery updated with ${uploadForm.files.length} images!`);
 
+<<<<<<< HEAD
       // Cleanup previews
       previews.forEach((url) => URL.revokeObjectURL(url));
       setPreviews([]);
@@ -206,6 +230,20 @@ const GalleryPage = () => {
       setUploading(false);
     }
   };
+=======
+    const handleDelete = async (id) => {
+        if (!isAdmin) return;
+        const ok = await confirm('Delete this image?');
+        if (!ok) return;
+        try {
+            await api.delete(`gallery/${id}/`);
+            toast.success('Image removed');
+            setImages((prev) => prev.filter((img) => img.id !== id));
+        } catch (e) {
+            toast.error('Delete failed.');
+        }
+    };
+>>>>>>> 92f67f0882aee1dc0c8b0ac2cf8decd6c701d545
 
   const handleDelete = async (id) => {
     if (!isAdmin) return;

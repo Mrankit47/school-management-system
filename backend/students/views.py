@@ -24,6 +24,7 @@ from timetable.serializers import TimeTableEntrySerializer
 from communication.models import Notification
 from communication.serializers import NotificationSerializer
 from django.db.models import Q
+from django.db import IntegrityError, transaction
 
 
 
@@ -291,24 +292,6 @@ class AdminStudentCreateView(views.APIView):
                 from tenants.models import School
                 school = School.objects.first()
 
-            # Handle duplicate email (common for siblings)
-            email = data.get('email')
-            if email and User.objects.filter(email=email).exists():
-                email = None
-
-            user = User.objects.create_user(
-                username=get_unique_username(data['username']),
-                email=email,
-                password=data['password'],
-                # First/Last name are stored on the User model; `name` is kept for backward compatibility.
-                first_name=data.get('first_name', ''),
-                last_name=data.get('last_name', ''),
-                name=data.get('name') or f"{data.get('first_name', '')} {data.get('last_name', '')}".strip(),
-                role='student',
-                school=school
-            )
-
-
             class_section_id = data.get('class_section_id')
             if not class_section_id:
                 # Support class + section dropdown based creation
@@ -329,17 +312,38 @@ class AdminStudentCreateView(views.APIView):
             if not class_section:
                 return Response({"error": "Invalid class_section_id"}, status=status.HTTP_400_BAD_REQUEST)
 
+            email = (data.get('email') or '').strip().lower()
+            if email and User.objects.filter(email__iexact=email).exists():
+                return Response({"error": "A student with this email already exists."}, status=status.HTTP_409_CONFLICT)
+
+            first_name = (data.get('first_name') or '').strip()
+            last_name = (data.get('last_name') or '').strip()
+            father_contact = (data.get('father_contact') or '').strip()
+            father_name = data.get('father_name')
+            dob = data.get('dob')
+
+            if school and first_name and last_name and father_contact and dob:
+                duplicate_profile = StudentProfile.objects.filter(
+                    school=school,
+                    user__first_name__iexact=first_name,
+                    user__last_name__iexact=last_name,
+                    father_contact=father_contact,
+                    dob=dob,
+                ).exists()
+                if duplicate_profile:
+                    return Response(
+                        {"error": "This student already exists. Please refresh the page before submitting again."},
+                        status=status.HTTP_409_CONFLICT,
+                    )
+
             roll_number = (data.get('roll_number') or '').strip() or _next_roll_number_for_class_section(class_section)
 
             admission_number = (data.get('admission_number') or '').strip()
             if admission_number and '-' in admission_number:
                 admission_number = admission_number.split('-', 1)[1]
-            
+
             admission_number = admission_number or _next_admission_number(school)
 
-            # Link to Parent (for Sibling logic)
-            father_contact = data.get('father_contact')
-            father_name = data.get('father_name')
             parent_obj = None
             if father_contact:
                 parent_obj, _ = Parent.objects.get_or_create(
@@ -347,30 +351,47 @@ class AdminStudentCreateView(views.APIView):
                     defaults={'name': father_name}
                 )
 
-            profile = StudentProfile.objects.create(
-                user=user,
-                school=school,
-                admission_number=admission_number,
-                roll_number=roll_number,
-                rfid_code=data.get('rfid_code'),
-                class_section_id=class_section_id,
-                parent=parent_obj,
-                dob=data.get('dob'),
-                gender=data.get('gender'),
-                blood_group=data.get('blood_group'),
-                father_name=father_name,
-                mother_name=data.get('mother_name'),
-                father_contact=father_contact,
-                mother_contact=data.get('mother_contact'),
-                bus_no=data.get('bus_no'),
-                address=data.get('address'),
-                date_of_admission=data.get('date_of_admission'),
-                category=data.get('category'),
-            )
+            with transaction.atomic():
+                user = User.objects.create_user(
+                    username=get_unique_username(data['username']),
+                    email=email or None,
+                    password=data['password'],
+                    # First/Last name are stored on the User model; `name` is kept for backward compatibility.
+                    first_name=first_name,
+                    last_name=last_name,
+                    name=data.get('name') or f"{first_name} {last_name}".strip(),
+                    role='student',
+                    school=school
+                )
+
+                StudentProfile.objects.create(
+                    user=user,
+                    school=school,
+                    admission_number=admission_number,
+                    roll_number=roll_number,
+                    rfid_code=data.get('rfid_code'),
+                    class_section_id=class_section_id,
+                    parent=parent_obj,
+                    dob=dob,
+                    gender=data.get('gender'),
+                    blood_group=data.get('blood_group'),
+                    father_name=father_name,
+                    mother_name=data.get('mother_name'),
+                    father_contact=father_contact,
+                    mother_contact=data.get('mother_contact'),
+                    bus_no=data.get('bus_no'),
+                    address=data.get('address'),
+                    date_of_admission=data.get('date_of_admission'),
+                    category=data.get('category'),
+                )
             return Response({"message": "Student created successfully"}, status=status.HTTP_201_CREATED)
+        except IntegrityError:
+            return Response(
+                {"error": "A student with the same admission or roll number already exists. Please refresh and try again."},
+                status=status.HTTP_409_CONFLICT,
+            )
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
-
 class StudentProfileView(views.APIView):
     permission_classes = [permissions.IsAuthenticated]
 
@@ -667,3 +688,5 @@ class SiblingDashboardView(views.APIView):
             "notifications": notices_data,
             "exams": exams_data,
         })
+
+

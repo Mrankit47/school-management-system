@@ -1,9 +1,20 @@
+<<<<<<< HEAD
 import React, { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import api from "../../services/api";
 
 const SubjectDetails = () => {
   const { subjectId } = useParams();
+=======
+import React, { useEffect, useMemo, useState } from 'react';
+import { useConfirm } from '../../context/ConfirmContext';
+import { useParams } from 'react-router-dom';
+import api from '../../services/api';
+
+const SubjectDetails = () => {
+    const confirm = useConfirm();
+    const { subjectId } = useParams();
+>>>>>>> 92f67f0882aee1dc0c8b0ac2cf8decd6c701d545
 
   const [loading, setLoading] = useState(false);
   const [subject, setSubject] = useState(null);
@@ -134,6 +145,7 @@ const SubjectDetails = () => {
         file_name: assignmentForm.file_name || null,
       };
 
+<<<<<<< HEAD
       await api.post(`subjects/${subjectId}/assignments/`, payload);
       setAssignmentModalOpen(false);
       resetAssignmentForm();
@@ -142,6 +154,114 @@ const SubjectDetails = () => {
       alert(err?.response?.data?.error || "Error saving assignment");
     }
   };
+=======
+    const readFileAsBase64 = (file) => {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = reject;
+            reader.readAsDataURL(file);
+        });
+    };
+
+    const submitNote = async (e) => {
+        e.preventDefault();
+        try {
+            const payload = {
+                title: noteForm.title,
+                description: noteForm.description || null,
+                link_url: noteForm.link_url || null,
+                file_base64: noteForm.file_base64 || null,
+                file_name: noteForm.file_name || null,
+            };
+
+            await api.post(`subjects/${subjectId}/notes/`, payload);
+            setNoteModalOpen(false);
+            resetNoteForm();
+            await fetchSubjectDetails();
+        } catch (err) {
+            alert(err?.response?.data?.error || 'Error saving note');
+        }
+    };
+
+    const submitAssignment = async (e) => {
+        e.preventDefault();
+        try {
+            const payload = {
+                title: assignmentForm.title,
+                due_date: assignmentForm.due_date,
+                file_base64: assignmentForm.file_base64 || null,
+                file_name: assignmentForm.file_name || null,
+            };
+
+            await api.post(`subjects/${subjectId}/assignments/`, payload);
+            setAssignmentModalOpen(false);
+            resetAssignmentForm();
+            await fetchSubjectDetails();
+        } catch (err) {
+            alert(err?.response?.data?.error || 'Error saving assignment');
+        }
+    };
+
+    const teacherBadges = useMemo(() => {
+        const list = subject?.teachers || [];
+        if (!list.length) return null;
+        return (
+            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginTop: '10px' }}>
+                {list.map((t) => (
+                    <span
+                        key={t.id}
+                        style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '8px',
+                            padding: '7px 10px',
+                            borderRadius: '999px',
+                            backgroundColor: '#eef2ff',
+                            color: '#3730a3',
+                            fontWeight: 900,
+                            fontSize: '12px',
+                        }}
+                    >
+                        {t.name}
+                    </span>
+                ))}
+            </div>
+        );
+    }, [subject]);
+
+    const marksByStudent = useMemo(() => {
+        const map = new Map();
+        (marks || []).forEach((m) => {
+            const key = m.student_id;
+            if (!map.has(key)) map.set(key, { studentId: m.student_id, studentName: m.student_name, rows: [] });
+            map.get(key).rows.push(m);
+        });
+        return Array.from(map.values());
+    }, [marks]);
+
+    const deleteNote = async (noteId) => {
+        const ok = await confirm('Delete this note?');
+        if (!ok) return;
+        try {
+            await api.delete(`subjects/notes/${noteId}/`);
+            await fetchSubjectDetails();
+        } catch (e) {
+            alert('Error deleting note');
+        }
+    };
+
+    const deleteAssignment = async (assignmentId) => {
+        const ok = await confirm('Delete this assignment?');
+        if (!ok) return;
+        try {
+            await api.delete(`subjects/assignments/${assignmentId}/`);
+            await fetchSubjectDetails();
+        } catch (e) {
+            alert('Error deleting assignment');
+        }
+    };
+>>>>>>> 92f67f0882aee1dc0c8b0ac2cf8decd6c701d545
 
   const teacherBadges = useMemo(() => {
     const list = subject?.teachers || [];
