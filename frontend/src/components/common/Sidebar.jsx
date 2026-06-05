@@ -1,3 +1,17 @@
+<<<<<<< HEAD
+import React, { useState, useEffect } from "react";
+import { Link, useLocation } from "react-router-dom";
+import authService from "../../services/authService";
+import { useLayout } from "../../context/LayoutContext";
+
+const Sidebar = () => {
+  const location = useLocation();
+  const { role, name } = authService.getCurrentUser();
+  const [openMenus, setOpenMenus] = useState({});
+  const { sidebarOpen, closeSidebar } = useLayout();
+
+  if (!role) return null;
+=======
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import authService from '../../services/authService';
@@ -8,118 +22,219 @@ const Sidebar = () => {
     const { role, name } = authService.getCurrentUser();
     const [openMenus, setOpenMenus] = useState({});
     const { isSidebarOpen, closeSidebar } = useUIStore();
+>>>>>>> 92f67f0882aee1dc0c8b0ac2cf8decd6c701d545
 
-    const studentLinks = [
-        { path: '/student/dashboard', label: 'Dashboard', icon: '📊' },
-        { 
-            label: 'Academic', 
-            icon: '🎓',
-            subLinks: [
-                { path: '/student/assignments', label: 'Assignment' },
-                { path: '/student/attendance', label: 'Attendance Status' },
-                { path: '/student/exams', label: 'My Exams' },
-                { 
-                    label: 'Exam Result',
-                    subLinks: [
-                        { path: '/student/results/exam', label: 'Main Exam Result' },
-                        { path: '/student/results/mst', label: 'MST Result' }
-                    ]
-                },
-                { path: '/student/timetable', label: 'Time Table' }
-            ]
-        },
+  const studentLinks = [
+    { path: "/student/dashboard", label: "Dashboard", icon: "📊" },
+    {
+      label: "Academic",
+      icon: "🎓",
+      subLinks: [
+        { path: "/student/assignments", label: "Assignment" },
+        { path: "/student/attendance", label: "Attendance Status" },
+        { path: "/student/exams", label: "My Exams" },
         {
-            label: 'Account',
-            icon: '💰',
-            subLinks: [
-                { path: '/student/fees', label: 'Fees Receipt' },
-                { path: '/student/ledger', label: 'Student Ledgers' },
-                { path: '/student/finance-cards', label: 'Class Fee Cards' }
-            ]
+          label: "Exam Result",
+          subLinks: [
+            { path: "/student/results/exam", label: "Main Exam Result" },
+            { path: "/student/results/mst", label: "MST Result" },
+          ],
         },
-        {
-            label: 'General Info',
-            icon: 'ℹ️',
-            subLinks: [
-                { path: '/student/notifications', label: 'Notifications' },
-                { path: '/student/syllabus', label: 'Syllabus' },
-                { path: '/student/Holidays', label: 'Holidays' },
-                { path: '/student/messaging', label: 'Messaging' },
-            ]
-        },
-        { path: '/student/gallery', label: 'Gallery', icon: '🖼️' },
-        { path: '/student/shops', label: 'Shop Locations', icon: '🏪' },
-        { path: '/student/profile', label: 'Your Profile', icon: '🧑🏻‍🎓' },
-    ];
+        { path: "/student/timetable", label: "Time Table" },
+      ],
+    },
+    {
+      label: "Account",
+      icon: "💰",
+      subLinks: [
+        { path: "/student/fees", label: "Fees Receipt" },
+        { path: "/student/ledger", label: "Student Ledgers" },
+        { path: "/student/finance-cards", label: "Class Fee Cards" },
+      ],
+    },
+    {
+      label: "General Info",
+      icon: "ℹ️",
+      subLinks: [
+        { path: "/student/notifications", label: "Notifications" },
+        { path: "/student/syllabus", label: "Syllabus" },
+        { path: "/student/Holidays", label: "Holidays" },
+        { path: "/student/messaging", label: "Messaging" },
+      ],
+    },
+    { path: "/student/gallery", label: "Gallery", icon: "🖼️" },
+    { path: "/student/shops", label: "Shop Locations", icon: "🏪" },
+    { path: "/student/profile", label: "Your Profile", icon: "🧑🏻‍🎓" },
+  ];
 
-    const teacherLinks = [
-        { path: '/teacher/dashboard', label: 'Dashboard', icon: '📊' },
-        { path: '/teacher/attendance', label: 'Mark Attendance', icon: '✅' },
-        { path: '/teacher/upload-result', label: 'Upload Results', icon: '📤' },
-        { path: '/teacher/assignment', label: 'Create Assignment', icon: '➕' },
-        { path: '/teacher/assignments', label: 'Assignment List', icon: '📚' },
-        { path: '/teacher/syllabus', label: 'Syllabus', icon: '📄' },
-        { path: '/teacher/students', label: 'My Students', icon: '👥' },
-        { path: '/teacher/timetable', label: 'Time Table', icon: '📅' },
-        { path: '/teacher/messaging', label: 'Messaging', icon: '💬' },
-        { path: '/teacher/gallery', label: 'Gallery', icon: '🖼️' },
-        { path: '/teacher/notifications', label: 'Notifications', icon: '🔔' },
-        { path: '/teacher/Holidays', label: 'Holidays', icon: '🏝️' },
-        { path: '/teacher/Profile', label: 'Profile', icon: '🧑🏻‍💻' },
-    ];
+  const teacherLinks = [
+    { path: "/teacher/dashboard", label: "Dashboard", icon: "📊" },
+    { path: "/teacher/attendance", label: "Mark Attendance", icon: "✅" },
+    { path: "/teacher/upload-result", label: "Upload Results", icon: "📤" },
+    { path: "/teacher/assignment", label: "Create Assignment", icon: "➕" },
+    { path: "/teacher/assignments", label: "Assignment List", icon: "📚" },
+    { path: "/teacher/syllabus", label: "Syllabus", icon: "📄" },
+    { path: "/teacher/students", label: "My Students", icon: "👥" },
+    { path: "/teacher/timetable", label: "Time Table", icon: "📅" },
+    { path: "/teacher/messaging", label: "Messaging", icon: "💬" },
+    { path: "/teacher/gallery", label: "Gallery", icon: "🖼️" },
+    { path: "/teacher/notifications", label: "Notifications", icon: "🔔" },
+    { path: "/teacher/Holidays", label: "Holidays", icon: "🏝️" },
+    { path: "/teacher/Profile", label: "Profile", icon: "🧑🏻‍💻" },
+  ];
 
-    const adminLinks = [
-        { path: '/admin/dashboard', label: 'Dashboard', icon: '📊' },
-        { 
-            label: 'User Management', 
-            icon: '👥',
-            subLinks: [
-                { path: '/admin/add-teacher', label: 'Add Teacher' },
-                { path: '/admin/add-student', label: 'Add Student' },
-                { path: '/admin/manage-teachers', label: 'Teacher List' },
-                { path: '/admin/manage-students', label: 'Student List' },
-                { path: '/admin/bulk-import', label: 'Bulk Import Data' },
-            ]
-        },
-        {
-            label: 'Academic',
-            icon: '🎓',
-            subLinks: [
-                { path: '/admin/classes', label: 'Classes & Sections' },
-                { path: '/admin/subjects', label: 'Subjects' },
-                { path: '/admin/assign-teacher', label: 'Assign Teacher' },
-                { path: '/admin/exams', label: 'Exams' },
-                { path: '/admin/publish-results', label: 'Publish Results' },
-                { path: '/admin/announcements', label: 'Announcements' },
-                { path: '/admin/syllabus', label: 'Syllabus' },
-                { path: '/admin/holidays', label: 'Holidays' },
-                { path: '/admin/timetable', label: 'Time Table' },
-                { path: '/admin/messaging', label: 'Monitor Doubts' },
-            ]
-        },
+  const adminLinks = [
+    { path: "/admin/dashboard", label: "Dashboard", icon: "📊" },
+    {
+      label: "User Management",
+      icon: "👥",
+      subLinks: [
+        { path: "/admin/add-teacher", label: "Add Teacher" },
+        { path: "/admin/add-student", label: "Add Student" },
+        { path: "/admin/manage-teachers", label: "Teacher List" },
+        { path: "/admin/manage-students", label: "Student List" },
+        { path: "/admin/bulk-import", label: "Bulk Import Data" },
+      ],
+    },
+    {
+      label: "Academic",
+      icon: "🎓",
+      subLinks: [
+        { path: "/admin/classes", label: "Classes & Sections" },
+        { path: "/admin/subjects", label: "Subjects" },
+        { path: "/admin/assign-teacher", label: "Assign Teacher" },
+        { path: "/admin/exams", label: "Exams" },
+        { path: "/admin/publish-results", label: "Publish Results" },
+        { path: "/admin/announcements", label: "Announcements" },
+        { path: "/admin/syllabus", label: "Syllabus" },
+        { path: "/admin/holidays", label: "Holidays" },
+        { path: "/admin/timetable", label: "Time Table" },
+        { path: "/admin/messaging", label: "Monitor Doubts" },
+      ],
+    },
 
-        { path: '/admin/gallery', label: 'Gallery', icon: '🖼️' },
-        {
-            label: 'Finance',
-            icon: '💰',
-            subLinks: [
-                { path: '/admin/fees', label: 'Fee Management' },
-                { path: '/admin/finance-cards', label: 'Fee Cards' },
-            ]
-        },
-        { path: '/admin/reports', label: 'Reports', icon: '📈' },
-        { path: '/admin/shops', label: 'Shop Locations', icon: '🏪' },
-    ];
+    { path: "/admin/gallery", label: "Gallery", icon: "🖼️" },
+    {
+      label: "Finance",
+      icon: "💰",
+      subLinks: [
+        { path: "/admin/fees", label: "Fee Management" },
+        { path: "/admin/finance-cards", label: "Fee Cards" },
+      ],
+    },
+    { path: "/admin/reports", label: "Reports", icon: "📈" },
+    { path: "/admin/shops", label: "Shop Locations", icon: "🏪" },
+  ];
 
-    const links = role === 'student' ? studentLinks : (role === 'teacher' ? teacherLinks : adminLinks);
+  const links =
+    role === "student"
+      ? studentLinks
+      : role === "teacher"
+        ? teacherLinks
+        : adminLinks;
 
-    const toggleMenu = (label) => {
-        setOpenMenus((prev) => ({
-            ...prev,
-            [label]: !prev[label],
-        }));
+  const toggleMenu = (label) => {
+    setOpenMenus((prev) => ({
+      ...prev,
+      [label]: !prev[label],
+    }));
+  };
+
+  useEffect(() => {
+    const findActiveParentLabels = (menuItems, currentPath) => {
+      let activeLabels = {};
+      const search = (items, path) => {
+        for (const item of items) {
+          if (item.subLinks) {
+            const hasActiveChild = search(item.subLinks, path);
+            if (hasActiveChild) {
+              activeLabels[item.label] = true;
+              return true;
+            }
+          } else if (item.path === path) {
+            return true;
+          }
+        }
+        return false;
+      };
+      search(menuItems, currentPath);
+      return activeLabels;
     };
 
+<<<<<<< HEAD
+    const initialOpenMenus = findActiveParentLabels(links, location.pathname);
+    setOpenMenus(() => ({
+      ...initialOpenMenus,
+    }));
+  }, [location.pathname, role]);
+
+  useEffect(() => {
+    closeSidebar();
+  }, [location.pathname, closeSidebar]);
+
+  const NavItem = ({ item, depth = 0 }) => {
+    const hasSubLinks = item.subLinks && item.subLinks.length > 0;
+    const isOpen = openMenus[item.label];
+    const isActive = location.pathname === item.path;
+
+    const isChildActive =
+      hasSubLinks &&
+      item.subLinks.some(
+        (sub) =>
+          sub.path === location.pathname ||
+          (sub.subLinks &&
+            sub.subLinks.some((ss) => ss.path === location.pathname)),
+      );
+
+    return (
+      <div className="flex flex-col">
+        {item.path ? (
+          <Link
+            to={item.path}
+            onClick={closeSidebar}
+            className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 group ${
+              isActive
+                ? "bg-school-navy text-white shadow-md shadow-school-navy/10"
+                : "text-school-body hover:bg-slate-50 hover:text-school-navy"
+            }`}
+            style={{ marginLeft: `${depth * 12}px` }}
+          >
+            {item.icon && <span className="text-lg shrink-0">{item.icon}</span>}
+            <span className="truncate">{item.label}</span>
+            {isActive && (
+              <div className="ml-auto w-1.5 h-1.5 rounded-full bg-white opacity-50 shrink-0"></div>
+            )}
+          </Link>
+        ) : (
+          <button
+            type="button"
+            onClick={() => toggleMenu(item.label, depth)}
+            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 group ${
+              isChildActive
+                ? "text-school-navy"
+                : "text-school-body hover:bg-slate-50 hover:text-school-navy"
+            }`}
+            style={{ marginLeft: `${depth * 12}px` }}
+          >
+            {item.icon && <span className="text-lg shrink-0">{item.icon}</span>}
+            <span className="truncate text-left">{item.label}</span>
+            <span
+              className={`ml-auto text-[10px] shrink-0 transition-transform duration-200 ${isOpen || isChildActive ? "rotate-180" : ""}`}
+            >
+              ▼
+            </span>
+          </button>
+        )}
+
+        {isOpen && hasSubLinks && (
+          <div className="mt-1 space-y-1">
+            {item.subLinks.map((sub, i) => (
+              <NavItem key={i} item={sub} depth={depth + 1} />
+            ))}
+          </div>
+        )}
+      </div>
+=======
     // Initialize open menus based on current location
     useEffect(() => {
         if (!role) return;
@@ -256,7 +371,61 @@ const Sidebar = () => {
                 </div>
             </aside>
         </>
+>>>>>>> 92f67f0882aee1dc0c8b0ac2cf8decd6c701d545
     );
+  };
+
+  return (
+    <aside
+      className={`
+        fixed lg:static inset-y-0 left-0 z-50
+        w-[min(280px,85vw)] lg:w-64
+        bg-white border-r border-slate-200
+        h-full flex flex-col transition-transform duration-300 ease-out
+        lg:translate-x-0
+        ${sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}
+      `}
+    >
+      <div className="flex items-center justify-between p-4 border-b border-slate-100 lg:hidden">
+        <span className="text-sm font-black text-school-navy uppercase tracking-wider">
+          Menu
+        </span>
+        <button
+          type="button"
+          onClick={closeSidebar}
+          className="w-9 h-9 rounded-lg bg-slate-100 text-slate-600 font-bold"
+          aria-label="Close menu"
+        >
+          ✕
+        </button>
+      </div>
+
+      <nav className="flex-1 overflow-y-auto p-4 space-y-1 custom-scrollbar scrollbar-hide">
+        <p className="px-3 text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-4 mt-2">
+          Main Menu
+        </p>
+        {links.map((link, i) => (
+          <NavItem key={i} item={link} />
+        ))}
+      </nav>
+
+      <div className="p-4 border-t border-slate-50 bg-slate-50/50">
+        <div className="flex items-center gap-3 p-2 rounded-xl">
+          <div className="w-8 h-8 rounded-lg bg-school-blue/10 flex items-center justify-center text-school-blue font-bold text-xs uppercase shrink-0">
+            {name?.[0] || "U"}
+          </div>
+          <div className="flex flex-col min-w-0">
+            <span className="text-xs font-bold text-school-text truncate">
+              {name || "User"}
+            </span>
+            <span className="text-[10px] font-semibold text-slate-400 uppercase">
+              {role}
+            </span>
+          </div>
+        </div>
+      </div>
+    </aside>
+  );
 };
 
 export default Sidebar;

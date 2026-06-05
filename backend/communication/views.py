@@ -361,6 +361,8 @@ class DoubtConversationListView(views.APIView):
                 qs = qs.filter(student__class_section_id=class_section_id)
         elif request.user.role == 'admin' or request.user.is_superuser:
             qs = Conversation.objects.all()
+            if not request.user.is_superuser and getattr(request.user, 'school', None):
+                qs = qs.filter(student__school=request.user.school)
             class_section_id = request.query_params.get('class_section_id')
             if class_section_id:
                 qs = qs.filter(student__class_section_id=class_section_id)
@@ -447,6 +449,9 @@ class DoubtConversationDetailView(views.APIView):
                 return Response({'error': 'Access denied'}, status=status.HTTP_403_FORBIDDEN)
         if request.user.role == 'teacher' and conv.teacher.user_id != request.user.id:
             return Response({'error': 'Access denied'}, status=status.HTTP_403_FORBIDDEN)
+        if (request.user.role == 'admin' or request.user.role == 'school_admin') and not request.user.is_superuser:
+            if getattr(request.user, 'school', None) and conv.student.school != request.user.school:
+                return Response({'error': 'Access denied'}, status=status.HTTP_403_FORBIDDEN)
 
         messages = conv.messages.all().order_by('created_at')
         

@@ -1,5 +1,5 @@
-import { create } from 'zustand';
-import schoolService from '../services/schoolService';
+import { create } from "zustand";
+import schoolService from "../services/schoolService";
 
 /**
  * Zustand store to manage the current school/tenant context globally.
@@ -21,10 +21,11 @@ const useSchoolStore = create((set) => ({
       const schoolData = await schoolService.getSchoolInfo(schoolId);
       set({ school: schoolData, loading: false });
     } catch (err) {
-      set({ 
-        error: err.response?.data?.detail || 'Failed to fetch school information.', 
+      set({
+        error:
+          err.response?.data?.detail || "Failed to fetch school information.",
         loading: false,
-        school: null 
+        school: null,
       });
     }
   },

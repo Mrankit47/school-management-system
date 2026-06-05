@@ -8,7 +8,9 @@
   background-color: #ffffff;
 }
 
-html, body, #root {
+html,
+body,
+#root {
   height: 100%;
   margin: 0;
   padding: 0;
@@ -19,7 +21,7 @@ html {
 }
 
 body {
-  font-family: 'Inter', sans-serif;
+  font-family: "Inter", sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   overflow-x: hidden;
@@ -29,6 +31,192 @@ body {
   box-sizing: border-box;
 }
 
+<<<<<<< HEAD
+img,
+video,
+svg {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Page shell inside dashboard layout */
+.page-root {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.page-root > div {
+  max-width: 100%;
+  min-width: 0;
+}
+
+/* Horizontal scroll for wide tables — wrap <table> in .table-scroll */
+.table-scroll {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.table-scroll > table {
+  min-width: min(100%, 520px);
+}
+
+/* ─── Responsive grid utilities (work alongside inline grid styles) ─── */
+
+/* 12-column dashboard grids — stack children on tablet/mobile */
+.rg-12 > * {
+  min-width: 0;
+}
+
+@media (max-width: 1023px) {
+  .rg-12 {
+    grid-template-columns: repeat(6, minmax(0, 1fr)) !important;
+  }
+
+  .rg-12 > * {
+    grid-column: span 6 !important;
+  }
+}
+
+@media (max-width: 639px) {
+  .rg-12 {
+    grid-template-columns: 1fr !important;
+  }
+
+  .rg-12 > * {
+    grid-column: 1 / -1 !important;
+  }
+}
+
+/* 4-column stat rows */
+@media (max-width: 767px) {
+  .rg-4 {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+
+@media (max-width: 479px) {
+  .rg-4 {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* Two equal columns (forms, split panels) */
+@media (max-width: 639px) {
+  .rg-2,
+  .rg-split-2 {
+    grid-template-columns: 1fr !important;
+  }
+
+  .rg-split-2 > * {
+    grid-column: 1 / -1 !important;
+  }
+}
+
+/* 7fr / 5fr or similar asymmetric splits */
+@media (max-width: 1023px) {
+  .rg-split-asymmetric {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* Messaging / master-detail: fixed sidebar + main */
+@media (max-width: 1023px) {
+  .rg-sidebar-main {
+    grid-template-columns: 1fr !important;
+    grid-template-rows: auto 1fr;
+    height: auto !important;
+    min-height: 50vh;
+    max-height: none;
+  }
+}
+
+/* 3-column grids */
+@media (max-width: 767px) {
+  .rg-3 {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+
+@media (max-width: 479px) {
+  .rg-3 {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* Multi-column admin toolbars (4+ fixed columns) */
+@media (max-width: 1023px) {
+  .rg-toolbar {
+    grid-template-columns: 1fr 1fr !important;
+  }
+}
+
+@media (max-width: 639px) {
+  .rg-toolbar {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* Complex admin exam layout */
+@media (max-width: 1023px) {
+  .rg-exam-layout {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* Calendar week rows — allow horizontal scroll on very small screens */
+@media (max-width: 479px) {
+  .rg-calendar {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    grid-template-columns: repeat(7, minmax(36px, 1fr)) !important;
+  }
+}
+
+/* Tighten auto-fit minmax on small screens */
+@media (max-width: 479px) {
+  .rg-autofit,
+  .rg-autofit-sm {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+@media (max-width: 639px) {
+  .rg-autofit-sm {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+
+/* Inline-styled dashboard page shells */
+.dashboard-shell {
+  padding: 12px !important;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+@media (min-width: 640px) {
+  .dashboard-shell {
+    padding: 16px !important;
+  }
+}
+
+@media (min-width: 768px) {
+  .dashboard-shell {
+    padding: 20px !important;
+  }
+}
+
+/* Modals and fixed panels */
+.modal-panel {
+  width: 100%;
+  max-width: min(100vw - 2rem, 32rem);
+  margin-left: auto;
+  margin-right: auto;
+=======
 img, video, canvas, svg {
   max-width: 100%;
 }
@@ -40,12 +228,19 @@ button, input, select, textarea {
 
 table {
   max-width: 100%;
+>>>>>>> 92f67f0882aee1dc0c8b0ac2cf8decd6c701d545
 }
 
 /* Custom Animations for Premium UI */
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .animate-in {
@@ -62,14 +257,26 @@ table {
 }
 
 /* Hide scrollbar for Chrome, Safari and Opera */
-.no-scrollbar::-webkit-scrollbar {
+.no-scrollbar::-webkit-scrollbar,
+.scrollbar-hide::-webkit-scrollbar {
   display: none;
 }
 
 /* Hide scrollbar for IE, Edge and Firefox */
-.no-scrollbar {
-  -ms-overflow-style: none;  /* IE and Edge */
-  scrollbar-width: none;  /* Firefox */
+.no-scrollbar,
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 3px;
 }
 
 /* Mobile resilience for the legacy inline-styled dashboard pages. */
