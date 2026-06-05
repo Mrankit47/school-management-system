@@ -37,7 +37,7 @@ const StudentFinanceCards = () => {
 
   if (loading)
     return (
-      <div style={{ padding: 24, color: "#6b7280" }}>
+      <div className="dashboard-shell" style={{ padding: 24, color: "#6b7280" }}>
         Loading finance cards...
       </div>
     );
@@ -251,7 +251,7 @@ const StudentFinanceCards = () => {
       <div style={{ ...panel, marginTop: 18, padding: 12 }}>
         <h3 style={{ margin: "0 0 10px", color: "#111827" }}>All Fee Cards</h3>
         <div style={{ overflowX: "auto" }}>
-          <table
+          <div className="table-scroll"><table
             style={{
               width: "100%",
               borderCollapse: "separate",
@@ -321,7 +321,7 @@ const StudentFinanceCards = () => {
                 </tr>
               ))}
             </tbody>
-          </table>
+          </table></div>
         </div>
       </div>
       {cards.length === 0 && (

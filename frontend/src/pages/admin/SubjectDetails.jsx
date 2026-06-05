@@ -586,7 +586,7 @@ const SubjectDetails = () => {
                     No marks found for this subject yet (from Exams Results).
                   </p>
                 ) : (
-                  <table
+                  <div className="table-scroll"><table
                     style={{
                       width: "100%",
                       borderCollapse: "collapse",
@@ -634,7 +634,7 @@ const SubjectDetails = () => {
                         )),
                       )}
                     </tbody>
-                  </table>
+                  </table></div>
                 )}
               </div>
             </div>

@@ -259,7 +259,7 @@ const Fees = () => {
       </div>
 
       <div
-        style={{
+        className="rg-autofit-sm" style={{
           display: "grid",
           gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))",
           gap: "12px",
@@ -442,7 +442,7 @@ const Fees = () => {
               </div>
 
               <div
-                style={{
+                className="rg-autofit-sm" style={{
                   display: "grid",
                   gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))",
                   gap: "12px",
@@ -551,7 +551,7 @@ const Fees = () => {
                     Pay Fees
                   </div>
                   <div
-                    style={{
+                    className="rg-autofit-sm" style={{
                       display: "grid",
                       gridTemplateColumns:
                         "repeat(auto-fit, minmax(170px, 1fr))",
@@ -706,7 +706,7 @@ const Fees = () => {
                   </p>
                 ) : (
                   <div style={{ overflowX: "auto" }}>
-                    <table
+                    <div className="table-scroll"><table
                       style={{
                         width: "100%",
                         borderCollapse: "collapse",
@@ -766,7 +766,7 @@ const Fees = () => {
                           </tr>
                         ))}
                       </tbody>
-                    </table>
+                    </table></div>
                   </div>
                 )}
               </div>
@@ -805,7 +805,7 @@ const Fees = () => {
                   </p>
                 ) : (
                   <div style={{ overflowX: "auto" }}>
-                    <table
+                    <div className="table-scroll"><table
                       style={{
                         width: "100%",
                         borderCollapse: "collapse",
@@ -879,7 +879,7 @@ const Fees = () => {
                           );
                         })}
                       </tbody>
-                    </table>
+                    </table></div>
                   </div>
                 )}
               </div>

@@ -321,7 +321,7 @@ export default function Results() {
 
         {/* Info Cards */}
         <div
-          style={{
+          className="rg-split-asymmetric" style={{
             display: "grid",
             gridTemplateColumns: "1.2fr 0.8fr",
             gap: "24px",
@@ -509,7 +509,7 @@ export default function Results() {
                   </div>
 
                   <div
-                    style={{
+                    className="rg-toolbar" style={{
                       display: "grid",
                       gridTemplateColumns: "1fr 200px",
                       gap: "40px",

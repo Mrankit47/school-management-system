@@ -160,7 +160,7 @@ const Profile = () => {
     return { total, paid, due };
   }, [feeRecords]);
 
-  if (loading) return <p style={{ padding: 20 }}>Loading profile...</p>;
+  if (loading) return <p className="dashboard-shell" style={{ padding: 20 }}>Loading profile...</p>;
   if (!profile)
     return (
       <p style={{ padding: 20, color: "#b91c1c", fontWeight: 900 }}>
@@ -344,7 +344,7 @@ const Profile = () => {
       ) : null}
 
       <div
-        style={{
+        className="rg-12" style={{
           display: "grid",
           gridTemplateColumns: "repeat(12, minmax(0, 1fr))",
           gap: 12,
@@ -776,7 +776,7 @@ const Profile = () => {
       ) : null}
 
       <div
-        style={{
+        className="rg-12" style={{
           display: "grid",
           gridTemplateColumns: "repeat(12, minmax(0,1fr))",
           gap: 12,
@@ -787,7 +787,7 @@ const Profile = () => {
             Basic Information
           </div>
           <div
-            style={{
+            className="rg-autofit-sm" style={{
               display: "grid",
               gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
               gap: 10,
@@ -924,7 +924,7 @@ const Profile = () => {
             Academic Summary
           </div>
           <div
-            style={{
+            className="rg-3" style={{
               display: "grid",
               gridTemplateColumns: "repeat(3, minmax(0,1fr))",
               gap: 10,
@@ -968,7 +968,7 @@ const Profile = () => {
             Attendance Summary
           </div>
           <div
-            style={{
+            className="rg-3" style={{
               display: "grid",
               gridTemplateColumns: "repeat(3,minmax(0,1fr))",
               gap: 10,
@@ -1010,7 +1010,7 @@ const Profile = () => {
         <div style={{ ...card, gridColumn: "span 6" }}>
           <div style={{ fontWeight: 1000, marginBottom: 10 }}>Fees Summary</div>
           <div
-            style={{
+            className="rg-3" style={{
               display: "grid",
               gridTemplateColumns: "repeat(3,minmax(0,1fr))",
               gap: 10,
@@ -1080,7 +1080,7 @@ const Profile = () => {
             {assignmentSummary.pending}
           </div>
           <div style={{ marginTop: 12, overflowX: "auto" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse" }}>
+            <div className="table-scroll"><table style={{ width: "100%", borderCollapse: "collapse" }}>
               <thead>
                 <tr style={{ background: "#f1f5f9" }}>
                   <th
@@ -1193,7 +1193,7 @@ const Profile = () => {
                   </tr>
                 )}
               </tbody>
-            </table>
+            </table></div>
           </div>
         </div>
       </div>

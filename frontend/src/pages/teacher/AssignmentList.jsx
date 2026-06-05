@@ -275,8 +275,7 @@ export default function TeacherAssignmentList() {
 
       {/* Stats Overview */}
       <div
-        className="animate-up"
-        style={{
+        className="animate-up rg-autofit-sm" style={{
           display: "grid",
           gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
           gap: "16px",
@@ -380,8 +379,7 @@ export default function TeacherAssignmentList() {
 
       {/* Filters Bar */}
       <div
-        className="animate-up"
-        style={{
+        className="animate-up rg-autofit-sm" style={{
           backgroundColor: palette.card,
           borderRadius: "18px",
           padding: "16px",
@@ -471,7 +469,7 @@ export default function TeacherAssignmentList() {
           </div>
         )}
         <div style={{ overflowX: "auto" }}>
-          <table
+          <div className="table-scroll"><table
             style={{
               width: "100%",
               borderCollapse: "collapse",
@@ -704,7 +702,7 @@ export default function TeacherAssignmentList() {
                 </tr>
               )}
             </tbody>
-          </table>
+          </table></div>
         </div>
 
         {/* Pagination */}
@@ -839,7 +837,7 @@ export default function TeacherAssignmentList() {
             </div>
 
             <div
-              style={{
+              className="rg-autofit-sm" style={{
                 display: "grid",
                 gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
                 gap: "20px",
@@ -943,7 +941,7 @@ export default function TeacherAssignmentList() {
                     borderRadius: "14px",
                   }}
                 >
-                  <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                  <div className="table-scroll"><table style={{ width: "100%", borderCollapse: "collapse" }}>
                     <thead
                       style={{
                         background: "#f8fafc",
@@ -1063,7 +1061,7 @@ export default function TeacherAssignmentList() {
                         </tr>
                       ))}
                     </tbody>
-                  </table>
+                  </table></div>
                 </div>
               ) : (
                 <div
@@ -1123,7 +1121,7 @@ export default function TeacherAssignmentList() {
               Update Assignment
             </h3>
             <div
-              style={{
+              className="rg-autofit-sm" style={{
                 display: "grid",
                 gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
                 gap: "16px",

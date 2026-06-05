@@ -186,7 +186,7 @@ const AdminDashboard = () => {
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
       {/* Header Section */}
-      <div className="relative overflow-hidden bg-white/80 backdrop-blur-xl p-10 rounded-[2.5rem] border border-slate-100 shadow-xl shadow-slate-200/40 mb-10 group transition-all duration-500 hover:shadow-2xl hover:shadow-school-blue/5">
+      <div className="relative overflow-hidden bg-white/80 backdrop-blur-xl p-6 sm:p-8 lg:p-10 rounded-2xl sm:rounded-[2.5rem] border border-slate-100 shadow-xl shadow-slate-200/40 mb-10 group transition-all duration-500 hover:shadow-2xl hover:shadow-school-blue/5">
         <div className="absolute top-0 right-0 w-64 h-64 bg-school-blue/5 blur-3xl rounded-full -mr-32 -mt-32 transition-colors group-hover:bg-school-blue/10"></div>
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div className="flex items-center gap-6">
@@ -194,7 +194,7 @@ const AdminDashboard = () => {
               🛡️
             </div>
             <div>
-              <h1 className="text-4xl font-poppins font-black text-school-text tracking-tight">
+              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-poppins font-black text-school-text tracking-tight">
                 Welcome{" "}
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-school-navy to-school-blue">
                   Admin Dashboard

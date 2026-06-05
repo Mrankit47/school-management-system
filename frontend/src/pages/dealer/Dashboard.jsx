@@ -350,7 +350,7 @@ const DealerDashboard = () => {
           </div>
         ) : (
           <div className="overflow-x-auto no-scrollbar">
-            <table className="w-full text-left">
+            <div className="table-scroll"><table className="w-full text-left">
               <thead>
                 <tr className="bg-slate-50 text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">
                   <th className="px-10 py-5">Institution</th>
@@ -455,7 +455,7 @@ const DealerDashboard = () => {
                   </tr>
                 ))}
               </tbody>
-            </table>
+            </table></div>
           </div>
         )}
       </div>

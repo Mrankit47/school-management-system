@@ -11,7 +11,7 @@ const Timetable = () => {
   return (
     <div style={{ padding: "20px" }}>
       <h1>Weekly Timetable</h1>
-      <table
+      <div className="table-scroll"><table
         border="1"
         cellPadding="10"
         style={{ width: "100%", borderCollapse: "collapse" }}
@@ -34,7 +34,7 @@ const Timetable = () => {
             </tr>
           ))}
         </tbody>
-      </table>
+      </table></div>
       {timetable.length === 0 && <p>Timetable not scheduled yet.</p>}
     </div>
   );

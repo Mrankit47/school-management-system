@@ -199,7 +199,7 @@ const Messaging = () => {
 
   if (loading)
     return (
-      <div style={{ padding: 20, fontWeight: 900, color: "#6b7280" }}>
+      <div className="dashboard-shell" style={{ padding: 20, fontWeight: 900, color: "#6b7280" }}>
         Loading Messaging System...
       </div>
     );
@@ -263,7 +263,7 @@ const Messaging = () => {
       </div>
 
       <div
-        style={{
+        className="rg-sidebar" style={{
           marginTop: 20,
           display: "grid",
           gridTemplateColumns: "350px 1fr",
@@ -479,7 +479,7 @@ const Messaging = () => {
                               }}
                             />
                             <div
-                              style={{
+                              className="dashboard-shell" style={{
                                 display: "flex",
                                 gap: 8,
                                 justifyContent: "flex-end",

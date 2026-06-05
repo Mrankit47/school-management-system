@@ -269,7 +269,7 @@ const Assignment = () => {
           style={{ marginTop: "16px", display: "grid", gap: "14px" }}
         >
           <div
-            style={{
+            className="rg-autofit-sm" style={{
               display: "grid",
               gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
               gap: "12px",
@@ -552,7 +552,7 @@ const Assignment = () => {
           </div>
 
           <div
-            style={{
+            className="rg-autofit" style={{
               display: "grid",
               gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
               gap: "12px",

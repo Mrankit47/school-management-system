@@ -398,7 +398,7 @@ const UploadResult = () => {
           /* UPLOAD FORM VIEW */
           <form onSubmit={handleSubmit}>
             <div
-              style={{
+              className="rg-autofit" style={{
                 display: "grid",
                 gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
                 gap: "24px",
@@ -497,7 +497,7 @@ const UploadResult = () => {
             </div>
 
             <div
-              style={{
+              className="rg-autofit" style={{
                 display: "grid",
                 gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
                 gap: "32px",
@@ -994,7 +994,7 @@ const UploadResult = () => {
                   border: "1px solid #f0f0f0",
                 }}
               >
-                <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                <div className="table-scroll"><table style={{ width: "100%", borderCollapse: "collapse" }}>
                   <thead style={{ backgroundColor: "#f9fafb" }}>
                     <tr>
                       <th
@@ -1143,7 +1143,7 @@ const UploadResult = () => {
                       </tr>
                     ))}
                   </tbody>
-                </table>
+                </table></div>
               </div>
             ) : (
               <div

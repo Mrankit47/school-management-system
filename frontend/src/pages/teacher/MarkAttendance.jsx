@@ -35,7 +35,7 @@ function StatusBadge({ status }) {
     s === "present" ? "Present" : s === "absent" ? "Absent" : "Unmarked";
   return (
     <span
-      style={{
+      className="dashboard-shell" style={{
         display: "inline-block",
         padding: "6px 14px",
         borderRadius: 999,
@@ -410,7 +410,7 @@ const MarkAttendance = () => {
           ) : null}
 
           <div style={{ marginTop: 12, overflowX: "auto" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse" }}>
+            <div className="table-scroll"><table style={{ width: "100%", borderCollapse: "collapse" }}>
               <thead>
                 <tr style={{ backgroundColor: "#f1f5f9" }}>
                   <th
@@ -559,7 +559,7 @@ const MarkAttendance = () => {
                   </tr>
                 )}
               </tbody>
-            </table>
+            </table></div>
           </div>
         </div>
       </div>

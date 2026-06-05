@@ -172,7 +172,7 @@ const AdminSubjects = () => {
   const subjectTable = (items) => {
     return (
       <div style={{ overflowX: "auto" }}>
-        <table
+        <div className="table-scroll"><table
           style={{
             width: "100%",
             borderCollapse: "collapse",
@@ -307,7 +307,7 @@ const AdminSubjects = () => {
               </tr>
             )}
           </tbody>
-        </table>
+        </table></div>
       </div>
     );
   };
@@ -358,7 +358,7 @@ const AdminSubjects = () => {
       </div>
 
       <div
-        style={{
+        className="rg-toolbar" style={{
           marginTop: "18px",
           display: "grid",
           gridTemplateColumns: "1fr 220px 220px 1fr",
@@ -515,7 +515,7 @@ const AdminSubjects = () => {
               style={{ marginTop: "14px", display: "grid", gap: "14px" }}
             >
               <div
-                style={{
+                className="rg-2" style={{
                   display: "grid",
                   gridTemplateColumns: "1fr 1fr",
                   gap: "12px",
@@ -544,7 +544,7 @@ const AdminSubjects = () => {
               </div>
 
               <div
-                style={{
+                className="rg-2" style={{
                   display: "grid",
                   gridTemplateColumns: "1fr 1fr",
                   gap: "12px",

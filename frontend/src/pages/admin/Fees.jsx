@@ -330,7 +330,7 @@ const AdminFees = () => {
       {loading && <p style={{ color: "#6b7280" }}>Loading…</p>}
 
       <div
-        style={{
+        className="rg-autofit-sm" style={{
           display: "grid",
           gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
           gap: "14px",
@@ -369,7 +369,7 @@ const AdminFees = () => {
         </h2>
         <form
           onSubmit={saveStructure}
-          style={{
+          className="rg-autofit-sm" style={{
             display: "grid",
             gap: "12px",
             gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
@@ -503,7 +503,7 @@ const AdminFees = () => {
         </form>
 
         <div style={{ marginTop: "16px", overflowX: "auto" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+          <div className="table-scroll"><table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
               <tr style={{ backgroundColor: "#f2f4f7" }}>
                 <th style={{ padding: "10px", textAlign: "left" }}>Class</th>
@@ -568,14 +568,14 @@ const AdminFees = () => {
                 </tr>
               ))}
             </tbody>
-          </table>
+          </table></div>
         </div>
       </div>
 
       <div style={{ ...card, marginTop: "18px" }}>
         <h2 style={{ margin: "0 0 12px", fontSize: "18px" }}>Assign Fees</h2>
         <div
-          style={{
+          className="rg-autofit-sm" style={{
             display: "grid",
             gap: "12px",
             gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
@@ -633,7 +633,7 @@ const AdminFees = () => {
       </div>
 
       <div
-        style={{
+        className="rg-split-asymmetric" style={{
           display: "grid",
           gridTemplateColumns: "minmax(0, 1.2fr) minmax(0, 1fr)",
           gap: "18px",
@@ -696,7 +696,7 @@ const AdminFees = () => {
           </div>
 
           <div style={{ marginTop: "14px", overflowX: "auto" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse" }}>
+            <div className="table-scroll"><table style={{ width: "100%", borderCollapse: "collapse" }}>
               <thead>
                 <tr style={{ backgroundColor: "#f2f4f7" }}>
                   <th style={{ padding: "10px", textAlign: "left" }}>Select</th>
@@ -785,7 +785,7 @@ const AdminFees = () => {
                   );
                 })}
               </tbody>
-            </table>
+            </table></div>
           </div>
         </div>
 
@@ -800,7 +800,7 @@ const AdminFees = () => {
               </p>
             ) : (
               <div style={{ overflowX: "auto" }}>
-                <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                <div className="table-scroll"><table style={{ width: "100%", borderCollapse: "collapse" }}>
                   <thead>
                     <tr style={{ backgroundColor: "#f2f4f7" }}>
                       <th style={{ padding: "10px", textAlign: "left" }}>
@@ -851,7 +851,7 @@ const AdminFees = () => {
                       </tr>
                     ))}
                   </tbody>
-                </table>
+                </table></div>
                 {(!fullRecordPayments || fullRecordPayments.length === 0) && (
                   <p style={{ color: "#6b7280", marginTop: "10px" }}>
                     No payments yet.

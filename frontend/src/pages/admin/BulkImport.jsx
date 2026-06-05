@@ -215,7 +215,7 @@ const BulkImport = () => {
                   </h3>
                   {errorRows.length > 0 ? (
                     <div className="max-h-60 overflow-y-auto">
-                      <table className="min-w-full divide-y divide-red-200">
+                      <div className="table-scroll"><table className="min-w-full divide-y divide-red-200">
                         <thead className="bg-red-100">
                           <tr>
                             <th className="px-4 py-2 text-left text-xs font-medium text-red-700 uppercase">
@@ -238,7 +238,7 @@ const BulkImport = () => {
                             </tr>
                           ))}
                         </tbody>
-                      </table>
+                      </table></div>
                     </div>
                   ) : (
                     <p className="text-sm text-red-600">No errors found.</p>
@@ -252,7 +252,7 @@ const BulkImport = () => {
                   </h3>
                   {validRows.length > 0 ? (
                     <div className="max-h-60 overflow-y-auto">
-                      <table className="min-w-full divide-y divide-green-200">
+                      <div className="table-scroll"><table className="min-w-full divide-y divide-green-200">
                         <thead className="bg-green-100">
                           <tr>
                             {importType === "student" && (
@@ -341,7 +341,7 @@ const BulkImport = () => {
                             </tr>
                           ))}
                         </tbody>
-                      </table>
+                      </table></div>
                       {validRows.length > 50 && (
                         <p className="mt-2 text-sm text-gray-500">
                           Showing first 50 valid rows...

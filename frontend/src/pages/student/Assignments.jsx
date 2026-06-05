@@ -371,7 +371,7 @@ export default function StudentAssignments() {
         </div>
       ) : assignments.length ? (
         <div
-          style={{
+          className="rg-12" style={{
             display: "grid",
             gridTemplateColumns: "repeat(12, minmax(0, 1fr))",
             gap: 12,
@@ -411,7 +411,7 @@ export default function StudentAssignments() {
               </div>
 
               <div
-                style={{
+                className="rg-autofit" style={{
                   marginTop: 12,
                   display: "grid",
                   gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
@@ -585,7 +585,7 @@ export default function StudentAssignments() {
       >
         {selected ? (
           <div
-            style={{
+            className="rg-12" style={{
               display: "grid",
               gridTemplateColumns: "repeat(12, minmax(0,1fr))",
               gap: 12,

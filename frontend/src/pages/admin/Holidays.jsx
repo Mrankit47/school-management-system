@@ -523,7 +523,7 @@ const AdminHolidays = () => {
             </div>
 
             <div style={{ marginTop: "16px", overflowX: "auto" }}>
-              <table style={{ width: "100%", borderCollapse: "collapse" }}>
+              <div className="table-scroll"><table style={{ width: "100%", borderCollapse: "collapse" }}>
                 <thead>
                   <tr style={{ backgroundColor: "#f2f4f7" }}>
                     <th style={{ padding: "12px 10px", textAlign: "left" }}>
@@ -662,7 +662,7 @@ const AdminHolidays = () => {
                     ))
                   )}
                 </tbody>
-              </table>
+              </table></div>
             </div>
           </div>
         )}
@@ -719,7 +719,7 @@ const AdminHolidays = () => {
 
             <div style={{ marginTop: "14px", overflowX: "auto" }}>
               <div
-                style={{
+                className="rg-calendar" style={{
                   display: "grid",
                   gridTemplateColumns: "repeat(7, minmax(0, 1fr))",
                   gap: "10px",
@@ -1038,7 +1038,7 @@ const AdminHolidays = () => {
               style={{ marginTop: "14px", display: "grid", gap: "14px" }}
             >
               <div
-                style={{
+                className="rg-2" style={{
                   display: "grid",
                   gridTemplateColumns: "1fr 1fr",
                   gap: "12px",
@@ -1070,7 +1070,7 @@ const AdminHolidays = () => {
               </div>
 
               <div
-                style={{
+                className="rg-2" style={{
                   display: "grid",
                   gridTemplateColumns: "1fr 1fr",
                   gap: "12px",

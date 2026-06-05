@@ -398,7 +398,7 @@ const AssignTeacher = () => {
         }}
       >
         <div style={{ overflowX: "auto" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+          <div className="table-scroll"><table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
               <tr
                 style={{
@@ -575,7 +575,7 @@ const AssignTeacher = () => {
                 ))
               )}
             </tbody>
-          </table>
+          </table></div>
         </div>
       </div>
 
@@ -633,7 +633,7 @@ const AssignTeacher = () => {
               style={{ display: "grid", gap: "16px" }}
             >
               <div
-                style={{
+                className="rg-2" style={{
                   display: "grid",
                   gridTemplateColumns: "1fr 1fr",
                   gap: "12px",

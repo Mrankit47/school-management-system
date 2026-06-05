@@ -423,7 +423,7 @@ const Classes = () => {
       </div>
 
       <div
-        style={{
+        className="rg-2" style={{
           display: "grid",
           gridTemplateColumns: "1fr 1fr",
           gap: "16px",
@@ -440,7 +440,7 @@ const Classes = () => {
         >
           <h2 style={{ margin: "0 0 10px", fontSize: "17px" }}>Section List</h2>
           <div
-            style={{
+            className="rg-toolbar" style={{
               display: "grid",
               gridTemplateColumns: "1fr 180px",
               gap: "10px",
@@ -467,7 +467,7 @@ const Classes = () => {
             </select>
           </div>
           <div style={{ overflowX: "auto" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse" }}>
+            <div className="table-scroll"><table style={{ width: "100%", borderCollapse: "collapse" }}>
               <thead>
                 <tr style={{ backgroundColor: "#f2f4f7" }}>
                   <th style={{ padding: "10px", textAlign: "left" }}>Class</th>
@@ -558,7 +558,7 @@ const Classes = () => {
                   </tr>
                 )}
               </tbody>
-            </table>
+            </table></div>
           </div>
         </div>
 

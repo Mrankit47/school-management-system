@@ -337,7 +337,7 @@ export default function StudentSyllabus() {
         }}
       >
         <div
-          style={{
+          className="rg-autofit-sm" style={{
             display: "grid",
             gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
             gap: "16px",
@@ -415,7 +415,7 @@ export default function StudentSyllabus() {
       </div>
 
       <div
-        style={{
+        className="rg-autofit" style={{
           marginTop: 12,
           display: "grid",
           gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",

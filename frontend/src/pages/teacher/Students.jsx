@@ -382,7 +382,7 @@ const Students = () => {
         </div>
 
         <div style={{ overflowX: "auto" }}>
-          <table
+          <div className="table-scroll"><table
             style={{
               width: "100%",
               borderCollapse: "separate",
@@ -554,7 +554,7 @@ const Students = () => {
                 </tr>
               )}
             </tbody>
-          </table>
+          </table></div>
         </div>
       </div>
 
@@ -679,7 +679,7 @@ const Students = () => {
               </div>
 
               <div
-                style={{
+                className="rg-2" style={{
                   display: "grid",
                   gridTemplateColumns: "1fr 1fr",
                   gap: "12px",

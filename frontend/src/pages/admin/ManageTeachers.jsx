@@ -278,7 +278,7 @@ const ManageTeachers = () => {
   };
 
   return (
-    <div style={{ padding: 24, background: "#f1f5f9", minHeight: "100%" }}>
+    <div className="dashboard-shell" style={{ padding: 24, background: "#f1f5f9", minHeight: "100%" }}>
       <div style={shellCard}>
         <h1 style={{ margin: 0, fontSize: 30, color: "#0f172a" }}>
           Teacher Management
@@ -397,7 +397,7 @@ const ManageTeachers = () => {
           </div>
         ) : (
           <div style={{ overflowX: "auto" }}>
-            <table
+            <div className="table-scroll"><table
               style={{
                 width: "100%",
                 borderCollapse: "separate",
@@ -548,7 +548,7 @@ const ManageTeachers = () => {
                   ))
                 )}
               </tbody>
-            </table>
+            </table></div>
           </div>
         )}
 
@@ -648,7 +648,7 @@ const ManageTeachers = () => {
           >
             <h3 style={{ marginTop: 0, marginBottom: 12 }}>Teacher Details</h3>
             <div
-              style={{
+              className="rg-2" style={{
                 display: "grid",
                 gridTemplateColumns: "1fr 1fr",
                 gap: 10,
@@ -723,7 +723,7 @@ const ManageTeachers = () => {
           >
             <h3 style={{ marginTop: 0, marginBottom: 12 }}>Edit Teacher</h3>
             <div
-              style={{
+              className="rg-2" style={{
                 display: "grid",
                 gridTemplateColumns: "1fr 1fr",
                 gap: 10,

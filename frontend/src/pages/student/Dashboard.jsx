@@ -62,7 +62,7 @@ function MiniProgress({ percentage, height = 10 }) {
   const isLow = pct < 75;
   return (
     <div
-      style={{
+      className="dashboard-shell" style={{
         height,
         borderRadius: 999,
         backgroundColor: "#f3f4f6",
@@ -703,7 +703,7 @@ export default function StudentDashboard() {
           Loading dashboard…
         </div>
         <div
-          style={{
+          className="rg-autofit-sm" style={{
             display: "grid",
             gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
             gap: 12,
@@ -887,7 +887,7 @@ export default function StudentDashboard() {
       </div>
 
       <div
-        style={{
+        className="rg-12" style={{
           display: "grid",
           gridTemplateColumns: "repeat(12, minmax(0, 1fr))",
           gap: 12,
@@ -1031,7 +1031,7 @@ export default function StudentDashboard() {
 
       {/* Main grid */}
       <div
-        style={{
+        className="rg-12" style={{
           marginTop: 12,
           display: "grid",
           gridTemplateColumns: "repeat(12, minmax(0, 1fr))",
@@ -1673,7 +1673,7 @@ export default function StudentDashboard() {
               subtitle="Preview"
             />
             <div
-              style={{
+              className="rg-2" style={{
                 marginTop: 12,
                 display: "grid",
                 gridTemplateColumns: "repeat(2, minmax(0, 1fr))",

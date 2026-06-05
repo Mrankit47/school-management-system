@@ -372,7 +372,7 @@ export default function SuperAdminDashboard() {
     );
 
   return (
-    <div className="min-h-screen bg-slate-50 font-inter text-slate-800 p-8">
+    <div className="min-h-screen bg-slate-50 font-inter text-slate-800 p-4 sm:p-6 lg:p-8">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-12">
@@ -385,24 +385,24 @@ export default function SuperAdminDashboard() {
             </p>
           </div>
 
-          <div className="flex items-center gap-6">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 sm:gap-6 w-full md:w-auto">
             {/* Toggle Switch */}
-            <div className="bg-slate-100 p-1.5 rounded-2xl flex items-center shadow-inner border border-slate-200">
+            <div className="bg-slate-100 p-1.5 rounded-2xl flex flex-wrap items-center shadow-inner border border-slate-200">
               <button
                 onClick={() => setViewMode("institutions")}
-                className={`px-8 py-2.5 rounded-xl text-xs font-bold transition-all ${viewMode === "institutions" ? "bg-white text-blue-600 shadow-sm" : "text-slate-400 hover:text-slate-600"}`}
+                className={`flex-1 sm:flex-none px-4 sm:px-8 py-2.5 rounded-xl text-xs font-bold transition-all ${viewMode === "institutions" ? "bg-white text-blue-600 shadow-sm" : "text-slate-400 hover:text-slate-600"}`}
               >
                 Institutions
               </button>
               <button
                 onClick={() => setViewMode("dealers")}
-                className={`px-8 py-2.5 rounded-xl text-xs font-bold transition-all ${viewMode === "dealers" ? "bg-white text-blue-600 shadow-sm" : "text-slate-400 hover:text-slate-600"}`}
+                className={`flex-1 sm:flex-none px-4 sm:px-8 py-2.5 rounded-xl text-xs font-bold transition-all ${viewMode === "dealers" ? "bg-white text-blue-600 shadow-sm" : "text-slate-400 hover:text-slate-600"}`}
               >
                 Dealers
               </button>
               <button
                 onClick={() => setViewMode("utilities")}
-                className={`px-8 py-2.5 rounded-xl text-xs font-bold transition-all ${viewMode === "utilities" ? "bg-white text-blue-600 shadow-sm" : "text-slate-400 hover:text-slate-600"}`}
+                className={`flex-1 sm:flex-none px-4 sm:px-8 py-2.5 rounded-xl text-xs font-bold transition-all ${viewMode === "utilities" ? "bg-white text-blue-600 shadow-sm" : "text-slate-400 hover:text-slate-600"}`}
               >
                 Utilities
               </button>
@@ -463,7 +463,7 @@ export default function SuperAdminDashboard() {
 
             <div className="overflow-x-auto">
               {viewMode === "institutions" ? (
-                <table className="w-full text-left">
+                <div className="table-scroll"><table className="w-full text-left">
                   <thead>
                     <tr className="bg-slate-50 text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">
                       <th className="px-10 py-5">Institution</th>
@@ -577,9 +577,9 @@ export default function SuperAdminDashboard() {
                         </tr>
                       ))}
                   </tbody>
-                </table>
+                </table></div>
               ) : (
-                <table className="w-full text-left">
+                <div className="table-scroll"><table className="w-full text-left">
                   <thead>
                     <tr className="bg-slate-50 text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">
                       <th className="px-10 py-5">Dealer Profile</th>
@@ -671,7 +671,7 @@ export default function SuperAdminDashboard() {
                       </tr>
                     ))}
                   </tbody>
-                </table>
+                </table></div>
               )}
             </div>
           </div>

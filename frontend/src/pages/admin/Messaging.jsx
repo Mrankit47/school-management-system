@@ -179,7 +179,7 @@ const AdminMessaging = () => {
       </div>
 
       <div
-        style={{
+        className="rg-sidebar" style={{
           marginTop: 20,
           display: "grid",
           gridTemplateColumns: "350px 1fr",

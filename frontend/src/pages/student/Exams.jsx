@@ -396,7 +396,7 @@ export default function StudentExams() {
                           border: `1px solid ${colors.border}`,
                         }}
                       >
-                        <table
+                        <div className="table-scroll"><table
                           style={{ width: "100%", borderCollapse: "collapse" }}
                         >
                           <thead>
@@ -475,7 +475,7 @@ export default function StudentExams() {
                               </tr>
                             ))}
                           </tbody>
-                        </table>
+                        </table></div>
                       </div>
                     )}
                   </div>

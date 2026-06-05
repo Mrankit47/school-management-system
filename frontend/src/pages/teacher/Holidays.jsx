@@ -421,7 +421,7 @@ const TeacherHolidays = () => {
                   </p>
                 </div>
               ) : (
-                <table
+                <div className="table-scroll"><table
                   style={{
                     width: "100%",
                     borderCollapse: "separate",
@@ -550,7 +550,7 @@ const TeacherHolidays = () => {
                       </tr>
                     ))}
                   </tbody>
-                </table>
+                </table></div>
               )}
             </div>
           </div>
@@ -628,7 +628,7 @@ const TeacherHolidays = () => {
             <div style={{ overflowX: "auto" }}>
               <div style={{ minWidth: "700px" }}>
                 <div
-                  style={{
+                  className="rg-calendar" style={{
                     display: "grid",
                     gridTemplateColumns: "repeat(7, 1fr)",
                     gap: "12px",
@@ -654,7 +654,7 @@ const TeacherHolidays = () => {
                   )}
                 </div>
                 <div
-                  style={{
+                  className="rg-calendar" style={{
                     display: "grid",
                     gridTemplateColumns: "repeat(7, 1fr)",
                     gap: "12px",

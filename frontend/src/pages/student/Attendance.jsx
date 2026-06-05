@@ -653,7 +653,7 @@ const StudentAttendance = () => {
       ) : null}
 
       <div
-        style={{
+        className="rg-12" style={{
           marginTop: "16px",
           display: "grid",
           gridTemplateColumns: "repeat(12, minmax(0, 1fr))",
@@ -842,7 +842,7 @@ const StudentAttendance = () => {
       </div>
 
       <div
-        style={{
+        className="rg-12" style={{
           marginTop: "16px",
           display: "grid",
           gridTemplateColumns: "repeat(12, minmax(0, 1fr))",
@@ -908,7 +908,7 @@ const StudentAttendance = () => {
           </div>
 
           <div style={{ marginTop: 12, overflowX: "auto" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse" }}>
+            <div className="table-scroll"><table style={{ width: "100%", borderCollapse: "collapse" }}>
               <thead>
                 <tr style={{ backgroundColor: "#f2f4f7" }}>
                   <th
@@ -991,7 +991,7 @@ const StudentAttendance = () => {
                   </tr>
                 )}
               </tbody>
-            </table>
+            </table></div>
           </div>
         </div>
 
@@ -1019,7 +1019,7 @@ const StudentAttendance = () => {
 
           <div style={{ marginTop: 12, overflowX: "auto" }}>
             <div
-              style={{
+              className="rg-calendar" style={{
                 display: "grid",
                 gridTemplateColumns: "repeat(7, minmax(0, 1fr))",
                 gap: "8px",
@@ -1162,7 +1162,7 @@ const StudentAttendance = () => {
           </div>
 
           <div style={{ marginTop: 12, overflowX: "auto" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse" }}>
+            <div className="table-scroll"><table style={{ width: "100%", borderCollapse: "collapse" }}>
               <thead>
                 <tr style={{ backgroundColor: "#f2f4f7" }}>
                   <th
@@ -1270,7 +1270,7 @@ const StudentAttendance = () => {
                   </tr>
                 )}
               </tbody>
-            </table>
+            </table></div>
           </div>
         </div>
 

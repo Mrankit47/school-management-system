@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import authService from "../../services/authService";
+import { useLayout } from "../../context/LayoutContext";
 
 const Sidebar = () => {
   const location = useLocation();
   const { role, name } = authService.getCurrentUser();
   const [openMenus, setOpenMenus] = useState({});
+  const { sidebarOpen, closeSidebar } = useLayout();
 
   if (!role) return null;
 
@@ -125,7 +127,6 @@ const Sidebar = () => {
     }));
   };
 
-  // Initialize open menus based on current location
   useEffect(() => {
     const findActiveParentLabels = (menuItems, currentPath) => {
       let activeLabels = {};
@@ -148,19 +149,20 @@ const Sidebar = () => {
     };
 
     const initialOpenMenus = findActiveParentLabels(links, location.pathname);
-    setOpenMenus((prev) => ({
+    setOpenMenus(() => ({
       ...initialOpenMenus,
-      // We do not spread `prev` here so that during a fresh navigation to a new section,
-      // we start with a clean accordion state matching the current URL.
     }));
-  }, [location.pathname, role]); // re-run if location or role changes
+  }, [location.pathname, role]);
+
+  useEffect(() => {
+    closeSidebar();
+  }, [location.pathname, closeSidebar]);
 
   const NavItem = ({ item, depth = 0 }) => {
     const hasSubLinks = item.subLinks && item.subLinks.length > 0;
     const isOpen = openMenus[item.label];
     const isActive = location.pathname === item.path;
 
-    // Auto-open parent if child is active (simplified for 2 levels)
     const isChildActive =
       hasSubLinks &&
       item.subLinks.some(
@@ -175,6 +177,7 @@ const Sidebar = () => {
         {item.path ? (
           <Link
             to={item.path}
+            onClick={closeSidebar}
             className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 group ${
               isActive
                 ? "bg-school-navy text-white shadow-md shadow-school-navy/10"
@@ -182,26 +185,27 @@ const Sidebar = () => {
             }`}
             style={{ marginLeft: `${depth * 12}px` }}
           >
-            {item.icon && <span className="text-lg">{item.icon}</span>}
-            <span>{item.label}</span>
+            {item.icon && <span className="text-lg shrink-0">{item.icon}</span>}
+            <span className="truncate">{item.label}</span>
             {isActive && (
-              <div className="ml-auto w-1.5 h-1.5 rounded-full bg-white opacity-50"></div>
+              <div className="ml-auto w-1.5 h-1.5 rounded-full bg-white opacity-50 shrink-0"></div>
             )}
           </Link>
         ) : (
           <button
+            type="button"
             onClick={() => toggleMenu(item.label, depth)}
-            className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 group ${
+            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 group ${
               isChildActive
                 ? "text-school-navy"
                 : "text-school-body hover:bg-slate-50 hover:text-school-navy"
             }`}
             style={{ marginLeft: `${depth * 12}px` }}
           >
-            {item.icon && <span className="text-lg">{item.icon}</span>}
-            <span>{item.label}</span>
+            {item.icon && <span className="text-lg shrink-0">{item.icon}</span>}
+            <span className="truncate text-left">{item.label}</span>
             <span
-              className={`ml-auto text-[10px] transition-transform duration-200 ${isOpen || isChildActive ? "rotate-180" : ""}`}
+              className={`ml-auto text-[10px] shrink-0 transition-transform duration-200 ${isOpen || isChildActive ? "rotate-180" : ""}`}
             >
               ▼
             </span>
@@ -220,10 +224,30 @@ const Sidebar = () => {
   };
 
   return (
-    <aside className="w-64 bg-white border-r border-slate-200 h-full flex flex-col transition-all duration-300 z-50">
-      {/* Branding Removed from Sidebar as per request */}
+    <aside
+      className={`
+        fixed lg:static inset-y-0 left-0 z-50
+        w-[min(280px,85vw)] lg:w-64
+        bg-white border-r border-slate-200
+        h-full flex flex-col transition-transform duration-300 ease-out
+        lg:translate-x-0
+        ${sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}
+      `}
+    >
+      <div className="flex items-center justify-between p-4 border-b border-slate-100 lg:hidden">
+        <span className="text-sm font-black text-school-navy uppercase tracking-wider">
+          Menu
+        </span>
+        <button
+          type="button"
+          onClick={closeSidebar}
+          className="w-9 h-9 rounded-lg bg-slate-100 text-slate-600 font-bold"
+          aria-label="Close menu"
+        >
+          ✕
+        </button>
+      </div>
 
-      {/* Navigation */}
       <nav className="flex-1 overflow-y-auto p-4 space-y-1 custom-scrollbar scrollbar-hide">
         <p className="px-3 text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-4 mt-2">
           Main Menu
@@ -233,10 +257,9 @@ const Sidebar = () => {
         ))}
       </nav>
 
-      {/* User Footer */}
       <div className="p-4 border-t border-slate-50 bg-slate-50/50">
         <div className="flex items-center gap-3 p-2 rounded-xl">
-          <div className="w-8 h-8 rounded-lg bg-school-blue/10 flex items-center justify-center text-school-blue font-bold text-xs uppercase">
+          <div className="w-8 h-8 rounded-lg bg-school-blue/10 flex items-center justify-center text-school-blue font-bold text-xs uppercase shrink-0">
             {name?.[0] || "U"}
           </div>
           <div className="flex flex-col min-w-0">

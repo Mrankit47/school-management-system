@@ -309,7 +309,7 @@ const AddTeacher = () => {
               </h3>
               <div style={{ display: "grid", gap: "12px" }}>
                 <div
-                  style={{
+                  className="rg-2" style={{
                     display: "grid",
                     gridTemplateColumns: "1fr 1fr",
                     gap: "12px",
@@ -411,7 +411,7 @@ const AddTeacher = () => {
                 </div>
 
                 <div
-                  style={{
+                  className="rg-2" style={{
                     display: "grid",
                     gridTemplateColumns: "1fr 1fr",
                     gap: "12px",
@@ -511,7 +511,7 @@ const AddTeacher = () => {
                 </div>
 
                 <div
-                  style={{
+                  className="rg-2" style={{
                     display: "grid",
                     gridTemplateColumns: "1fr 1fr",
                     gap: "12px",

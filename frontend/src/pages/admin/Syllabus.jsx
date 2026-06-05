@@ -37,7 +37,7 @@ function Modal({ open, title, onClose, children }) {
   if (!open) return null;
   return (
     <div
-      style={{
+      className="dashboard-shell" style={{
         position: "fixed",
         inset: 0,
         backgroundColor: "rgba(15,23,42,0.55)",
@@ -236,7 +236,7 @@ export default function AdminSyllabus() {
         minHeight: "calc(100vh - 60px)",
       }}
     >
-      <div style={{ marginBottom: 20 }}>
+      <div className="dashboard-shell" style={{ marginBottom: 20 }}>
         <h1
           style={{
             margin: 0,
@@ -260,7 +260,7 @@ export default function AdminSyllabus() {
       </div>
 
       <div
-        style={{
+        className="rg-split-asymmetric" style={{
           display: "grid",
           gridTemplateColumns: "1fr 2fr",
           gap: 20,
@@ -357,7 +357,7 @@ export default function AdminSyllabus() {
             <button
               type="submit"
               disabled={saving}
-              style={{
+              className="dashboard-shell" style={{
                 padding: 12,
                 borderRadius: 12,
                 border: "none",

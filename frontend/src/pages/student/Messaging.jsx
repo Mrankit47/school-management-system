@@ -195,7 +195,7 @@ const StudentMessaging = () => {
 
   if (loading)
     return (
-      <div style={{ padding: 20, fontWeight: 900, color: "#6b7280" }}>
+      <div className="dashboard-shell" style={{ padding: 20, fontWeight: 900, color: "#6b7280" }}>
         Loading Messaging System...
       </div>
     );
@@ -243,7 +243,7 @@ const StudentMessaging = () => {
       </div>
 
       <div
-        style={{
+        className="rg-sidebar" style={{
           marginTop: 20,
           display: "grid",
           gridTemplateColumns: "350px 1fr",
@@ -445,7 +445,7 @@ const StudentMessaging = () => {
                               }}
                             />
                             <div
-                              style={{
+                              className="dashboard-shell" style={{
                                 display: "flex",
                                 gap: 8,
                                 justifyContent: "flex-end",
@@ -604,7 +604,7 @@ const StudentMessaging = () => {
                       />
                       {attachment && (
                         <div
-                          style={{
+                          className="dashboard-shell" style={{
                             fontSize: 12,
                             color: "#2563eb",
                             marginTop: 4,

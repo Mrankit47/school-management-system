@@ -232,7 +232,7 @@ const AddStudent = () => {
         </h3>
         <form onSubmit={handleSubmit} style={{ display: "grid", gap: "18px" }}>
           <div
-            style={{
+            className="rg-2" style={{
               display: "grid",
               gridTemplateColumns: "1fr 1fr",
               gap: "12px",
@@ -362,7 +362,7 @@ const AddStudent = () => {
           </div>
 
           <div
-            style={{
+            className="rg-2" style={{
               display: "grid",
               gridTemplateColumns: "1fr 1fr",
               gap: "12px",
@@ -409,7 +409,7 @@ const AddStudent = () => {
           </div>
 
           <div
-            style={{
+            className="rg-2" style={{
               display: "grid",
               gridTemplateColumns: "1fr 1fr",
               gap: "12px",
@@ -448,7 +448,7 @@ const AddStudent = () => {
           </div>
 
           <div
-            style={{
+            className="rg-2" style={{
               display: "grid",
               gridTemplateColumns: "1fr 1fr",
               gap: "12px",
@@ -601,7 +601,7 @@ const AddStudent = () => {
           </div>
 
           <div
-            style={{
+            className="rg-2" style={{
               display: "grid",
               gridTemplateColumns: "1fr 1fr",
               gap: "12px",

@@ -5,8 +5,9 @@ import useAuthStore from "../../store/authStore";
 import api from "../../services/api";
 import SiblingSwitcher from "../student/SiblingSwitcher";
 import { useStudent } from "../../context/StudentContext";
+import { useLayout } from "../../context/LayoutContext";
 
-const Navbar = () => {
+const Navbar = ({ showMenuButton = false }) => {
   const navigate = useNavigate();
   const { logout } = useAuthStore();
   const user = authService.getCurrentUser();
@@ -14,6 +15,7 @@ const Navbar = () => {
   const [teacherProfile, setTeacherProfile] = useState(null);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const { selectedStudentId, setSelectedStudentId } = useStudent();
+  const { toggleSidebar } = useLayout();
   const [siblings, setSiblings] = useState([]);
   const [authProfile, setAuthProfile] = useState(null);
 
@@ -72,9 +74,19 @@ const Navbar = () => {
 
   // Unified Navbar for all roles
   return (
-    <header className="h-20 bg-white border-b border-slate-200 sticky top-0 z-40 flex items-center justify-between px-8">
+    <header className="min-h-[4.5rem] h-auto sm:h-20 bg-white border-b border-slate-200 sticky top-0 z-40 flex items-center justify-between gap-2 px-3 sm:px-4 md:px-6 lg:px-8 py-2 sm:py-0 shrink-0">
       {/* Left Section: Branding */}
-      <div className="flex items-center gap-4 min-w-[200px]">
+      <div className="flex items-center gap-2 sm:gap-4 min-w-0 flex-1">
+        {showMenuButton && (
+          <button
+            type="button"
+            onClick={toggleSidebar}
+            className="lg:hidden w-10 h-10 shrink-0 flex items-center justify-center rounded-xl bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-100"
+            aria-label="Open menu"
+          >
+            <span className="text-lg">☰</span>
+          </button>
+        )}
         <div className="w-11 h-11 bg-school-navy rounded-2xl flex items-center justify-center text-white text-2xl font-black shadow-xl shadow-school-navy/20 animate-in fade-in zoom-in duration-700 overflow-hidden">
           {user.role === "superadmin" ? (
             profilePhotoUrl ? (
@@ -131,7 +143,7 @@ const Navbar = () => {
       </div>
 
       {/* Right: Notifications & Profile Dropdown */}
-      <div className="flex items-center gap-5">
+      <div className="flex items-center gap-2 sm:gap-3 md:gap-5 shrink-0">
         {/* Repositioned Class Info */}
         {user.role === "student" && (
           <div className="flex items-center gap-3">
@@ -191,7 +203,7 @@ const Navbar = () => {
         <div className="relative">
           <button
             onClick={() => setIsProfileOpen(!isProfileOpen)}
-            className="flex items-center gap-3 group bg-slate-50 hover:bg-slate-100 p-1.5 pr-4 rounded-2xl transition-all border border-transparent hover:border-slate-200"
+            className="flex items-center gap-2 sm:gap-3 group bg-slate-50 hover:bg-slate-100 p-1 sm:p-1.5 pr-2 sm:pr-4 rounded-2xl transition-all border border-transparent hover:border-slate-200"
           >
             <div className="relative">
               <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-school-navy to-school-blue flex items-center justify-center text-white font-black text-sm shadow-lg shadow-school-navy/20 group-hover:scale-105 transition-transform overflow-hidden">
@@ -207,8 +219,8 @@ const Navbar = () => {
               </div>
               <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-emerald-500 rounded-lg border-[3px] border-white shadow-sm"></div>
             </div>
-            <div className="flex flex-col items-start min-w-[80px]">
-              <span className="text-[13px] font-black text-slate-800 leading-tight group-hover:text-school-navy transition-colors">
+            <div className="hidden sm:flex flex-col items-start min-w-0 max-w-[120px] md:max-w-[160px]">
+              <span className="text-[13px] font-black text-slate-800 leading-tight group-hover:text-school-navy transition-colors truncate w-full">
                 {user.role === "student"
                   ? studentProfile?.name || user.name
                   : user.name}
@@ -218,7 +230,7 @@ const Navbar = () => {
               </span>
             </div>
             <span
-              className={`text-[10px] text-slate-400 transition-transform duration-300 ${isProfileOpen ? "rotate-180" : ""}`}
+              className={`hidden sm:inline text-[10px] text-slate-400 transition-transform duration-300 ${isProfileOpen ? "rotate-180" : ""}`}
             >
               ▼
             </span>

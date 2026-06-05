@@ -131,7 +131,7 @@ const StudentMessaging = () => {
       </div>
 
       <div
-        style={{
+        className="rg-sidebar" style={{
           marginTop: 12,
           display: "grid",
           gridTemplateColumns: "300px 1fr",

@@ -64,7 +64,7 @@ export default function TeacherSyllabus() {
 
   return (
     <div
-      style={{
+      className="dashboard-shell" style={{
         padding: 24,
         background: colors.bg,
         minHeight: "calc(100vh - 60px)",
@@ -151,7 +151,7 @@ export default function TeacherSyllabus() {
           </div>
         ) : (
           <div
-            style={{
+            className="rg-autofit" style={{
               display: "grid",
               gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))",
               gap: 20,

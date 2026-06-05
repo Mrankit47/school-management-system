@@ -44,11 +44,12 @@ export default function SiblingSwitcher({
     <div style={{ position: "relative", zIndex: 50 }}>
       <button
         onClick={() => setIsOpen(!isOpen)}
+        className="max-w-full"
         style={{
           display: "flex",
           alignItems: "center",
           gap: "8px",
-          padding: "10px 16px",
+          padding: "8px 10px",
           borderRadius: "12px",
           border: `1px solid ${themeStyles.border}`,
           backgroundColor: themeStyles.card,
@@ -86,7 +87,8 @@ export default function SiblingSwitcher({
           >
             <span style={{ fontSize: "14px" }}>👨‍👩‍👧‍👦</span>
           </div>
-          Siblings
+          <span className="hidden sm:inline">Siblings</span>
+          <span className="sm:hidden" aria-hidden="true">👨‍👩‍👧</span>
         </span>
         <svg
           width="14"

@@ -156,7 +156,7 @@ const StudentLedger = () => {
 
   if (loading)
     return (
-      <div style={{ padding: 20, color: "#6b7280" }}>Loading ledger...</div>
+      <div className="dashboard-shell" style={{ padding: 20, color: "#6b7280" }}>Loading ledger...</div>
     );
 
   return (
@@ -231,7 +231,7 @@ const StudentLedger = () => {
       </div>
 
       <div
-        style={{
+        className="rg-autofit-sm" style={{
           display: "grid",
           gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))",
           gap: 12,
@@ -306,7 +306,7 @@ const StudentLedger = () => {
       </div>
 
       <div
-        style={{
+        className="rg-autofit-sm" style={{
           ...card,
           marginBottom: 14,
           padding: 12,
@@ -407,7 +407,7 @@ const StudentLedger = () => {
       </div>
 
       <div style={{ ...card, padding: 0, overflowX: "auto" }}>
-        <table
+        <div className="table-scroll"><table
           style={{ width: "100%", borderCollapse: "collapse", minWidth: 1050 }}
         >
           <thead>
@@ -570,7 +570,7 @@ const StudentLedger = () => {
               ))
             )}
           </tbody>
-        </table>
+        </table></div>
       </div>
     </div>
   );

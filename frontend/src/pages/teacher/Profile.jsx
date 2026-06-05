@@ -44,7 +44,7 @@ function toImageSrc(base64) {
 function IconBox({ children, bg = "#eef2ff" }) {
   return (
     <div
-      style={{
+      className="dashboard-shell" style={{
         width: 34,
         height: 34,
         borderRadius: 12,
@@ -633,7 +633,7 @@ const TeacherProfile = () => {
       ) : null}
 
       <div
-        style={{
+        className="rg-12" style={{
           display: "grid",
           gridTemplateColumns: "repeat(12, minmax(0, 1fr))",
           gap: 12,
@@ -641,7 +641,7 @@ const TeacherProfile = () => {
       >
         {/* Header photo & ID Card Row */}
         <div
-          style={{
+          className="rg-12" style={{
             gridColumn: "span 12",
             display: "grid",
             gridTemplateColumns: "repeat(12, minmax(0, 1fr))",
@@ -1087,7 +1087,7 @@ const TeacherProfile = () => {
             </Field>
 
             <div
-              style={{
+              className="rg-2" style={{
                 display: "grid",
                 gridTemplateColumns: "1fr 1fr",
                 gap: 12,
@@ -1449,7 +1449,7 @@ const TeacherProfile = () => {
 
           <div style={{ marginTop: 14, display: "grid", gap: 12 }}>
             <div
-              style={{
+              className="rg-2" style={{
                 display: "grid",
                 gridTemplateColumns: "1fr 1fr",
                 gap: 12,
@@ -1491,7 +1491,7 @@ const TeacherProfile = () => {
                 Change Password
               </div>
               <div
-                style={{
+                className="rg-2" style={{
                   display: "grid",
                   gridTemplateColumns: "1fr 1fr",
                   gap: 12,
@@ -1800,7 +1800,7 @@ const TeacherProfile = () => {
           </div>
 
           <div
-            style={{
+            className="rg-autofit" style={{
               marginTop: 14,
               display: "grid",
               gridTemplateColumns: "repeat(auto-fit, minmax(280px,1fr))",

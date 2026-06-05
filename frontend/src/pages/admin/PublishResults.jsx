@@ -146,7 +146,7 @@ export default function PublishResults() {
       )}
 
       <div
-        style={{
+        className="rg-2" style={{
           display: "grid",
           gridTemplateColumns: "1fr 1fr",
           gap: "20px",
@@ -255,7 +255,7 @@ export default function PublishResults() {
           </div>
 
           <div style={{ ...card, overflowX: "auto", padding: 0 }}>
-            <table
+            <div className="table-scroll"><table
               style={{
                 width: "100%",
                 borderCollapse: "collapse",
@@ -361,7 +361,7 @@ export default function PublishResults() {
                   );
                 })}
               </tbody>
-            </table>
+            </table></div>
           </div>
         </div>
       ) : (

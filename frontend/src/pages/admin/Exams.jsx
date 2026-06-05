@@ -675,7 +675,7 @@ const Exams = () => {
       )}
 
       <div
-        style={{
+        className="rg-exam" style={{
           display: "grid",
           gridTemplateColumns: "1.1fr 1.5fr 1.4fr",
           gap: "32px",
@@ -746,7 +746,7 @@ const Exams = () => {
               </select>
             </div>
             <div
-              style={{
+              className="rg-2" style={{
                 display: "grid",
                 gridTemplateColumns: "1fr 1fr",
                 gap: "16px",
@@ -778,7 +778,7 @@ const Exams = () => {
               </div>
             </div>
             <div
-              style={{
+              className="rg-2" style={{
                 display: "grid",
                 gridTemplateColumns: "1fr 1fr",
                 gap: "16px",
@@ -953,7 +953,7 @@ const Exams = () => {
                     </div>
                   </div>
                   <div
-                    style={{
+                    className="rg-toolbar" style={{
                       display: "grid",
                       gridTemplateColumns: "1fr 1fr auto",
                       gap: "16px",
@@ -1014,7 +1014,7 @@ const Exams = () => {
                 </div>
 
                 <div style={{ overflowX: "auto" }}>
-                  <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                  <div className="table-scroll"><table style={{ width: "100%", borderCollapse: "collapse" }}>
                     <thead>
                       <tr style={{ backgroundColor: "#f2f4f7" }}>
                         <th style={{ padding: "10px", textAlign: "left" }}>
@@ -1201,7 +1201,7 @@ const Exams = () => {
                         </tr>
                       )}
                     </tbody>
-                  </table>
+                  </table></div>
                 </div>
               </form>
             )}
@@ -1240,7 +1240,7 @@ const Exams = () => {
               </select>
             </div>
             <div
-              style={{
+              className="rg-2" style={{
                 display: "grid",
                 gridTemplateColumns: "1fr 1fr",
                 gap: "8px",
@@ -1353,7 +1353,7 @@ const Exams = () => {
                         style={input}
                       />
                       <div
-                        style={{
+                        className="rg-2" style={{
                           display: "grid",
                           gridTemplateColumns: "1fr 1fr",
                           gap: "8px",
@@ -1644,7 +1644,7 @@ const Exams = () => {
             </div>
 
             <div
-              style={{
+              className="rg-autofit-sm" style={{
                 display: "grid",
                 gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
                 gap: "24px",
@@ -1718,7 +1718,7 @@ const Exams = () => {
                 border: `1px solid ${colors.border}`,
               }}
             >
-              <table style={{ width: "100%", borderCollapse: "collapse" }}>
+              <div className="table-scroll"><table style={{ width: "100%", borderCollapse: "collapse" }}>
                 <thead>
                   <tr style={{ backgroundColor: colors.bg }}>
                     <th
@@ -1817,7 +1817,7 @@ const Exams = () => {
                     </tr>
                   )}
                 </tbody>
-              </table>
+              </table></div>
             </div>
 
             {viewingExam.description && (

@@ -393,7 +393,7 @@ const FinanceCards = () => {
         <h3 style={{ marginTop: 0 }}>Create Single Card</h3>
         <form onSubmit={saveCard}>
           <div
-            style={{
+            className="rg-autofit-sm" style={{
               display: "grid",
               gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
               gap: 10,
@@ -628,7 +628,7 @@ const FinanceCards = () => {
       <div style={{ ...cardStyle, marginTop: 12 }}>
         <h3 style={{ marginTop: 0 }}>All Fee Cards</h3>
         <div style={{ overflowX: "auto" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+          <div className="table-scroll"><table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
               <tr style={{ backgroundColor: "#f9fafb" }}>
                 <th style={{ textAlign: "left", padding: 8 }}>Class Name</th>
@@ -661,7 +661,7 @@ const FinanceCards = () => {
                 </tr>
               ))}
             </tbody>
-          </table>
+          </table></div>
         </div>
       </div>
     </div>

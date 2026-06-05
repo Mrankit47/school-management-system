@@ -368,7 +368,7 @@ const StudentHolidays = () => {
                   No holidays found.
                 </p>
               ) : (
-                <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                <div className="table-scroll"><table style={{ width: "100%", borderCollapse: "collapse" }}>
                   <thead>
                     <tr style={{ backgroundColor: "#f2f4f7" }}>
                       <th style={{ padding: "12px 10px", textAlign: "left" }}>
@@ -420,7 +420,7 @@ const StudentHolidays = () => {
                       </tr>
                     ))}
                   </tbody>
-                </table>
+                </table></div>
               )}
             </div>
           </div>
@@ -478,7 +478,7 @@ const StudentHolidays = () => {
 
             <div style={{ marginTop: "14px", overflowX: "auto" }}>
               <div
-                style={{
+                className="rg-calendar" style={{
                   display: "grid",
                   gridTemplateColumns: "repeat(7, minmax(0, 1fr))",
                   gap: "10px",

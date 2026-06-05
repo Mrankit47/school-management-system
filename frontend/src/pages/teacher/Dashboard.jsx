@@ -50,7 +50,7 @@ function MiniProgress({ value }) {
   const pct = Math.max(0, Math.min(100, Number(value) || 0));
   return (
     <div
-      style={{
+      className="dashboard-shell" style={{
         height: 9,
         borderRadius: 999,
         backgroundColor: "#f1f5f9",
@@ -452,7 +452,7 @@ const TeacherDashboard = () => {
         </style>
         <div className="skeleton" style={{ height: 120, marginBottom: 20 }} />
         <div
-          style={{
+          className="rg-4" style={{
             display: "grid",
             gridTemplateColumns: "repeat(4, 1fr)",
             gap: 12,
@@ -464,7 +464,7 @@ const TeacherDashboard = () => {
           ))}
         </div>
         <div
-          style={{ display: "grid", gridTemplateColumns: "7fr 5fr", gap: 12 }}
+          className="rg-split" style={{ display: "grid", gridTemplateColumns: "7fr 5fr", gap: 12 }}
         >
           <div className="skeleton" style={{ height: 400 }} />
           <div className="skeleton" style={{ height: 400 }} />
@@ -650,7 +650,7 @@ const TeacherDashboard = () => {
       {/* Sidebar Menu (quick navigation strip) */}
       <Card style={{ marginBottom: 12 }}>
         <div
-          style={{
+          className="rg-autofit-sm" style={{
             display: "grid",
             gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))",
             gap: 10,
@@ -689,7 +689,7 @@ const TeacherDashboard = () => {
 
       {/* Summary cards */}
       <div
-        style={{
+        className="rg-12" style={{
           display: "grid",
           gridTemplateColumns: "repeat(12, minmax(0,1fr))",
           gap: 12,
@@ -802,7 +802,7 @@ const TeacherDashboard = () => {
       </div>
 
       <div
-        style={{
+        className="rg-12" style={{
           marginTop: 12,
           display: "grid",
           gridTemplateColumns: "repeat(12, minmax(0,1fr))",
@@ -883,7 +883,7 @@ const TeacherDashboard = () => {
               borderRadius: 12,
             }}
           >
-            <table style={{ width: "100%", borderCollapse: "collapse" }}>
+            <div className="table-scroll"><table style={{ width: "100%", borderCollapse: "collapse" }}>
               <thead>
                 <tr style={{ backgroundColor: "#f1f5f9" }}>
                   <th style={{ padding: "10px", textAlign: "left" }}>
@@ -1006,7 +1006,7 @@ const TeacherDashboard = () => {
                   </tr>
                 ) : null}
               </tbody>
-            </table>
+            </table></div>
           </div>
         </Card>
 
@@ -1365,7 +1365,7 @@ const TeacherDashboard = () => {
             Study Material (Subject-wise)
           </div>
           <div
-            style={{
+            className="rg-2" style={{
               marginTop: 12,
               display: "grid",
               gridTemplateColumns: "1fr 1fr",
