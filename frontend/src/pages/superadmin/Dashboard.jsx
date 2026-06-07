@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import api from '../../services/api';
 import { useNavigate } from 'react-router-dom';
+import useAuthStore from '../../store/authStore';
+import authService from '../../services/authService';
 
 /**
  * SuperAdmin Dashboard
@@ -8,6 +10,8 @@ import { useNavigate } from 'react-router-dom';
  */
 export default function SuperAdminDashboard() {
   const navigate = useNavigate();
+  const { logout } = useAuthStore();
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [schools, setSchools] = useState([]);
   const [dealers, setDealers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -305,34 +309,151 @@ export default function SuperAdminDashboard() {
   if (loading && schools.length === 0) return <div className="min-h-screen bg-slate-50 flex items-center justify-center font-inter text-slate-500">Initializing Platform...</div>;
 
   return (
-    <div className="min-h-screen bg-slate-50 font-inter text-slate-800 p-8">
-      <div className="max-w-7xl mx-auto">
+    <div className="min-h-screen bg-slate-50 font-inter text-slate-800 py-4 sm:py-6 md:py-8">
+      {/* Mobile/Tablet Collapsible Sidebar Drawer */}
+      {isSidebarOpen && (
+        <div className="fixed inset-0 z-50 lg:hidden flex">
+          {/* Backdrop Overlay */}
+          <div
+            className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm transition-opacity duration-300 animate-in fade-in"
+            onClick={() => setIsSidebarOpen(false)}
+          ></div>
 
+          {/* Drawer Panel */}
+          <div className="relative flex flex-col w-72 max-w-xs bg-white h-full shadow-2xl z-10 transition-transform duration-300 transform translate-x-0 animate-in slide-in-from-left">
+            <div className="h-20 flex items-center justify-between px-6 border-b border-slate-100">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-slate-900 rounded-xl flex items-center justify-center text-white font-black text-lg">
+                  S
+                </div>
+                <div>
+                  <h2 className="text-sm font-bold text-slate-900 leading-tight">
+                    Super Admin
+                  </h2>
+                  <p className="text-[10px] text-blue-600 font-bold uppercase tracking-wider">
+                    Control Panel
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsSidebarOpen(false)}
+                className="p-2 text-slate-400 hover:text-slate-900 text-lg transition-colors"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Navigation links */}
+            <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
+              <p className="px-3 text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-4">
+                Main Menu
+              </p>
+              {[
+                { key: "institutions", label: "Institutions", icon: "🏛️" },
+                { key: "dealers", label: "Dealers", icon: "🤝" },
+                { key: "utilities", label: "Utilities", icon: "🔧" },
+              ].map((item) => (
+                <button
+                  key={item.key}
+                  onClick={() => {
+                    setViewMode(item.key);
+                    setIsSidebarOpen(false);
+                  }}
+                  className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-semibold transition-all duration-200 ${
+                    viewMode === item.key
+                      ? "bg-blue-600 text-white shadow-md shadow-blue-600/10"
+                      : "text-slate-600 hover:bg-slate-50 hover:text-blue-600"
+                  }`}
+                >
+                  <span className="text-lg">{item.icon}</span>
+                  <span>{item.label}</span>
+                </button>
+              ))}
+            </nav>
+
+            {/* Footer with user info & logout */}
+            <div className="p-4 border-t border-slate-100 bg-slate-50/50 space-y-3">
+              <button
+                onClick={() => {
+                  navigate("/superadmin/profile");
+                  setIsSidebarOpen(false);
+                }}
+                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 transition-all border border-transparent hover:border-slate-200"
+              >
+                <span>👤</span>
+                <span>Profile</span>
+              </button>
+              <button
+                onClick={() => {
+                  const user = authService.getCurrentUser();
+                  const sid = user?.school_id;
+                  logout();
+                  if (sid) {
+                    navigate(`/school/${sid}`);
+                  } else {
+                    navigate("/");
+                  }
+                  setIsSidebarOpen(false);
+                }}
+                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold text-red-500 hover:bg-red-50 transition-all border border-transparent hover:border-red-100"
+              >
+                <span>🚪</span>
+                <span>Sign Out</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-12">
-          <div>
-            <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Platform Overview</h1>
-            <p className="text-slate-500 mt-1 text-sm font-medium">Managing multi-tenant infrastructure for Multiple Schools</p>
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 mb-8 lg:mb-12">
+          <div className="flex items-center gap-4">
+            {/* Hamburger Button for Mobile/Tablet */}
+            <button
+              onClick={() => setIsSidebarOpen(true)}
+              className="lg:hidden p-2 rounded-xl bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 transition-all shadow-sm"
+              aria-label="Open Navigation"
+            >
+              <svg
+                className="w-6 h-6"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M4 6h16M4 12h16M4 18h16"
+                ></path>
+              </svg>
+            </button>
+            <div>
+              <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-slate-900 tracking-tight">Platform Overview</h1>
+              <p className="text-[10px] sm:text-xs md:text-sm text-slate-500 mt-1 font-medium">Managing multi-tenant infrastructure for Multiple Schools</p>
+            </div>
           </div>
 
-          <div className="flex items-center gap-6">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 sm:gap-6 w-full lg:w-auto">
             {/* Toggle Switch */}
-            <div className="bg-slate-100 p-1.5 rounded-2xl flex items-center shadow-inner border border-slate-200">
+            <div className="bg-slate-100 p-1 sm:p-1.5 rounded-xl sm:rounded-2xl flex items-center shadow-inner border border-slate-200 justify-between w-full sm:w-auto gap-0.5 sm:gap-1">
               <button
                 onClick={() => setViewMode('institutions')}
-                className={`px-8 py-2.5 rounded-xl text-xs font-bold transition-all ${viewMode === 'institutions' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+                className={`flex-1 sm:flex-none text-center px-2 sm:px-8 py-2 sm:py-2.5 rounded-lg sm:rounded-xl text-[9px] sm:text-xs font-bold transition-all ${viewMode === 'institutions' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
               >
                 Institutions
               </button>
               <button
                 onClick={() => setViewMode('dealers')}
-                className={`px-8 py-2.5 rounded-xl text-xs font-bold transition-all ${viewMode === 'dealers' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+                className={`flex-1 sm:flex-none text-center px-2 sm:px-8 py-2 sm:py-2.5 rounded-lg sm:rounded-xl text-[9px] sm:text-xs font-bold transition-all ${viewMode === 'dealers' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
               >
                 Dealers
               </button>
               <button
                 onClick={() => setViewMode('utilities')}
-                className={`px-8 py-2.5 rounded-xl text-xs font-bold transition-all ${viewMode === 'utilities' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+                className={`flex-1 sm:flex-none text-center px-2 sm:px-8 py-2 sm:py-2.5 rounded-lg sm:rounded-xl text-[9px] sm:text-xs font-bold transition-all ${viewMode === 'utilities' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
               >
                 Utilities
               </button>
@@ -341,14 +462,14 @@ export default function SuperAdminDashboard() {
             {viewMode === 'institutions' ? (
               <button
                 onClick={() => setIsModalOpen(true)}
-                className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3.5 rounded-2xl text-sm font-bold shadow-2xl shadow-blue-600/20 transition-all active:scale-[0.98]"
+                className="w-full sm:w-auto text-center bg-blue-600 hover:bg-blue-700 text-white px-4 sm:px-8 py-2 sm:py-3.5 rounded-xl sm:rounded-2xl text-xs sm:text-sm font-bold shadow-2xl shadow-blue-600/20 transition-all active:scale-[0.98]"
               >
                 + Create Institution
               </button>
             ) : viewMode === 'dealers' ? (
               <button
                 onClick={() => setIsDealerModalOpen(true)}
-                className="bg-slate-900 hover:bg-slate-800 text-white px-8 py-3.5 rounded-2xl text-sm font-bold shadow-2xl shadow-slate-900/20 transition-all active:scale-[0.98]"
+                className="w-full sm:w-auto text-center bg-slate-900 hover:bg-slate-800 text-white px-4 sm:px-8 py-2 sm:py-3.5 rounded-xl sm:rounded-2xl text-xs sm:text-sm font-bold shadow-2xl shadow-slate-900/20 transition-all active:scale-[0.98]"
               >
                 + Create New Dealer
               </button>
@@ -358,24 +479,24 @@ export default function SuperAdminDashboard() {
 
         {/* Stats Grid */}
         {viewMode !== 'utilities' && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
+          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6 lg:gap-8 mb-6 lg:mb-12">
             {stats.map((s, i) => (
-              <div key={i} className="bg-white border border-slate-200 p-8 rounded-[2rem] shadow-sm">
-                <div className="text-3xl mb-4">{s.icon}</div>
-                <p className="text-sm font-bold text-slate-400 uppercase tracking-widest leading-none mb-1">{s.label}</p>
-                <p className="text-3xl font-bold text-slate-900 font-outfit leading-tight">{s.value}</p>
+              <div key={i} className="bg-white border border-slate-200 p-3 sm:p-8 rounded-xl sm:rounded-[2rem] shadow-sm">
+                <div className="text-lg sm:text-3xl mb-1 sm:mb-4">{s.icon}</div>
+                <p className="text-[8px] sm:text-sm font-bold text-slate-400 uppercase tracking-wider mb-1 sm:mb-2">{s.label}</p>
+                <p className="text-base sm:text-3xl font-bold text-slate-900 font-outfit leading-tight">{s.value}</p>
               </div>
             ))}
           </div>
         )}
 
         {viewMode !== 'utilities' && (
-          <div className="bg-white border border-slate-200 rounded-[2.5rem] overflow-hidden shadow-sm">
-            <div className="px-10 py-8 border-b border-slate-100 flex items-center justify-between">
-              <h2 className="text-xl font-bold text-slate-900">
+          <div className="bg-white border border-slate-200 rounded-xl sm:rounded-[2.5rem] overflow-hidden shadow-sm">
+            <div className="px-4 py-4 sm:px-10 sm:py-8 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-4">
+              <h2 className="text-lg sm:text-xl font-bold text-slate-900">
                 {viewMode === 'institutions' ? 'Direct Institutions' : 'Authorized Dealers'}
               </h2>
-              <div className="text-[10px] font-bold text-slate-400 bg-slate-50 px-4 py-2 rounded-full uppercase tracking-widest">
+              <div className="text-[9px] sm:text-[10px] font-bold text-slate-400 bg-slate-50 px-3 py-1.5 sm:px-4 sm:py-2 rounded-full uppercase tracking-widest self-start sm:self-auto">
                 {viewMode === 'institutions' ? 'Superadmin Managed' : 'Network Partners'}
               </div>
             </div>
@@ -384,75 +505,75 @@ export default function SuperAdminDashboard() {
               {viewMode === 'institutions' ? (
                 <table className="w-full text-left">
                   <thead>
-                    <tr className="bg-slate-50 text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">
-                      <th className="px-10 py-5">Institution</th>
-                      <th className="px-10 py-5">Platform ID</th>
-                      <th className="px-10 py-5">Capacity</th>
-                      <th className="px-10 py-5">Status</th>
-                      <th className="px-6 py-5 text-right">Operations</th>
+                    <tr className="bg-slate-50 text-[9px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] whitespace-nowrap">
+                      <th className="px-4 sm:px-10 py-3 sm:py-5">Institution</th>
+                      <th className="px-4 sm:px-10 py-3 sm:py-5">Platform ID</th>
+                      <th className="px-4 sm:px-10 py-3 sm:py-5">Capacity</th>
+                      <th className="px-4 sm:px-10 py-3 sm:py-5">Status</th>
+                      <th className="px-4 py-3 sm:py-5 text-right">Operations</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
                     {schools.filter(s => s.dealer === null).map((school) => (
                       <tr key={school.id} className="hover:bg-slate-50/50 transition-colors">
-                        <td className="px-10 py-6">
-                          <div className="flex items-center gap-4">
-                            <div className="w-12 h-12 bg-slate-100 rounded-xl flex items-center justify-center text-slate-400 font-bold text-lg overflow-hidden border border-slate-200">
+                        <td className="px-4 sm:px-10 py-3 sm:py-6 whitespace-nowrap">
+                          <div className="flex items-center gap-3 sm:gap-4">
+                            <div className="w-9 h-9 sm:w-12 sm:h-12 bg-slate-100 rounded-lg sm:rounded-xl flex items-center justify-center text-slate-400 font-bold text-base sm:text-lg overflow-hidden border border-slate-200">
                               {school.logo ? <img src={school.logo} alt="" className="w-full h-full object-cover" /> : school.name[0]}
                             </div>
                             <div>
-                              <p className="text-sm font-bold text-slate-900 leading-none">{school.name}</p>
-                              <p className="text-xs text-slate-400 mt-1.5">{school.contact_email}</p>
+                              <p className="text-xs sm:text-sm font-bold text-slate-900 leading-none">{school.name}</p>
+                              <p className="text-[10px] sm:text-xs text-slate-400 mt-1 sm:mt-1.5">{school.contact_email}</p>
                             </div>
                           </div>
                         </td>
-                        <td className="px-10 py-6">
-                          <span className="text-xs font-mono font-bold text-blue-600 bg-blue-50 px-3 py-1.5 rounded-lg border border-blue-100">
+                        <td className="px-4 sm:px-10 py-3 sm:py-6 whitespace-nowrap">
+                          <span className="text-[10px] sm:text-xs font-mono font-bold text-blue-600 bg-blue-50 px-2.5 py-1 rounded-md sm:rounded-lg border border-blue-100">
                             {school.school_id}
                           </span>
                         </td>
-                        <td className="px-10 py-6">
-                          <div className="flex items-center gap-6">
+                        <td className="px-4 sm:px-10 py-3 sm:py-6 whitespace-nowrap">
+                          <div className="flex items-center gap-4 sm:gap-6">
                             <div>
                               <p className="text-xs font-bold text-slate-900 leading-none">{school.student_count || 0}</p>
-                              <p className="text-[10px] text-slate-400 font-bold uppercase mt-1">Students</p>
+                              <p className="text-[9px] sm:text-[10px] text-slate-400 font-bold uppercase mt-0.5 sm:mt-1">Students</p>
                             </div>
                             <div>
                               <p className="text-xs font-bold text-slate-900 leading-none">{school.teacher_count || 0}</p>
-                              <p className="text-[10px] text-slate-400 font-bold uppercase mt-1">Teachers</p>
+                              <p className="text-[9px] sm:text-[10px] text-slate-400 font-bold uppercase mt-0.5 sm:mt-1">Teachers</p>
                             </div>
                           </div>
                         </td>
-                        <td className="px-10 py-6">
-                          <div className="flex items-center gap-2">
-                            <span className={`w-2 h-2 rounded-full ${school.is_active ? 'bg-green-500' : 'bg-red-500'} animate-pulse`}></span>
-                            <span className={`text-[10px] font-bold uppercase tracking-widest ${school.is_active ? 'text-green-600' : 'text-red-600'}`}>
+                        <td className="px-4 sm:px-10 py-3 sm:py-6 whitespace-nowrap">
+                          <div className="flex items-center gap-1.5 sm:gap-2">
+                            <span className={`w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full ${school.is_active ? 'bg-green-500' : 'bg-red-500'} animate-pulse`}></span>
+                            <span className={`text-[9px] sm:text-[10px] font-bold uppercase tracking-widest ${school.is_active ? 'text-green-600' : 'text-red-600'}`}>
                               {school.is_active ? 'Online' : 'Suspended'}
                             </span>
                           </div>
                         </td>
-                        <td className="px-6 py-6 text-right whitespace-nowrap space-x-2">
+                        <td className="px-4 py-3 sm:py-6 text-right whitespace-nowrap space-x-1.5 sm:space-x-2">
                           <button
                             onClick={() => handleViewDetail(school)}
-                            className="text-[10px] font-bold uppercase tracking-widest px-4 py-2 rounded-lg border border-blue-100 text-blue-600 hover:bg-blue-50 transition-all"
+                            className="text-[9px] sm:text-[10px] font-bold uppercase tracking-widest px-2.5 py-1.5 rounded-md sm:rounded-lg border border-blue-100 text-blue-600 hover:bg-blue-50 transition-all"
                           >
                             View
                           </button>
                           <button
                             onClick={() => handleEditClick(school)}
-                            className="text-[10px] font-bold uppercase tracking-widest px-4 py-2 rounded-lg border border-indigo-100 text-indigo-600 hover:bg-indigo-50 transition-all"
+                            className="text-[9px] sm:text-[10px] font-bold uppercase tracking-widest px-2.5 py-1.5 rounded-md sm:rounded-lg border border-indigo-100 text-indigo-600 hover:bg-indigo-50 transition-all"
                           >
                             Edit
                           </button>
                           <button
                             onClick={() => handleIDCardRedirect(school)}
-                            className="text-[10px] font-bold uppercase tracking-widest px-4 py-2 rounded-lg border border-amber-100 text-amber-600 hover:bg-amber-50 transition-all"
+                            className="text-[9px] sm:text-[10px] font-bold uppercase tracking-widest px-2.5 py-1.5 rounded-md sm:rounded-lg border border-amber-100 text-amber-600 hover:bg-amber-50 transition-all"
                           >
                             ID Card
                           </button>
                           <button
                             onClick={() => toggleSchoolStatus(school.id, school.is_active)}
-                            className={`text-[10px] font-bold uppercase tracking-widest px-4 py-2 rounded-lg border transition-all
+                            className={`text-[9px] sm:text-[10px] font-bold uppercase tracking-widest px-2.5 py-1.5 rounded-md sm:rounded-lg border transition-all
                               ${school.is_active
                                 ? 'text-red-500 border-red-100 hover:bg-red-50'
                                 : 'text-green-500 border-green-100 hover:bg-green-50'}`}
@@ -467,48 +588,48 @@ export default function SuperAdminDashboard() {
               ) : (
                 <table className="w-full text-left">
                   <thead>
-                    <tr className="bg-slate-50 text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">
-                      <th className="px-10 py-5">Dealer Profile</th>
-                      <th className="px-10 py-5">Location</th>
-                      <th className="px-10 py-5">Managed Schools</th>
-                      <th className="px-10 py-5">Login Access</th>
-                      <th className="px-10 py-5 text-right">Operations</th>
+                    <tr className="bg-slate-50 text-[9px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] whitespace-nowrap">
+                      <th className="px-4 sm:px-10 py-3 sm:py-5">Dealer Profile</th>
+                      <th className="px-4 sm:px-10 py-3 sm:py-5">Location</th>
+                      <th className="px-4 sm:px-10 py-3 sm:py-5">Managed Schools</th>
+                      <th className="px-4 sm:px-10 py-3 sm:py-5">Login Access</th>
+                      <th className="px-4 sm:px-10 py-3 sm:py-5 text-right">Operations</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
                     {dealers.map((dealer) => (
                       <tr key={dealer.id} className="hover:bg-slate-50/50 transition-colors">
-                        <td className="px-10 py-6">
-                          <div className="flex items-center gap-4">
-                            <div className="w-12 h-12 bg-slate-900 rounded-xl flex items-center justify-center text-white font-bold text-lg border border-slate-800">
+                        <td className="px-4 sm:px-10 py-3 sm:py-6 whitespace-nowrap">
+                          <div className="flex items-center gap-3 sm:gap-4">
+                            <div className="w-9 h-9 sm:w-12 sm:h-12 bg-slate-900 rounded-lg sm:rounded-xl flex items-center justify-center text-white font-bold text-base sm:text-lg border border-slate-800">
                               {dealer.name[0]}
                             </div>
                             <div>
-                              <p className="text-sm font-bold text-slate-900 leading-none">{dealer.name}</p>
-                              <p className="text-xs text-slate-400 mt-1.5">{dealer.email}</p>
+                              <p className="text-xs sm:text-sm font-bold text-slate-900 leading-none">{dealer.name}</p>
+                              <p className="text-[10px] sm:text-xs text-slate-400 mt-1 sm:mt-1.5">{dealer.email}</p>
                             </div>
                           </div>
                         </td>
-                        <td className="px-10 py-6">
-                          <span className="text-xs font-bold text-slate-600">
+                        <td className="px-4 sm:px-10 py-3 sm:py-6 whitespace-nowrap">
+                          <span className="text-[10px] sm:text-xs font-bold text-slate-600">
                             {dealer.location}
                           </span>
                         </td>
-                        <td className="px-10 py-6">
-                          <div className="flex items-center gap-2">
-                            <span className="text-sm font-bold text-slate-900">{dealer.school_count}</span>
-                            <span className="text-[10px] text-slate-400 font-bold uppercase">Units</span>
+                        <td className="px-4 sm:px-10 py-3 sm:py-6 whitespace-nowrap">
+                          <div className="flex items-center gap-1.5 sm:gap-2">
+                            <span className="text-xs sm:text-sm font-bold text-slate-900">{dealer.school_count}</span>
+                            <span className="text-[9px] sm:text-[10px] text-slate-400 font-bold uppercase">Units</span>
                           </div>
                         </td>
-                        <td className="px-10 py-6">
-                          <div className="flex items-center gap-2">
-                            <span className={`w-2 h-2 rounded-full ${dealer.is_active ? 'bg-indigo-500' : 'bg-red-500'} animate-pulse`}></span>
-                            <span className={`text-[10px] font-bold uppercase tracking-widest ${dealer.is_active ? 'text-indigo-600' : 'text-red-600'}`}>
+                        <td className="px-4 sm:px-10 py-3 sm:py-6 whitespace-nowrap">
+                          <div className="flex items-center gap-1.5 sm:gap-2">
+                            <span className={`w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full ${dealer.is_active ? 'bg-indigo-500' : 'bg-red-500'} animate-pulse`}></span>
+                            <span className={`text-[9px] sm:text-[10px] font-bold uppercase tracking-widest ${dealer.is_active ? 'text-indigo-600' : 'text-red-600'}`}>
                               {dealer.is_active ? 'Authorized' : 'Suspended'}
                             </span>
                           </div>
                         </td>
-                        <td className="px-10 py-6 text-right space-x-3">
+                        <td className="px-4 sm:px-10 py-3 sm:py-6 text-right whitespace-nowrap space-x-1.5 sm:space-x-3">
                           <button
                             onClick={() => {
                               setViewingSchool({
@@ -521,13 +642,13 @@ export default function SuperAdminDashboard() {
                               });
                               setIsViewModalOpen(true);
                             }}
-                            className="text-[10px] font-bold uppercase tracking-widest px-4 py-2 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 transition-all"
+                            className="text-[9px] sm:text-[10px] font-bold uppercase tracking-widest px-2.5 py-1.5 rounded-md sm:rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 transition-all"
                           >
                             View Detail
                           </button>
                           <button
                             onClick={() => toggleDealerStatus(dealer.id)}
-                            className={`text-[10px] font-bold uppercase tracking-widest px-4 py-2 rounded-lg border transition-all
+                            className={`text-[9px] sm:text-[10px] font-bold uppercase tracking-widest px-2.5 py-1.5 rounded-md sm:rounded-lg border transition-all
                               ${dealer.is_active
                                 ? 'text-red-500 border-red-100 hover:bg-red-50'
                                 : 'text-indigo-500 border-indigo-100 hover:bg-indigo-50'}`}
@@ -546,21 +667,21 @@ export default function SuperAdminDashboard() {
 
         {/* Create School Modal */}
         {isModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-300">
-            <div className="bg-white w-full max-w-2xl rounded-[3rem] shadow-2xl p-12 relative max-h-[90vh] overflow-y-auto no-scrollbar">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-6 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-300">
+            <div className="bg-white w-full max-w-2xl rounded-2xl sm:rounded-[3rem] shadow-2xl p-4 sm:p-12 relative max-h-[90vh] overflow-y-auto no-scrollbar">
               <button
                 onClick={() => setIsModalOpen(false)}
-                className="absolute top-8 right-8 text-slate-400 hover:text-slate-900 text-2xl transition-colors"
+                className="absolute top-4 right-4 sm:top-8 sm:right-8 text-slate-400 hover:text-slate-900 text-xl sm:text-2xl transition-colors"
               >✕</button>
 
-              <h2 className="text-3xl font-bold text-slate-900 mb-2 tracking-tight">{isEditMode ? 'Update Institutional Profile' : 'Register New School'}</h2>
-              <p className="text-slate-500 mb-10 text-sm font-medium">{isEditMode ? 'Modify branding, stats and configuration.' : 'Create a new isolated tenant environment.'}</p>
+              <h2 className="text-xl sm:text-3xl font-bold text-slate-900 mb-1 sm:mb-2 tracking-tight">{isEditMode ? 'Update Institutional Profile' : 'Register New School'}</h2>
+              <p className="text-slate-500 mb-6 sm:mb-10 text-xs sm:text-sm font-medium">{isEditMode ? 'Modify branding, stats and configuration.' : 'Create a new isolated tenant environment.'}</p>
 
-              <form onSubmit={isEditMode ? handleUpdateSchool : handleCreateSchool} className="space-y-10">
+              <form onSubmit={isEditMode ? handleUpdateSchool : handleCreateSchool} className="space-y-6 sm:space-y-10">
                 {!isEditMode && (
                   <div className="space-y-6">
                     <p className="text-[10px] font-bold text-blue-600 uppercase tracking-[0.3em] border-b border-blue-50 pb-2">Institutional Profile</p>
-                    <div className="grid grid-cols-2 gap-6">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                       <div className="space-y-2">
                         <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">School Name</label>
                         <input
@@ -623,7 +744,7 @@ export default function SuperAdminDashboard() {
                 {!isEditMode && (
                   <div className="space-y-6">
                     <p className="text-[10px] font-bold text-blue-600 uppercase tracking-[0.3em] border-b border-blue-50 pb-2">Communication Details</p>
-                    <div className="grid grid-cols-2 gap-6">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                       <div className="space-y-2">
                         <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Contact Email</label>
                         <input
@@ -675,7 +796,7 @@ export default function SuperAdminDashboard() {
                 {!isEditMode && (
                   <div className="space-y-6">
                     <p className="text-[10px] font-bold text-blue-600 uppercase tracking-[0.3em] border-b border-blue-50 pb-2">Academic Standards & Performance</p>
-                    <div className="grid grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                       <div className="space-y-2">
                         <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Board</label>
                         <input
@@ -710,7 +831,7 @@ export default function SuperAdminDashboard() {
                         />
                       </div>
                     </div>
-                    <div className="grid grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                       <div className="space-y-2">
                         <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Students</label>
                         <input
@@ -750,7 +871,7 @@ export default function SuperAdminDashboard() {
 
                 <div className="space-y-6">
                   <p className="text-[10px] font-bold text-blue-600 uppercase tracking-[0.3em] border-b border-blue-50 pb-2">Rich Media & Branding</p>
-                  <div className="grid grid-cols-2 gap-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                     <div className="space-y-2">
                       <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">School Logo</label>
                       <input
@@ -776,7 +897,7 @@ export default function SuperAdminDashboard() {
 
                 <div className="space-y-6">
                   <p className="text-[10px] font-bold text-blue-600 uppercase tracking-[0.3em] border-b border-blue-50 pb-2">Landing Page Configuration</p>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     {[
                       { key: 'show_facilities', label: 'Show Facilities Section' },
                       { key: 'show_events', label: 'Show Events Section' },
@@ -800,7 +921,7 @@ export default function SuperAdminDashboard() {
                   <div className="space-y-6">
                     <p className="text-[10px] font-bold text-blue-600 uppercase tracking-[0.3em] border-b border-blue-50 pb-2">Administrative Root Account</p>
 
-                    <div className="grid grid-cols-2 gap-6">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                       <div className="space-y-2">
                         <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Admin Full Name</label>
                         <input
@@ -824,7 +945,7 @@ export default function SuperAdminDashboard() {
                         />
                       </div>
                     </div>
-                    <div className="grid grid-cols-2 gap-6">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                       <div className="space-y-2">
                         <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Username</label>
                         <input
@@ -851,17 +972,17 @@ export default function SuperAdminDashboard() {
                   </div>
                 )}
 
-                <div className="pt-4 flex gap-4">
+                <div className="pt-4 flex flex-col sm:flex-row gap-4">
                   <button
                     type="button"
                     onClick={() => { setIsModalOpen(false); setIsEditMode(false); }}
-                    className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold py-5 rounded-2xl transition-all active:scale-[0.98] text-sm tracking-wide"
+                    className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold py-3 sm:py-5 rounded-xl sm:rounded-2xl transition-all active:scale-[0.98] text-xs sm:text-sm tracking-wide"
                   >
                     Cancel Edit
                   </button>
                   <button
                     type="submit"
-                    className="flex-[2] bg-blue-600 hover:bg-blue-700 text-white font-bold py-5 rounded-2xl shadow-2xl shadow-blue-600/20 transition-all active:scale-[0.98] text-sm tracking-wide"
+                    className="flex-[2] bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 sm:py-5 rounded-xl sm:rounded-2xl shadow-2xl shadow-blue-600/20 transition-all active:scale-[0.98] text-xs sm:text-sm tracking-wide"
                   >
                     {isEditMode ? 'Commit Changes' : 'Initialize Tenant Infrastructure'}
                   </button>
@@ -873,20 +994,20 @@ export default function SuperAdminDashboard() {
 
         {/* Create Dealer Modal */}
         {isDealerModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-300">
-            <div className="bg-white w-full max-w-2xl rounded-[3rem] shadow-2xl p-12 relative max-h-[90vh] overflow-y-auto no-scrollbar">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-6 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-300">
+            <div className="bg-white w-full max-w-2xl rounded-2xl sm:rounded-[3rem] shadow-2xl p-4 sm:p-12 relative max-h-[90vh] overflow-y-auto no-scrollbar">
               <button
                 onClick={() => setIsDealerModalOpen(false)}
-                className="absolute top-8 right-8 text-slate-400 hover:text-slate-900 text-2xl transition-colors"
+                className="absolute top-4 right-4 sm:top-8 sm:right-8 text-slate-400 hover:text-slate-900 text-xl sm:text-2xl transition-colors"
               >✕</button>
 
-              <h2 className="text-3xl font-bold text-slate-900 mb-2 tracking-tight">Onboard New Dealer</h2>
-              <p className="text-slate-500 mb-10 text-sm font-medium">Create an independent dealer account for platform expansion.</p>
+              <h2 className="text-xl sm:text-3xl font-bold text-slate-900 mb-1 sm:mb-2 tracking-tight">Onboard New Dealer</h2>
+              <p className="text-slate-500 mb-6 sm:mb-10 text-xs sm:text-sm font-medium">Create an independent dealer account for platform expansion.</p>
 
-              <form onSubmit={handleCreateDealer} className="space-y-10">
+              <form onSubmit={handleCreateDealer} className="space-y-6 sm:space-y-10">
                 <div className="space-y-6">
                   <p className="text-[10px] font-bold text-blue-600 uppercase tracking-[0.3em] border-b border-blue-50 pb-2">Dealer Profile</p>
-                  <div className="grid grid-cols-2 gap-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                     <div className="space-y-2">
                       <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Dealer Name</label>
                       <input
@@ -925,7 +1046,7 @@ export default function SuperAdminDashboard() {
 
                 <div className="space-y-6">
                   <p className="text-[10px] font-bold text-blue-600 uppercase tracking-[0.3em] border-b border-blue-50 pb-2">Dealer Login Account</p>
-                  <div className="grid grid-cols-2 gap-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                     <div className="space-y-2">
                       <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Username</label>
                       <input
@@ -965,7 +1086,7 @@ export default function SuperAdminDashboard() {
                 <div className="pt-4">
                   <button
                     type="submit"
-                    className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-5 rounded-2xl shadow-2xl shadow-slate-900/20 transition-all active:scale-[0.98] text-sm tracking-wide"
+                    className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-3 sm:py-5 rounded-xl sm:rounded-2xl shadow-2xl shadow-slate-900/20 transition-all active:scale-[0.98] text-xs sm:text-sm tracking-wide"
                   >
                     Confirm Registration
                   </button>
@@ -977,27 +1098,27 @@ export default function SuperAdminDashboard() {
 
         {/* View Detail Modal (Unified for Institutions and Dealer Managed Schools) */}
         {isViewModalOpen && viewingSchool && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-300">
-            <div className="bg-white w-full max-w-2xl rounded-[3rem] shadow-2xl p-12 relative max-h-[90vh] overflow-y-auto no-scrollbar font-inter">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-6 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-300">
+            <div className="bg-white w-full max-w-2xl rounded-2xl sm:rounded-[3rem] shadow-2xl p-4 sm:p-12 relative max-h-[90vh] overflow-y-auto no-scrollbar font-inter">
               <button
                 onClick={() => { setIsViewModalOpen(false); setViewingAdmins([]); setViewingSchool(null); }}
-                className="absolute top-8 right-8 text-slate-400 hover:text-slate-900 text-2xl transition-colors"
+                className="absolute top-4 right-4 sm:top-8 sm:right-8 text-slate-400 hover:text-slate-900 text-xl sm:text-2xl transition-colors"
               >✕</button>
 
-              <div className="flex items-center gap-6 mb-10">
-                <div className="w-20 h-20 bg-slate-100 rounded-3xl flex items-center justify-center text-slate-400 font-bold text-3xl overflow-hidden border border-slate-200">
+              <div className="flex items-center gap-4 sm:gap-6 mb-6 sm:mb-10">
+                <div className="w-14 h-14 sm:w-20 sm:h-20 bg-slate-100 rounded-xl sm:rounded-3xl flex items-center justify-center text-slate-400 font-bold text-xl sm:text-3xl overflow-hidden border border-slate-200">
                   {viewingSchool.logo ? <img src={viewingSchool.logo} alt="" className="w-full h-full object-cover" /> : (viewingSchool.name?.[0] || 'D')}
                 </div>
                 <div>
-                  <h2 className="text-3xl font-bold text-slate-900 tracking-tight">{viewingSchool.name}</h2>
-                  {viewingSchool.school_id && <p className="text-blue-600 font-mono text-sm font-bold mt-1">ID: {viewingSchool.school_id}</p>}
+                  <h2 className="text-xl sm:text-3xl font-bold text-slate-900 tracking-tight">{viewingSchool.name}</h2>
+                  {viewingSchool.school_id && <p className="text-blue-600 font-mono text-xs sm:text-sm font-bold mt-1">ID: {viewingSchool.school_id}</p>}
                 </div>
               </div>
 
               {viewingSchool.schools ? (
                 /* Dealer Schools List View */
                 <div className="space-y-8">
-                  <div className="grid grid-cols-2 gap-8 mb-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-8 mb-6">
                     <div>
                       <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Dealer Email</p>
                       <p className="text-sm font-semibold text-slate-900">{viewingSchool.email || 'Not Provided'}</p>
@@ -1009,14 +1130,14 @@ export default function SuperAdminDashboard() {
                   </div>
 
                   <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.3em] border-b border-slate-50 pb-2">Managed Institutions</p>
-                  <div className="grid grid-cols-1 gap-4">
+                  <div className="grid grid-cols-1 gap-3 sm:gap-4">
                     {viewingSchool.schools && viewingSchool.schools.map((s) => (
-                      <div key={s.id} className="flex items-center justify-between p-6 bg-slate-50 rounded-2xl border border-slate-100">
+                      <div key={s.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 sm:p-6 bg-slate-50 rounded-xl sm:rounded-2xl border border-slate-100 gap-3">
                         <div>
                           <p className="text-sm font-bold text-slate-900">{s.name}</p>
                           <p className="text-xs font-mono text-slate-400 mt-1">{s.school_id}</p>
                         </div>
-                        <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-3 sm:gap-4">
                           <span className={`text-[10px] font-bold uppercase tracking-widest ${s.is_active ? 'text-green-600' : 'text-red-600'}`}>
                             {s.is_active ? 'Online' : 'Suspended'}
                           </span>
@@ -1035,11 +1156,11 @@ export default function SuperAdminDashboard() {
                   </div>
                 </div>
               ) : (
-                /* Single School Detail View */
-                <div className="space-y-10">
-                  <div className="space-y-4">
+                 /* Single School Detail View */
+                <div className="space-y-6 sm:space-y-10">
+                  <div className="space-y-3 sm:space-y-4">
                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.3em] border-b border-slate-50 pb-2">Institutional Profile</p>
-                    <div className="grid grid-cols-2 gap-8">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-8">
                       <div>
                         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Contact Email</p>
                         <p className="text-sm font-semibold text-slate-900">{viewingSchool.contact_email || 'Not Provided'}</p>
@@ -1057,17 +1178,17 @@ export default function SuperAdminDashboard() {
                     </div>
                   </div>
 
-                  <div className="space-y-4">
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.3em] border-b border-slate-50 pb-2">Institutional Capacity</p>
-                    <div className="grid grid-cols-2 gap-8">
-                      <div className="bg-slate-50 p-6 rounded-2xl border border-slate-100 flex items-center justify-between">
+                  <div className="space-y-3 sm:space-y-4">
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.3em] border-b border-blue-50 pb-2">Institutional Capacity</p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-8">
+                      <div className="bg-slate-50 p-4 sm:p-6 rounded-xl sm:rounded-2xl border border-slate-100 flex items-center justify-between">
                         <div>
                           <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Active Students</p>
                           <p className="text-2xl font-bold text-slate-900 leading-none">{viewingSchool.student_count || 0}</p>
                         </div>
                         <span className="text-2xl opacity-50">🎓</span>
                       </div>
-                      <div className="bg-slate-50 p-6 rounded-2xl border border-slate-100 flex items-center justify-between">
+                      <div className="bg-slate-50 p-4 sm:p-6 rounded-xl sm:rounded-2xl border border-slate-100 flex items-center justify-between">
                         <div>
                           <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Active Teachers</p>
                           <p className="text-2xl font-bold text-slate-900 leading-none">{viewingSchool.teacher_count || 0}</p>
@@ -1077,13 +1198,13 @@ export default function SuperAdminDashboard() {
                     </div>
                   </div>
 
-                  <div className="space-y-4">
+                  <div className="space-y-3 sm:space-y-4">
                     <p className="text-[10px] font-bold text-blue-600 uppercase tracking-[0.3em] border-b border-blue-50 pb-2">Administrative Root Access</p>
                     {viewingAdmins.length > 0 ? (
-                      <div className="space-y-6">
+                      <div className="space-y-4 sm:space-y-6">
                         {viewingAdmins.map((admin, idx) => (
-                          <div key={idx} className="bg-slate-50 rounded-2xl p-6 border border-slate-100">
-                            <div className="grid grid-cols-2 gap-6">
+                          <div key={idx} className="bg-slate-50 rounded-xl sm:rounded-2xl p-4 sm:p-6 border border-slate-100">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                               <div>
                                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Admin Name</p>
                                 <p className="text-sm font-bold text-slate-900">{admin.name}</p>
@@ -1101,7 +1222,7 @@ export default function SuperAdminDashboard() {
                         ))}
                       </div>
                     ) : (
-                      <div className="p-8 text-center bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+                      <div className="p-6 sm:p-8 text-center bg-slate-50 rounded-xl sm:rounded-2xl border border-dashed border-slate-200">
                         <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Loading administrative data...</p>
                       </div>
                     )}
@@ -1109,10 +1230,10 @@ export default function SuperAdminDashboard() {
                 </div>
               )}
 
-              <div className="mt-12">
+              <div className="mt-6 sm:mt-12">
                 <button
                   onClick={() => { setIsViewModalOpen(false); setViewingAdmins([]); setViewingSchool(null); }}
-                  className="w-full bg-slate-900 text-white font-bold py-4 rounded-2xl text-sm transition-all active:scale-[0.98]"
+                  className="w-full bg-slate-900 text-white font-bold py-3 sm:py-4 rounded-xl sm:rounded-2xl text-sm transition-all active:scale-[0.98]"
                 >
                   Close Profile
                 </button>
@@ -1121,7 +1242,7 @@ export default function SuperAdminDashboard() {
           </div>
         )}
         {viewMode === 'utilities' && (
-          <div className="bg-white border border-slate-200 rounded-[2rem] p-12 shadow-sm animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <div className="bg-white border border-slate-200 rounded-2xl sm:rounded-[2rem] p-4 sm:p-12 shadow-sm animate-in fade-in slide-in-from-bottom-4 duration-500">
             <div className="max-w-2xl">
               <h2 className="text-2xl font-bold text-slate-900 mb-2">ID Card Center</h2>
               <p className="text-slate-500 mb-10">Generate bulk ID cards for any institution in the platform. Cards are formatted in a 2x5 grid on A4 pages.</p>

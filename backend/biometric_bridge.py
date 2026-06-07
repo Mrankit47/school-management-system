@@ -10,7 +10,7 @@ DEVICE_IP = '192.168.0.103'
 DEVICE_PORT = 4370         # Z500V2 custom TCP Port (from machine settings)
 SCHOOL_ID = 'DEFAULT'            # !!! UNIQUE SCHOOL ID (e.g. 'school_01', 'school_02' etc. as per DB)
 SERVER_URL = 'https://school-management-system-l12n.onrender.com/api/attendance/biometric-punch/' 
-DEVICE_SECRET_KEY = 'y0ur_Sup3r_S3cr3t_B1om3tr1c_K3y_987'  # Django settings se match hona chahiye
+DEVICE_SECRET_KEY = 'y0ur_Sup3r_S3cr3t_B1om3tr1c_K3y_987'  # Must match the configured key in Django settings
 # =========================================================================
 
 def start_bridge():
